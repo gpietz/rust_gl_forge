@@ -107,6 +107,8 @@ impl SdlWindow {
         let a = self.clear_color.a;
 
         unsafe {
+            // The bits that can be cleared include GL_COLOR_BUFFER_BIT, GL_DEPTH_BUFFER_BIT, and GL_STENCIL_BUFFER_BIT.
+            // We clear only the color buffer unless the depth or stencil values are also required.
             gl::ClearColor(r,g,b,a);
             gl::Clear(gl::COLOR_BUFFER_BIT);
         }
