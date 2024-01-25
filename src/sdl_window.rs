@@ -21,7 +21,8 @@ impl SdlWindow {
     /// Creates a new `SdlWindow` with OpenGL context.
     ///
     /// This function initializes the SDL2 library and creates a new window with the specified width, height, and title.
-    /// It sets up the video subsystem, initializes an OpenGL context, and optionally enables VSync based on the `enable_vsync` parameter.
+    /// It sets up the video subsystem, initializes an OpenGL context, and optionally enables VSync based on the
+    /// `enable_vsync` parameter.
     ///
     /// # Arguments
     ///
@@ -34,8 +35,8 @@ impl SdlWindow {
     ///
     /// # Returns
     ///
-    /// A `Result<SdlWindow>`, which is `Ok` if the window, OpenGL context, and associated subsystems were successfully created,
-    /// or an `Err` containing an `anyhow::Error` if an error occurred during initialization.
+    /// A `Result<SdlWindow>`, which is `Ok` if the window, OpenGL context, and associated subsystems were successfully
+    /// created, or an `Err` containing an `anyhow::Error` if an error occurred during initialization.
     ///
     /// # Errors
     ///
@@ -90,8 +91,8 @@ impl SdlWindow {
     ///
     /// # Safety
     ///
-    /// The function contains an `unsafe` block because it makes raw OpenGL calls, which can lead to undefined behavior if used incorrectly. 
-    /// Ensure that a valid OpenGL context is current in the thread before calling this function.
+    /// The function contains an `unsafe` block because it makes raw OpenGL calls, which can lead to undefined behavior
+    /// if used incorrectly. Ensure that a valid OpenGL context is current in the thread before calling this function.
     ///
     /// # Example
     ///

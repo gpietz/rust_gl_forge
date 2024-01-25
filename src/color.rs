@@ -1,3 +1,5 @@
+use std::error::Error;
+use std::fmt::{Debug, Display, Formatter};
 use anyhow::{Result, anyhow};
 
 //////////////////////////////////////////////////////////////////////////////
@@ -13,7 +15,7 @@ pub struct Color {
 }
 
 impl Color {
-    // Predfined colors
+    // Predefined colors
     pub const BLACK: Color = Color { r: 0.0, g: 0.0, b: 0.0, a: 0.0 };
     pub const WHITE: Color = Color { r: 1.0, g: 1.0, b: 1.0, a: 1.0 };
 
@@ -22,16 +24,16 @@ impl Color {
         Color { r, g, b, a } 
     }
 
-    pub fn from_hex(hex: &str) -> Result<Self> {
+    pub fn from_hex(hex: &str) -> Result<Self, ColorError> {
         let hex = hex.trim_start_matches('#');
 
         // Ensure the hex code is either 6 oder 8 characters long
         if hex.len() != 6 && hex.len() != 8 {
-            return Err(anyhow!("Invalid hex code length"));
+            return Err(ColorError::InvalidHexLength);
         }
 
         let parse_component = |i: usize| {
-            u8::from_str_radix(&hex[i..i + 2], 16).map_err(|_| anyhow!("Invalid hex code"))
+            u8::from_str_radix(&hex[i..i + 2], 16).map_err(|_| ColorError::InvalidHexCharacter)
         };
         
         let r = parse_component(0)? as f32 / 255.0;
@@ -59,5 +61,63 @@ impl Color {
         } else {
             format!("#{:02X}{:02X}{:02X}{:02X}", r, g, b, a)
         }
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// - ColorError -
+//////////////////////////////////////////////////////////////////////////////
+
+pub enum ColorError {
+    InvalidHexLength,
+    InvalidHexCharacter
+}
+
+impl Display for ColorError {
+    fn fmt(&self, fmt: &mut Formatter) -> std::fmt::Result {
+        match self {
+            ColorError::InvalidHexLength => write!(fmt, "Invalid hex code"),
+            ColorError::InvalidHexCharacter => write!(fmt, "Invalid hex code character"),
+        }
+    }
+}
+
+impl Debug for ColorError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        todo!()
+    }
+}
+
+impl Error for ColorError {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_color_new() {
+        let color = Color::new(0.5, 0.5, 0.5, 1.0);
+        assert_eq!(color,  Color { r: 0.5, g: 0.5, b: 0.5, a: 1.0 });
+    }
+
+    #[test]
+    fn test_color_from_hex() {
+        let color = Color::from_hex("#808080FF").unwrap();
+        assert_eq!(color, Color { r: 0.5, g: 0.5, b: 0.5, a: 1.0 });
+
+        let color = Color::from_hex("#808080").unwrap();
+        assert_eq!(color, Color { r: 0.5, g: 0.5, b: 0.5, a: 1.0 });
+
+        assert!(Color::from_hex("#GGG").is_err());
+        assert!(Color::from_hex("#8080808080").is_err());
+    }
+
+    #[test]
+    fn test_color_to_hex() {
+        let color = Color { r: 0.5, g: 0.5, b: 0.5, a: 1.0 };
+        assert_eq!(color.to_hex(), "#808080");
+
+        let color = Color { r: 0.5, g: 0.5, b: 0.5, a: 0.5 };
+        assert_eq!(color.to_hex(), "#80808080");
     }
 }
