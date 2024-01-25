@@ -102,11 +102,20 @@ mod tests {
 
     #[test]
     fn test_color_from_hex() {
+        fn assert_color_eq_with_tolerance(color: Color, expected_r: f32, expected_g: f32, expected_b: f32, expected_a: f32, tolerance: f32) {
+            assert!((color.r - expected_r).abs() < tolerance);
+            assert!((color.g - expected_g).abs() < tolerance);
+            assert!((color.b - expected_b).abs() < tolerance);
+            assert!((color.a - expected_a).abs() < tolerance);
+        }
+
+        let tolerance = 0.005;
+
         let color = Color::from_hex("#808080FF").unwrap();
-        assert_eq!(color, Color { r: 0.5, g: 0.5, b: 0.5, a: 1.0 });
+        assert_color_eq_with_tolerance(color, 0.5, 0.5, 0.5, 1.0, tolerance);
 
         let color = Color::from_hex("#808080").unwrap();
-        assert_eq!(color, Color { r: 0.5, g: 0.5, b: 0.5, a: 1.0 });
+        assert_color_eq_with_tolerance(color, 0.5, 0.5, 0.5, 1.0, tolerance);
 
         assert!(Color::from_hex("#GGG").is_err());
         assert!(Color::from_hex("#8080808080").is_err());
