@@ -1,6 +1,6 @@
+use anyhow::Result;
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
-use anyhow::{Result, anyhow};
 
 //////////////////////////////////////////////////////////////////////////////
 // - Color -
@@ -16,12 +16,22 @@ pub struct Color {
 
 impl Color {
     // Predefined colors
-    pub const BLACK: Color = Color { r: 0.0, g: 0.0, b: 0.0, a: 0.0 };
-    pub const WHITE: Color = Color { r: 1.0, g: 1.0, b: 1.0, a: 1.0 };
+    pub const BLACK: Color = Color {
+        r: 0.0,
+        g: 0.0,
+        b: 0.0,
+        a: 0.0,
+    };
+    pub const WHITE: Color = Color {
+        r: 1.0,
+        g: 1.0,
+        b: 1.0,
+        a: 1.0,
+    };
 
     // Constructor for RGBA values
     pub fn new(r: f32, g: f32, b: f32, a: f32) -> Self {
-        Color { r, g, b, a } 
+        Color { r, g, b, a }
     }
 
     pub fn from_hex(hex: &str) -> Result<Self, ColorError> {
@@ -35,7 +45,7 @@ impl Color {
         let parse_component = |i: usize| {
             u8::from_str_radix(&hex[i..i + 2], 16).map_err(|_| ColorError::InvalidHexCharacter)
         };
-        
+
         let r = parse_component(0)? as f32 / 255.0;
         let g = parse_component(2)? as f32 / 255.0;
         let b = parse_component(4)? as f32 / 255.0;
@@ -70,7 +80,7 @@ impl Color {
 
 pub enum ColorError {
     InvalidHexLength,
-    InvalidHexCharacter
+    InvalidHexCharacter,
 }
 
 impl Display for ColorError {
@@ -97,12 +107,27 @@ mod tests {
     #[test]
     fn test_color_new() {
         let color = Color::new(0.5, 0.5, 0.5, 1.0);
-        assert_eq!(color,  Color { r: 0.5, g: 0.5, b: 0.5, a: 1.0 });
+        assert_eq!(
+            color,
+            Color {
+                r: 0.5,
+                g: 0.5,
+                b: 0.5,
+                a: 1.0
+            }
+        );
     }
 
     #[test]
     fn test_color_from_hex() {
-        fn assert_color_eq_with_tolerance(color: Color, expected_r: f32, expected_g: f32, expected_b: f32, expected_a: f32, tolerance: f32) {
+        fn assert_color_eq_with_tolerance(
+            color: Color,
+            expected_r: f32,
+            expected_g: f32,
+            expected_b: f32,
+            expected_a: f32,
+            tolerance: f32,
+        ) {
             assert!((color.r - expected_r).abs() < tolerance);
             assert!((color.g - expected_g).abs() < tolerance);
             assert!((color.b - expected_b).abs() < tolerance);
@@ -123,10 +148,20 @@ mod tests {
 
     #[test]
     fn test_color_to_hex() {
-        let color = Color { r: 0.5, g: 0.5, b: 0.5, a: 1.0 };
+        let color = Color {
+            r: 0.5,
+            g: 0.5,
+            b: 0.5,
+            a: 1.0,
+        };
         assert_eq!(color.to_hex(), "#808080");
 
-        let color = Color { r: 0.5, g: 0.5, b: 0.5, a: 0.5 };
+        let color = Color {
+            r: 0.5,
+            g: 0.5,
+            b: 0.5,
+            a: 0.5,
+        };
         assert_eq!(color.to_hex(), "#80808080");
     }
 }
