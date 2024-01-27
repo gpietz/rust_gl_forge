@@ -1,6 +1,5 @@
 use crate::gl_types::{BufferType, BufferUsage};
 use crate::gl_vertex::Vertex;
-use cgmath::Vector3;
 use std::ffi::c_void;
 
 //////////////////////////////////////////////////////////////////////////////
@@ -22,7 +21,7 @@ impl<T: Vertex> BufferObject<T> {
             gl::BindBuffer(r#type.to_gl_enum(), id);
             gl::BufferData(
                 r#type.to_gl_enum(),
-                (data.len() * std::mem::size_of::<Vector3<f32>>()) as isize,
+                (data.len() * std::mem::size_of::<T>()) as isize,
                 data.as_ptr() as *const c_void,
                 usage.to_gl_enum(),
             );

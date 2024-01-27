@@ -1,13 +1,13 @@
-//////////////////////////////////////////////////////////////////////////////
-// - Vertex -
-//////////////////////////////////////////////////////////////////////////////
-
 use crate::gl_types::VertexAttributeType;
 use crate::gl_utils::*;
-use anyhow::{Context, Result};
+use anyhow::{anyhow, Context, Result};
 use cgmath::{Vector2, Vector3};
 use gl::types::GLboolean;
 use std::os::raw::c_void;
+
+//////////////////////////////////////////////////////////////////////////////
+// - Vertex -
+//////////////////////////////////////////////////////////////////////////////
 
 pub trait Vertex {
     fn size() -> i32;
@@ -128,5 +128,52 @@ impl VertexAttribute {
             check_gl_error().context("Failed to disable VertexAttribute")?;
         }
         Ok(())
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// - Vertex Array Object (VAO) -
+//////////////////////////////////////////////////////////////////////////////
+
+pub struct VertexArrayObject {
+    id: u32,
+}
+
+impl VertexArrayObject {
+    /// Create a new Vertex Array Object.
+    pub fn new() -> Result<VertexArrayObject> {
+        let mut id = 0;
+        unsafe {
+            gl::GenVertexArrays(1, &mut id);
+            if id == 0 {
+                return Err(anyhow!("Failed to generate a vertex array object"));
+            }
+        }
+        Ok(VertexArrayObject { id })
+    }
+
+    pub fn bind(&self) {
+        unsafe { gl::BindVertexArray(self.id) }
+    }
+
+    pub fn unbind(&self) {
+        unsafe {
+            gl::BindVertexArray(0);
+        }
+    }
+
+    pub fn get_vertex_array_id(&self) -> u32 {
+        self.id
+    }
+}
+
+impl Drop for VertexArrayObject {
+    fn drop(&mut self) {
+        if self.id != 0 {
+            unsafe {
+                gl::DeleteVertexArrays(1, &self.id);
+            }
+            self.id = 0;
+        }
     }
 }
