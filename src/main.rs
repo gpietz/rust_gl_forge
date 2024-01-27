@@ -55,6 +55,8 @@ fn main() -> Result<()> {
             }
         }
 
+        window.clear();
+
         unsafe {
             gl::DrawArrays(gl::TRIANGLES, 0, 3);
         }

@@ -1,6 +1,9 @@
-use sdl2::{Sdl, video::{GLContext, SwapInterval, Window}, EventPump};
-use anyhow::{Result, Error};
+use anyhow::{Error, Result};
 use gl::load_with;
+use sdl2::{
+    video::{GLContext, SwapInterval, Window},
+    EventPump, Sdl,
+};
 
 use crate::color::Color;
 
@@ -29,7 +32,7 @@ impl SdlWindow {
     /// * `width` - The width of the window in pixels.
     /// * `height` - The height of the window in pixels.
     /// * `title` - The title of the window.
-    /// * `enable_vsync` - A boolean value to enable or disable VSync. 
+    /// * `enable_vsync` - A boolean value to enable or disable VSync.
     ///   If `true`, VSync is enabled, synchronizing the window's refresh rate with the display's refresh rate.
     ///   If `false`, VSync is disabled.
     ///
@@ -66,41 +69,35 @@ impl SdlWindow {
         let gl_attr = video_subsystem.gl_attr();
         gl_attr.set_context_profile(sdl2::video::GLProfile::Core);
         gl_attr.set_context_version(3, 3);
-        let window = video_subsystem.window(title, width as u32, height as u32)
+        let window = video_subsystem
+            .window(title, width as u32, height as u32)
             .opengl()
             .build()
             .map_err(Error::msg)?;
         let gl_context = window.gl_create_context().map_err(Error::msg)?;
-        let gl = load_with(|s| {
-            video_subsystem.gl_get_proc_address(s) as *const std::os::raw::c_void
-        });
+        let gl =
+            load_with(|s| video_subsystem.gl_get_proc_address(s) as *const std::os::raw::c_void);
         if enable_vsync {
-            window.subsystem().gl_set_swap_interval(SwapInterval::VSync).map_err(Error::msg)?;
+            window
+                .subsystem()
+                .gl_set_swap_interval(SwapInterval::VSync)
+                .map_err(Error::msg)?;
         }
         let event_pump = sdl.event_pump().map_err(Error::msg)?;
-        Ok(SdlWindow { sdl, window, gl_context, gl, event_pump, clear_color: Color::BLACK })
+        Ok(SdlWindow {
+            sdl,
+            window,
+            gl_context,
+            gl,
+            event_pump,
+            clear_color: Color::BLACK,
+        })
     }
 
-    /// Swaps the window's display buffer and clears the screen with the current clear color.
-    ///
-    /// This function first sets the OpenGL clear color to the RGBA values specified in `self.clear_color`.
-    /// It then clears the color buffer to apply the clear color to the entire screen.
-    /// Finally, it swaps the window's display buffer to update the display with the new frame.
-    ///
-    /// This function should be called at the end of each frame to render the updated frame to the screen.
-    ///
-    /// # Safety
-    ///
-    /// The function contains an `unsafe` block because it makes raw OpenGL calls, which can lead to undefined behavior
-    /// if used incorrectly. Ensure that a valid OpenGL context is current in the thread before calling this function.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// // Assuming 'window' is an instance of a struct that has this swap method
-    /// window.swap();
-    /// ```
-    pub fn swap(&self) {
+    /// Clears the window using the specified clear color.
+    /// This function sets the color buffer to the clear color defined in `self.clear_color`.
+    /// It only clears the color buffer, not affecting depth or stencil buffers.
+    pub fn clear(&self) {
         let r = self.clear_color.r;
         let g = self.clear_color.g;
         let b = self.clear_color.b;
@@ -109,10 +106,14 @@ impl SdlWindow {
         unsafe {
             // The bits that can be cleared include GL_COLOR_BUFFER_BIT, GL_DEPTH_BUFFER_BIT, and GL_STENCIL_BUFFER_BIT.
             // We clear only the color buffer unless the depth or stencil values are also required.
-            gl::ClearColor(r,g,b,a);
+            gl::ClearColor(r, g, b, a);
             gl::Clear(gl::COLOR_BUFFER_BIT);
         }
+    }
 
+    /// Swaps the front and back buffers of the window.
+    /// This should be called after rendering to display the updated content.
+    pub fn swap(&self) {
         self.window.gl_swap_window();
     }
 }
