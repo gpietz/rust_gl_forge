@@ -1,7 +1,6 @@
 use crate::gl_types::{BufferType, BufferUsage};
 use crate::gl_vertex::Vertex;
 use std::ffi::c_void;
-use std::mem;
 
 //////////////////////////////////////////////////////////////////////////////
 // - BufferObject -
