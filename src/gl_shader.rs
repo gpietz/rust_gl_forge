@@ -1,7 +1,7 @@
 use crate::gl_types::ShaderType;
-use crate::string_utils;
+use crate::string_utils::*;
 use anyhow::{anyhow, Context, Result};
-use gl::types::{GLchar, GLint, GLuint};
+use gl::types::{GLchar, GLint};
 use std::ffi::CString;
 use std::ptr;
 
@@ -28,7 +28,7 @@ impl Shader {
             if success != gl::TRUE as GLint {
                 let mut len = 0;
                 gl::GetShaderiv(shader, gl::INFO_LOG_LENGTH, &mut len);
-                let error = string_utils::create_whitespace_cstring_with_len(len as usize);
+                let error = create_whitespace_cstring_with_len(len as usize);
                 gl::GetShaderInfoLog(shader, len, ptr::null_mut(), error.as_ptr() as *mut GLchar);
                 return Err(anyhow!(error.into_string().unwrap()));
             }
@@ -80,7 +80,7 @@ impl ShaderProgram {
             if success != gl::TRUE as GLint {
                 let mut len = 0;
                 gl::GetProgramiv(program_id, gl::INFO_LOG_LENGTH, &mut len);
-                let error = string_utils::create_whitespace_cstring_with_len(len as usize);
+                let error = create_whitespace_cstring_with_len(len as usize);
                 gl::GetProgramInfoLog(
                     program_id,
                     len,

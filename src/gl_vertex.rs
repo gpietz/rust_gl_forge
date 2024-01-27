@@ -3,7 +3,7 @@
 //////////////////////////////////////////////////////////////////////////////
 
 use crate::gl_types::VertexAttributeType;
-use crate::gl_utils;
+use crate::gl_utils::*;
 use anyhow::{Context, Result};
 use cgmath::{Vector2, Vector3};
 use gl::types::GLboolean;
@@ -109,7 +109,7 @@ impl VertexAttribute {
                 self.stride,
                 self.offset as *const c_void,
             );
-            gl_utils::check_gl_error().context("Failed to set up VertexAttribute")?;
+            check_gl_error().context("Failed to set up VertexAttribute")?;
         }
         Ok(())
     }
@@ -117,7 +117,7 @@ impl VertexAttribute {
     pub fn enable(&self) -> Result<()> {
         unsafe {
             gl::EnableVertexAttribArray(self.index);
-            gl_utils::check_gl_error().context("Failed to set up VertexAttribute")?;
+            check_gl_error().context("Failed to set up VertexAttribute")?;
         }
         Ok(())
     }
@@ -125,7 +125,7 @@ impl VertexAttribute {
     pub fn disable(&self) -> Result<()> {
         unsafe {
             gl::DisableVertexAttribArray(self.index);
-            gl_utils::check_gl_error().context("Failed to disable VertexAttribute")?;
+            check_gl_error().context("Failed to disable VertexAttribute")?;
         }
         Ok(())
     }
