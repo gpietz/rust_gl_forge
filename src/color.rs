@@ -94,7 +94,10 @@ impl Display for ColorError {
 
 impl Debug for ColorError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        todo!()
+        match self {
+            ColorError::InvalidHexLength => write!(f, "ColorError::InvalidHexLength"),
+            ColorError::InvalidHexCharacter => write!(f, "ColorError::InvalidHexCharacter"),
+        }
     }
 }
 
