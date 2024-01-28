@@ -45,12 +45,16 @@ fn main() -> Result<()> {
                         if current_index > 0 {
                             current_index -= 1;
                         } else {
-                            current_index = drawables.len() - 1;
+                            current_index = 0;
                         }
                     }
                     Keycode::F2 => {
                         // Logic for F2 key
-                        current_index = (current_index + 1) % drawables.len();
+                        if current_index < drawables.len() - 1 {
+                            current_index += 1;
+                        } else {
+                            current_index = drawables.len() - 1;
+                        }
                     }
                     _ => {}
                 },
