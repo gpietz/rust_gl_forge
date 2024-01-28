@@ -5,10 +5,7 @@ use std::os::raw::c_void;
 //////////////////////////////////////////////////////////////////////////////
 // - BufferTypes -
 //////////////////////////////////////////////////////////////////////////////
-
-use crate::gl_types::ShaderType::Vertex;
 use crate::gl_utils;
-use crate::gl_vertex::VertexAttribute;
 use gl::types::{GLboolean, GLenum, GLsizei, GLuint};
 
 pub enum BufferType {

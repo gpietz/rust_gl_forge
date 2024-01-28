@@ -1,5 +1,4 @@
-use anyhow::{Context, Result};
-use std::ffi::CStr;
+use anyhow::Result;
 
 pub fn check_gl_error() -> Result<()> {
     let error_code = unsafe { gl::GetError() };

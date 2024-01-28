@@ -4,7 +4,7 @@ use crate::gl_vertex::{VertexArrayObject, VertexAttribute};
 use crate::renderable::Renderable;
 use anyhow::Result;
 use cgmath::Vector3;
-use gl::types::{GLfloat, GLsizei};
+use gl::types::GLfloat;
 use std::mem::size_of;
 
 //////////////////////////////////////////////////////////////////////////////
