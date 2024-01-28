@@ -65,6 +65,9 @@ impl IndexedQuad {
 impl Renderable for IndexedQuad {
     fn draw(&mut self) {
         unsafe {
+            self.vao.bind();
+            self.vbo.bind();
+            self.ibo.bind();
             gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, ptr::null());
         }
     }

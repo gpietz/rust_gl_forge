@@ -53,6 +53,8 @@ impl FirstTriangle {
 impl Renderable for FirstTriangle {
     fn draw(&mut self) {
         unsafe {
+            self.vao.bind();
+            self.vbo.bind();
             gl::DrawArrays(gl::TRIANGLES, 0, 3);
         }
     }
