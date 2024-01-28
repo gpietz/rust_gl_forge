@@ -47,7 +47,7 @@ impl IndexedQuad {
             3,
             VertexAttributeType::Position,
             false,
-            3 * size_of::<GLfloat>() as GLsizei,
+            3 * size_of::<GLfloat>(),
             0,
         );
         position_attribute.setup()?;

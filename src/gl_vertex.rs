@@ -2,7 +2,7 @@ use crate::gl_types::VertexAttributeType;
 use crate::gl_utils::*;
 use anyhow::{anyhow, Context, Result};
 use cgmath::{Vector2, Vector3};
-use gl::types::GLboolean;
+use gl::types::{GLboolean, GLsizei};
 use std::os::raw::c_void;
 
 //////////////////////////////////////////////////////////////////////////////
@@ -10,13 +10,13 @@ use std::os::raw::c_void;
 //////////////////////////////////////////////////////////////////////////////
 
 pub trait Vertex {
-    fn size() -> i32;
+    fn size() -> usize;
     fn attributes() -> Vec<VertexAttribute>;
 }
 
 impl Vertex for cgmath::Vector2<f32> {
-    fn size() -> i32 {
-        std::mem::size_of::<Vector2<f32>>() as i32
+    fn size() -> usize {
+        std::mem::size_of::<Vector2<f32>>()
     }
 
     fn attributes() -> Vec<VertexAttribute> {
@@ -32,8 +32,8 @@ impl Vertex for cgmath::Vector2<f32> {
 }
 
 impl Vertex for cgmath::Vector3<f32> {
-    fn size() -> i32 {
-        std::mem::size_of::<Vector3<f32>>() as i32
+    fn size() -> usize {
+        std::mem::size_of::<Vector3<f32>>()
     }
 
     fn attributes() -> Vec<VertexAttribute> {
@@ -49,8 +49,8 @@ impl Vertex for cgmath::Vector3<f32> {
 }
 
 impl Vertex for cgmath::Vector4<f32> {
-    fn size() -> i32 {
-        std::mem::size_of::<Self>() as i32
+    fn size() -> usize {
+        std::mem::size_of::<Self>()
     }
 
     fn attributes() -> Vec<VertexAttribute> {
@@ -66,8 +66,8 @@ impl Vertex for cgmath::Vector4<f32> {
 }
 
 impl Vertex for u32 {
-    fn size() -> i32 {
-        std::mem::size_of::<u32> as i32
+    fn size() -> usize {
+        std::mem::size_of::<u32>()
     }
 
     fn attributes() -> Vec<VertexAttribute> {
@@ -84,7 +84,7 @@ pub struct VertexAttribute {
     size: i32,
     attribute_type: VertexAttributeType,
     normalized: bool,
-    stride: i32,
+    stride: usize,
     offset: usize,
 }
 
@@ -94,7 +94,7 @@ impl VertexAttribute {
         size: i32,
         attribute_type: VertexAttributeType,
         normalized: bool,
-        stride: i32,
+        stride: usize,
         offset: usize,
     ) -> VertexAttribute {
         VertexAttribute {
@@ -116,7 +116,7 @@ impl VertexAttribute {
                 self.size,
                 data_type,
                 self.normalized as GLboolean,
-                self.stride,
+                self.stride as GLsizei,
                 self.offset as *const c_void,
             );
             check_gl_error().context("Failed to set up VertexAttribute")?;
