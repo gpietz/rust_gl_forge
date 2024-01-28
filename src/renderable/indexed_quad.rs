@@ -6,24 +6,28 @@ use anyhow::Result;
 use cgmath::Vector3;
 use gl::types::{GLfloat, GLsizei};
 use std::mem::size_of;
+use std::ptr;
 
 //////////////////////////////////////////////////////////////////////////////
-// - FirstTriangle -
+// - IndexedQuad -
 //////////////////////////////////////////////////////////////////////////////
 
-pub struct FirstTriangle {
+pub struct IndexedQuad {
     vao: VertexArrayObject,
     vbo: BufferObject<Vector3<f32>>,
+    ibo: BufferObject<u32>,
     position_attribute: VertexAttribute,
 }
 
-impl FirstTriangle {
-    pub fn new() -> Result<FirstTriangle> {
+impl IndexedQuad {
+    pub fn new() -> Result<IndexedQuad> {
         let vertices = vec![
-            Vector3::new(-0.5, -0.5, 0.0), // left
-            Vector3::new(0.5, -0.5, 0.0),  // right
-            Vector3::new(0.0, 0.5, 0.0),   // top
+            Vector3::new(0.5, 0.5, 0.0),
+            Vector3::new(0.5, -0.5, 0.0),
+            Vector3::new(-0.5, -0.5, 0.0),
+            Vector3::new(-0.5, 0.5, 0.0),
         ];
+        let indices = vec![0, 1, 3, 1, 2, 3];
 
         let vao = VertexArrayObject::new()?;
         vao.bind();
@@ -31,7 +35,14 @@ impl FirstTriangle {
         let vbo = BufferObject::new(BufferType::ArrayBuffer, BufferUsage::StaticDraw, vertices);
         vbo.bind();
 
-        let position = VertexAttribute::new(
+        let ibo = BufferObject::new(
+            BufferType::ElementArrayBuffer,
+            BufferUsage::StaticDraw,
+            indices,
+        );
+        ibo.bind();
+
+        let position_attribute = VertexAttribute::new(
             0,
             3,
             VertexAttributeType::Position,
@@ -39,21 +50,22 @@ impl FirstTriangle {
             3 * size_of::<GLfloat>() as GLsizei,
             0,
         );
-        position.setup()?;
-        position.enable()?;
+        position_attribute.setup()?;
+        position_attribute.enable()?;
 
-        Ok(FirstTriangle {
+        Ok(IndexedQuad {
             vao,
             vbo,
-            position_attribute: position,
+            ibo,
+            position_attribute,
         })
     }
 }
 
-impl Renderable for FirstTriangle {
+impl Renderable for IndexedQuad {
     fn draw(&mut self) {
         unsafe {
-            gl::DrawArrays(gl::TRIANGLES, 0, 3);
+            gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, ptr::null());
         }
     }
 }

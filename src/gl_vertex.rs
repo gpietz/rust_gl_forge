@@ -65,6 +65,16 @@ impl Vertex for cgmath::Vector4<f32> {
     }
 }
 
+impl Vertex for u32 {
+    fn size() -> i32 {
+        std::mem::size_of::<u32> as i32
+    }
+
+    fn attributes() -> Vec<VertexAttribute> {
+        vec![]
+    }
+}
+
 //////////////////////////////////////////////////////////////////////////////
 // - VertexAttribute -
 //////////////////////////////////////////////////////////////////////////////
