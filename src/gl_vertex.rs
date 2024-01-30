@@ -37,14 +37,17 @@ impl Vertex for cgmath::Vector3<f32> {
     }
 
     fn attributes() -> Vec<VertexAttribute> {
-        vec![VertexAttribute::new(
-            0,
-            3,
-            VertexAttributeType::Position,
-            false,
-            Self::size(),
-            0,
-        )]
+        vec![
+            VertexAttribute::new(0, 3, VertexAttributeType::Position, false, Self::size(), 0),
+            VertexAttribute {
+                index: 1,
+                size: 3, // r, g, b
+                attribute_type: VertexAttributeType::Color,
+                normalized: false,
+                stride: Self::size(),
+                offset: 3 * std::mem::size_of::<f32>(), // Offset after the position
+            },
+        ]
     }
 }
 
@@ -76,16 +79,54 @@ impl Vertex for u32 {
 }
 
 //////////////////////////////////////////////////////////////////////////////
+// - RgbVertex -
+//////////////////////////////////////////////////////////////////////////////
+
+pub struct RgbVertex {
+    pub position: [f32; 3], // x, y, z
+    pub color: [f32; 3],    // r, g, b
+}
+
+impl Vertex for RgbVertex {
+    fn size() -> usize {
+        std::mem::size_of::<Self>()
+    }
+
+    fn attributes() -> Vec<VertexAttribute> {
+        let position_attr = VertexAttribute {
+            index: 0,
+            size: 3, // x, y, z
+            attribute_type: VertexAttributeType::Position,
+            normalized: false,
+            stride: Self::size(),
+            offset: 0,
+        };
+
+        let color_attr = VertexAttribute {
+            index: 1,
+            size: 3, // r, g, b
+            attribute_type: VertexAttributeType::Color,
+            normalized: false,
+            stride: Self::size(),
+            offset: 3 * std::mem::size_of::<f32>(), // Offset after the position
+        };
+
+        vec![position_attr.clone(), color_attr.clone()]
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////////
 // - VertexAttribute -
 //////////////////////////////////////////////////////////////////////////////
 
+#[derive(Clone)]
 pub struct VertexAttribute {
-    index: u32,
-    size: i32,
-    attribute_type: VertexAttributeType,
-    normalized: bool,
-    stride: usize,
-    offset: usize,
+    pub index: u32,
+    pub size: i32,
+    pub attribute_type: VertexAttributeType,
+    pub normalized: bool,
+    pub stride: usize,
+    pub offset: usize,
 }
 
 impl VertexAttribute {
@@ -127,7 +168,7 @@ impl VertexAttribute {
     pub fn enable(&self) -> Result<()> {
         unsafe {
             gl::EnableVertexAttribArray(self.index);
-            check_gl_error().context("Failed to set up VertexAttribute")?;
+            check_gl_error().context("Failed to enable VertexAttribute")?;
         }
         Ok(())
     }

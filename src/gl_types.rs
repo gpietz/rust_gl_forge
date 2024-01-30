@@ -138,6 +138,7 @@ impl BufferUsage {
 // - VertexAttributeType -
 //////////////////////////////////////////////////////////////////////////////
 
+#[derive(Clone, Copy)]
 pub enum VertexAttributeType {
     Position,
     Color,
@@ -188,7 +189,7 @@ pub enum ShaderType {
 }
 
 impl ShaderType {
-    pub fn to_gl_enum(&self) -> u32 {
+    pub fn to_gl_enum(&self) -> GLenum {
         match self {
             ShaderType::Vertex => gl::VERTEX_SHADER,
             ShaderType::Fragment => gl::FRAGMENT_SHADER,

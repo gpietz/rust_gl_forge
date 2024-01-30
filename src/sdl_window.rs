@@ -6,6 +6,7 @@ use sdl2::{
 };
 
 use crate::color::Color;
+use crate::gl_utils::check_gl_error;
 
 //////////////////////////////////////////////////////////////////////////////
 // - SdlWindow -
@@ -74,9 +75,14 @@ impl SdlWindow {
             .opengl()
             .build()
             .map_err(Error::msg)?;
+
         let gl_context = window.gl_create_context().map_err(Error::msg)?;
+
+        #[allow(clippy::let_unit_value)]
         let gl =
             load_with(|s| video_subsystem.gl_get_proc_address(s) as *const std::os::raw::c_void);
+        check_gl_error()?;
+
         if enable_vsync {
             window
                 .subsystem()

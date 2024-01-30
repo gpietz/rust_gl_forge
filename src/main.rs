@@ -1,4 +1,6 @@
 #![allow(dead_code)]
+extern crate sdl2;
+extern crate gl;
 
 mod color;
 mod conversion_utils;
@@ -13,6 +15,7 @@ mod string_utils;
 
 use crate::renderable::first_triangle::FirstTriangle;
 use crate::renderable::indexed_quad::IndexedQuad;
+use crate::renderable::shader_triangle::ShaderTriangle;
 use crate::renderable::Renderable;
 use anyhow::Result;
 use color::Color;
@@ -27,6 +30,7 @@ fn main() -> Result<()> {
     let mut drawables: Vec<Box<dyn Renderable>> = Vec::new();
     add_drawable(&mut drawables, FirstTriangle::new);
     add_drawable(&mut drawables, IndexedQuad::new);
+    add_drawable(&mut drawables, ShaderTriangle::new);
 
     // Set the initial drawable to the last one
     let mut current_index = drawables.len().saturating_sub(1);
