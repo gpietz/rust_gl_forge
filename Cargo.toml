@@ -7,7 +7,10 @@ edition = "2021"
 
 [dependencies]
 gl = "0.14.0"
-sdl2 = {  version = "0.36.0", features = ["bundled"] }
 anyhow = "1.0.79"
 cgmath = "0.18.0"
 memoffset = "0.9.0"
+
+[dependencies.sdl2]
+version = "0.36.0"
+features = ["bundled", "static-link"]
