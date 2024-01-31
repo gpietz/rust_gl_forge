@@ -1,4 +1,5 @@
 use crate::gl_types::ShaderType;
+use crate::gl_utils::check_gl_error;
 use crate::string_utils::*;
 use anyhow::{anyhow, Context, Result};
 use gl::types::{GLchar, GLenum, GLint, GLuint};
@@ -146,14 +147,46 @@ impl Shader {
     pub fn load_fragment_shader(source: &str) -> Result<Shader> {
         Shader::from_source(source, ShaderType::Fragment).context("Failed to load fragment shader")
     }
+
+    /// Deletes the shader from the OpenGL context.
+    ///
+    /// This method safely deletes the shader associated with this instance from the GPU,
+    /// provided it has been created and not already deleted. It ensures that the shader
+    /// is only deleted if it exists (i.e., `self.id` is non-zero), preventing redundant
+    /// deletion calls. After deletion, the shader ID is reset to zero to indicate that
+    /// the shader has been deleted and to prevent potential misuse of an invalid ID.
+    ///
+    /// This method is called automatically when a `Shader` instance is dropped, but it can
+    /// also be called explicitly to manage the shader's lifecycle manually.
+    ///
+    /// # Safety
+    ///
+    /// This method contains `unsafe` code to interact with the underlying OpenGL API.
+    /// It is considered safe under the assumption that it is called with a valid shader
+    /// ID and that no other OpenGL errors occur outside of this function. However, as with
+    /// all `unsafe` code, caution should be exercised to ensure that the preconditions
+    /// for safe use are met.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// let mut shader = Shader::new(vertex_source, ShaderType::Vertex)?;
+    /// // Use the shader...
+    /// shader.delete(); // Explicitly delete the shader when done
+    /// ```
+    pub fn delete(&mut self) {
+        unsafe {
+            if self.id != 0 {
+                gl::DeleteShader(self.id);
+                self.id = 0;
+            }
+        }
+    }
 }
 
 impl Drop for Shader {
     fn drop(&mut self) {
-        unsafe {
-            //println!("Drop shader");
-            gl::DeleteShader(self.id);
-        }
+        self.delete();
     }
 }
 
@@ -167,18 +200,24 @@ pub struct ShaderProgram {
 }
 
 impl ShaderProgram {
-    pub fn new(vertex_shader: Shader, fragment_shader: Shader) -> Result<ShaderProgram> {
+    pub fn new(vertex_shader: &mut Shader, fragment_shader: &mut Shader) -> Result<ShaderProgram> {
         let program_id = unsafe { gl::CreateProgram() };
         unsafe {
+            // Attach vertex shader
             gl::AttachShader(program_id, vertex_shader.get_shader_id());
+            check_gl_error()?;
+
+            // Attach fragment shader
             gl::AttachShader(program_id, fragment_shader.get_shader_id());
+            check_gl_error()?;
+
+            // Link the program
             gl::LinkProgram(program_id);
-            drop(vertex_shader);
-            drop(fragment_shader);
+            check_gl_error()?;
 
             // Check for linking errors
             let mut success = gl::FALSE as GLint;
-            gl::GetShaderiv(program_id, gl::LINK_STATUS, &mut success);
+            gl::GetProgramiv(program_id, gl::LINK_STATUS, &mut success);
             if success != gl::TRUE as GLint {
                 let mut len = 0;
                 gl::GetProgramiv(program_id, gl::INFO_LOG_LENGTH, &mut len);
@@ -189,8 +228,19 @@ impl ShaderProgram {
                     ptr::null_mut(),
                     error.as_ptr() as *mut GLchar,
                 );
+                return Err(anyhow::anyhow!(error.to_string_lossy().into_owned()));
             }
         }
+
+        // Detach an delete shaders after successful linking
+        unsafe {
+            gl::DetachShader(program_id, vertex_shader.get_shader_id());
+            vertex_shader.delete();
+            gl::DetachShader(program_id, fragment_shader.get_shader_id());
+            fragment_shader.delete();
+        }
+
+        println!("Shader program created successfully (id: {})", program_id);
 
         Ok(ShaderProgram {
             id: program_id,
@@ -198,7 +248,7 @@ impl ShaderProgram {
         })
     }
 
-    pub fn get_shader_program_id(&self) -> u32 {
+    pub fn get_program_id(&self) -> u32 {
         self.id
     }
 

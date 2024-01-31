@@ -1,9 +1,14 @@
 use anyhow::Result;
 
 pub fn check_gl_error() -> Result<()> {
-    let error_code = unsafe { gl::GetError() };
+    let mut errors = Vec::new();
 
-    if error_code != gl::NO_ERROR {
+    loop {
+        let error_code = unsafe { gl::GetError() };
+        if error_code == gl::NO_ERROR {
+            break;
+        }
+
         let error_msg = match error_code {
             gl::INVALID_ENUM => "INVALID_ENUM",
             gl::INVALID_VALUE => "INVALID_VALUE",
@@ -15,9 +20,12 @@ pub fn check_gl_error() -> Result<()> {
             _ => "UNKNOWN_ERROR",
         };
 
-        let detailed_error = format!("OpenGL error [{}]: {}", error_code, error_msg);
-        Err(anyhow::anyhow!(detailed_error))
-    } else {
+        errors.push(format!("OpenGL error [{}]: {}", error_code, error_msg));
+    }
+
+    if errors.is_empty() {
         Ok(())
+    } else {
+        Err(anyhow::anyhow!(errors.join(", ")))
     }
 }
