@@ -1,5 +1,6 @@
 use anyhow::Result;
 
+#[inline]
 pub fn check_gl_error() -> Result<()> {
     let mut errors = Vec::new();
 

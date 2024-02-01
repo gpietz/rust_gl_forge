@@ -4,6 +4,8 @@ use crate::gl_types::{BufferType, BufferUsage, ShaderType};
 use crate::gl_vertex::{RgbVertex, Vertex, VertexArrayObject};
 use crate::renderable::Renderable;
 use anyhow::Result;
+use gl::types::GLfloat;
+use std::time::Instant;
 
 //////////////////////////////////////////////////////////////////////////////
 // - IndexedQuad -
@@ -13,10 +15,14 @@ pub struct ShaderTriangle {
     vao: VertexArrayObject,
     vbo: BufferObject<RgbVertex>,
     shader: ShaderProgram,
+    use_uniform: bool,
+    start_time: Instant,
 }
 
 impl ShaderTriangle {
-    pub fn new() -> Result<ShaderTriangle> {
+    pub fn new(use_uniform: bool) -> Result<ShaderTriangle> {
+        let start_time = Instant::now();
+
         let vertices = vec![
             RgbVertex {
                 position: [0.5, -0.5, 0.0],
@@ -45,23 +51,41 @@ impl ShaderTriangle {
 
         // Load shaders
         #[rustfmt::skip]
-        let vertex_shader = Shader::from_file("assets/shaders/simpleVertexShader.glsl", ShaderType::Vertex)?;
+        let mut vertex_shader = Shader::from_file("assets/shaders/simpleVertexShader.glsl", ShaderType::Vertex)?;
         #[rustfmt::skip]
-        let fragment_shader = Shader::from_file("assets/shaders/simpleFragmentShader.glsl", ShaderType::Fragment)?;
+        let mut fragment_shader = Shader::from_file("assets/shaders/simpleFragmentShader.glsl", ShaderType::Fragment)?;
 
         // Create the shader program
-        let shader = ShaderProgram::new(vertex_shader, fragment_shader)?;
+        let shader = ShaderProgram::new(&mut vertex_shader, &mut fragment_shader)?;
 
-        Ok(ShaderTriangle { vao, vbo, shader })
+        Ok(ShaderTriangle {
+            vao,
+            vbo,
+            shader,
+            use_uniform,
+            start_time,
+        })
+    }
+
+    fn get_current_time_in_seconds(&self) -> f64 {
+        self.start_time.elapsed().as_secs_f64()
     }
 }
 
 impl Renderable for ShaderTriangle {
     fn draw(&mut self) {
-        self.vao.bind();
+        self.vao.bind().unwrap();
         self.vbo.bind();
         self.shader.bind();
         unsafe {
+            let mut current_time = -1f64;
+            if self.use_uniform {
+                current_time = self.get_current_time_in_seconds();
+            };
+
+            let time_location = self.shader.get_uniform_location("time").unwrap();
+            gl::Uniform1f(time_location, current_time as GLfloat);
+
             gl::DrawArrays(gl::TRIANGLES, 0, 3);
         }
     }

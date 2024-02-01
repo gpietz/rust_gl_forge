@@ -203,14 +203,20 @@ impl VertexArrayObject {
         Ok(VertexArrayObject { id })
     }
 
-    pub fn bind(&self) {
-        unsafe { gl::BindVertexArray(self.id) }
+    pub fn bind(&self) -> Result<()> {
+        unsafe {
+            gl::BindVertexArray(self.id);
+        }
+        check_gl_error()?;
+        Ok(())
     }
 
-    pub fn unbind(&self) {
+    pub fn unbind(&self) -> Result<()> {
         unsafe {
             gl::BindVertexArray(0);
         }
+        check_gl_error()?;
+        Ok(())
     }
 
     pub fn get_vertex_array_id(&self) -> u32 {
