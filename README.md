@@ -1,6 +1,6 @@
 # RustSdl2024
 
-In recent years, I've experimented with the SDL2 library in conjunction with Rust. This year, I aim to revisit and further develop the source codes I've accumulated on this topic.
+In recent years, I've experimented with the SDL2 library in conjunction with Rust and OpenGL. This year, I aim to revisit and further develop the source codes I've accumulated on this topic.
 
 ## Project status 28.01.2024
 I am currently very satisfied with and confident in the project's progress. The newly structured BufferObject is highly flexible, capable of managing various data formats. 
