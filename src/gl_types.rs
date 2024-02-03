@@ -147,6 +147,29 @@ pub enum VertexAttributeType {
 }
 
 impl VertexAttributeType {
+    /// Sets up a vertex attribute pointer in OpenGL.
+    ///
+    /// This method enables a vertex attribute array at the specified `index`, and defines
+    /// its data layout according to the `VertexAttributeType` instance. It specifies the
+    /// number of components per attribute, the type of each component, whether the data
+    /// should be normalized, the stride between consecutive attributes, and the offset
+    /// within the buffer where the attribute's data begins.
+    ///
+    /// # Parameters
+    /// - `index`: The index of the vertex attribute to set up.
+    /// - `stride`: The byte offset between consecutive attributes.
+    /// - `offset`: A pointer to the first component of the first attribute in the buffer.
+    ///
+    /// # Returns
+    /// A `Result` indicating success or containing an error.
+    ///
+    /// # Errors
+    /// Returns an error if an OpenGL error occurs during attribute setup.
+    ///
+    /// # Safety
+    /// This method contains unsafe code that calls into the OpenGL API. It is the caller's
+    /// responsibility to ensure that the provided parameters are valid and that the OpenGL
+    /// context is correctly set up.
     pub fn setup(&self, index: GLuint, stride: GLsizei, offset: *const c_void) -> Result<()> {
         let (size, r#type, normalized) = self.to_gl_data();
         unsafe {

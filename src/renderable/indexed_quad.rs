@@ -1,6 +1,7 @@
 use crate::gl_buffer::BufferObject;
 use crate::gl_types::{BufferType, BufferUsage, VertexAttributeType};
-use crate::gl_vertex::{VertexArrayObject, VertexAttribute};
+use crate::gl_vertex::VertexArrayObject;
+use crate::gl_vertex_attribute::VertexAttribute;
 use crate::renderable::Renderable;
 use anyhow::Result;
 use cgmath::Vector3;

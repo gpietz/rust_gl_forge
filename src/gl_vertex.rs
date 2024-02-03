@@ -1,9 +1,9 @@
 use crate::gl_types::VertexAttributeType;
-use crate::gl_utils::*;
-use anyhow::{anyhow, Context, Result};
+use crate::gl_vertex_attribute::VertexAttribute;
+use anyhow::{anyhow, Result};
 use cgmath::{Vector2, Vector3};
-use gl::types::{GLboolean, GLsizei};
-use std::os::raw::c_void;
+use std::mem;
+use std::mem::size_of;
 
 //////////////////////////////////////////////////////////////////////////////
 // - Vertex -
@@ -14,9 +14,9 @@ pub trait Vertex {
     fn attributes() -> Vec<VertexAttribute>;
 }
 
-impl Vertex for cgmath::Vector2<f32> {
+impl Vertex for Vector2<f32> {
     fn size() -> usize {
-        std::mem::size_of::<Vector2<f32>>()
+        mem::size_of::<Vector2<f32>>()
     }
 
     fn attributes() -> Vec<VertexAttribute> {
@@ -31,9 +31,9 @@ impl Vertex for cgmath::Vector2<f32> {
     }
 }
 
-impl Vertex for cgmath::Vector3<f32> {
+impl Vertex for Vector3<f32> {
     fn size() -> usize {
-        std::mem::size_of::<Vector3<f32>>()
+        mem::size_of::<Vector3<f32>>()
     }
 
     fn attributes() -> Vec<VertexAttribute> {
@@ -53,7 +53,7 @@ impl Vertex for cgmath::Vector3<f32> {
 
 impl Vertex for cgmath::Vector4<f32> {
     fn size() -> usize {
-        std::mem::size_of::<Self>()
+        mem::size_of::<Self>()
     }
 
     fn attributes() -> Vec<VertexAttribute> {
@@ -70,7 +70,7 @@ impl Vertex for cgmath::Vector4<f32> {
 
 impl Vertex for u32 {
     fn size() -> usize {
-        std::mem::size_of::<u32>()
+        size_of::<u32>()
     }
 
     fn attributes() -> Vec<VertexAttribute> {
@@ -82,6 +82,8 @@ impl Vertex for u32 {
 // - RgbVertex -
 //////////////////////////////////////////////////////////////////////////////
 
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
 pub struct RgbVertex {
     pub position: [f32; 3], // x, y, z
     pub color: [f32; 3],    // r, g, b
@@ -89,7 +91,7 @@ pub struct RgbVertex {
 
 impl Vertex for RgbVertex {
     fn size() -> usize {
-        std::mem::size_of::<Self>()
+        mem::size_of::<Self>()
     }
 
     fn attributes() -> Vec<VertexAttribute> {
@@ -108,7 +110,7 @@ impl Vertex for RgbVertex {
             attribute_type: VertexAttributeType::Color,
             normalized: false,
             stride: Self::size(),
-            offset: 3 * std::mem::size_of::<f32>(), // Offset after the position
+            offset: 3 * size_of::<f32>(), // Offset after the position
         };
 
         vec![position_attr.clone(), color_attr.clone()]
@@ -116,69 +118,33 @@ impl Vertex for RgbVertex {
 }
 
 //////////////////////////////////////////////////////////////////////////////
-// - VertexAttribute -
+// - TexturedVertex -
 //////////////////////////////////////////////////////////////////////////////
-
-#[derive(Clone)]
-pub struct VertexAttribute {
-    pub index: u32,
-    pub size: i32,
-    pub attribute_type: VertexAttributeType,
-    pub normalized: bool,
-    pub stride: usize,
-    pub offset: usize,
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
+pub struct TexturedVertex {
+    pub position: [f32; 3],   // x, y, z
+    pub tex_coords: [f32; 2], // uv coordinates
 }
 
-impl VertexAttribute {
-    pub fn new(
-        index: u32,
-        size: i32,
-        attribute_type: VertexAttributeType,
-        normalized: bool,
-        stride: usize,
-        offset: usize,
-    ) -> VertexAttribute {
-        VertexAttribute {
-            index,
-            size,
-            attribute_type,
-            normalized,
-            stride,
-            offset,
-        }
+impl Vertex for TexturedVertex {
+    fn size() -> usize {
+        size_of::<Vector3<f32>>() + size_of::<Vector2<f32>>()
     }
 
-    pub fn setup(&self) -> Result<()> {
-        let (_, data_type, _) = self.attribute_type.to_gl_data();
-        unsafe {
-            gl::EnableVertexAttribArray(self.index);
-            gl::VertexAttribPointer(
-                self.index,
-                self.size,
-                data_type,
-                self.normalized as GLboolean,
-                self.stride as GLsizei,
-                self.offset as *const c_void,
-            );
-            check_gl_error().context("Failed to set up VertexAttribute")?;
-        }
-        Ok(())
-    }
-
-    pub fn enable(&self) -> Result<()> {
-        unsafe {
-            gl::EnableVertexAttribArray(self.index);
-            check_gl_error().context("Failed to enable VertexAttribute")?;
-        }
-        Ok(())
-    }
-
-    pub fn disable(&self) -> Result<()> {
-        unsafe {
-            gl::DisableVertexAttribArray(self.index);
-            check_gl_error().context("Failed to disable VertexAttribute")?;
-        }
-        Ok(())
+    fn attributes() -> Vec<VertexAttribute> {
+        let stride = Self::size();
+        vec![
+            VertexAttribute::new(0, 3, VertexAttributeType::Position, false, stride, 0),
+            VertexAttribute::new(
+                1,
+                2,
+                VertexAttributeType::TexCoord,
+                false,
+                stride,
+                size_of::<Vector3<f32>>(),
+            ), //
+        ]
     }
 }
 
@@ -203,20 +169,16 @@ impl VertexArrayObject {
         Ok(VertexArrayObject { id })
     }
 
-    pub fn bind(&self) -> Result<()> {
+    pub fn bind(&self) {
         unsafe {
             gl::BindVertexArray(self.id);
         }
-        check_gl_error()?;
-        Ok(())
     }
 
-    pub fn unbind(&self) -> Result<()> {
+    pub fn unbind(&self) {
         unsafe {
             gl::BindVertexArray(0);
         }
-        check_gl_error()?;
-        Ok(())
     }
 
     pub fn get_vertex_array_id(&self) -> u32 {

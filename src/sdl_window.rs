@@ -83,12 +83,18 @@ impl SdlWindow {
             load_with(|s| video_subsystem.gl_get_proc_address(s) as *const std::os::raw::c_void);
         check_gl_error()?;
 
+        // Set the OpenGL viewport
+        unsafe {
+            gl::Viewport(0, 0, width as i32, height as i32);
+        }
+
         if enable_vsync {
             window
                 .subsystem()
                 .gl_set_swap_interval(SwapInterval::VSync)
                 .map_err(Error::msg)?;
         }
+
         let event_pump = sdl.event_pump().map_err(Error::msg)?;
         Ok(SdlWindow {
             sdl,

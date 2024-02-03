@@ -6,9 +6,11 @@ mod color;
 mod conversion_utils;
 mod gl_buffer;
 mod gl_shader;
+mod gl_texture;
 mod gl_types;
 mod gl_utils;
 mod gl_vertex;
+mod gl_vertex_attribute;
 mod renderable;
 mod sdl_window;
 mod string_utils;
@@ -16,6 +18,7 @@ mod string_utils;
 use crate::renderable::first_triangle::FirstTriangle;
 use crate::renderable::indexed_quad::IndexedQuad;
 use crate::renderable::shader_triangle::ShaderTriangle;
+use crate::renderable::texture_triangle::TextureTriangle;
 use crate::renderable::Renderable;
 use anyhow::Result;
 use color::Color;
@@ -32,6 +35,7 @@ fn main() -> Result<()> {
     add_drawable(&mut drawables, IndexedQuad::new);
     add_drawable(&mut drawables, || ShaderTriangle::new(false));
     add_drawable(&mut drawables, || ShaderTriangle::new(true));
+    add_drawable(&mut drawables, TextureTriangle::new);
 
     // Set the initial drawable to the last one
     let mut current_index = drawables.len().saturating_sub(1);

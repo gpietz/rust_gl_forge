@@ -74,7 +74,7 @@ impl ShaderTriangle {
 
 impl Renderable for ShaderTriangle {
     fn draw(&mut self) {
-        self.vao.bind().unwrap();
+        self.vao.bind();
         self.vbo.bind();
         self.shader.bind();
         unsafe {

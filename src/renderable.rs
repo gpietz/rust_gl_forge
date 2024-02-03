@@ -3,6 +3,7 @@ use anyhow::Result;
 pub mod first_triangle;
 pub mod indexed_quad;
 pub mod shader_triangle;
+pub mod texture_triangle;
 
 //////////////////////////////////////////////////////////////////////////////
 // - Renderable -
