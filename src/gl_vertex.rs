@@ -129,7 +129,7 @@ pub struct TexturedVertex {
 
 impl Vertex for TexturedVertex {
     fn size() -> usize {
-        size_of::<Vector3<f32>>() + size_of::<Vector2<f32>>()
+        size_of::<[f32; 3]>() + size_of::<[f32; 2]>()
     }
 
     fn attributes() -> Vec<VertexAttribute> {
