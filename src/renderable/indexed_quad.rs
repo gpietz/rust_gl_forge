@@ -1,5 +1,6 @@
 use crate::gl_buffer::BufferObject;
-use crate::gl_types::{BufferType, BufferUsage, VertexAttributeType};
+use crate::gl_shader::{Shader, ShaderProgram};
+use crate::gl_types::{BufferType, BufferUsage, ShaderType, VertexAttributeType};
 use crate::gl_vertex::VertexArrayObject;
 use crate::gl_vertex_attribute::VertexAttribute;
 use crate::renderable::Renderable;
@@ -18,6 +19,7 @@ pub struct IndexedQuad {
     vbo: BufferObject<Vector3<f32>>,
     ibo: BufferObject<u32>,
     position_attribute: VertexAttribute,
+    shader: ShaderProgram,
 }
 
 impl IndexedQuad {
@@ -54,11 +56,25 @@ impl IndexedQuad {
         position_attribute.setup()?;
         position_attribute.enable()?;
 
+        // Load shaders
+        let mut vertex_shader = Shader::from_file(
+            "assets/shaders/simple_color/vertex_shader.glsl",
+            ShaderType::Vertex,
+        )?;
+        let mut fragment_shader = Shader::from_file(
+            "assets/shaders/simple_color/fragment_shader.glsl",
+            ShaderType::Fragment,
+        )?;
+
+        // Create the shader program
+        let shader = ShaderProgram::new(&mut vertex_shader, &mut fragment_shader)?;
+
         Ok(IndexedQuad {
             vao,
             vbo,
             ibo,
             position_attribute,
+            shader,
         })
     }
 }
@@ -69,6 +85,7 @@ impl Renderable for IndexedQuad {
             self.vao.bind();
             self.vbo.bind();
             self.ibo.bind();
+            self.shader.bind();
             gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, ptr::null());
         }
     }
