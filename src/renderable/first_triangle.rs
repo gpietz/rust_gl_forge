@@ -1,6 +1,7 @@
 use crate::gl_buffer::BufferObject;
+use crate::gl_draw;
 use crate::gl_shader::{Shader, ShaderProgram};
-use crate::gl_types::{BufferType, BufferUsage, ShaderType, VertexAttributeType};
+use crate::gl_types::{BufferType, BufferUsage, PrimitiveType, ShaderType, VertexAttributeType};
 use crate::gl_vertex::VertexArrayObject;
 use crate::gl_vertex_attribute::VertexAttribute;
 use crate::renderable::Renderable;
@@ -69,11 +70,9 @@ impl FirstTriangle {
 
 impl Renderable for FirstTriangle {
     fn draw(&mut self) {
-        unsafe {
-            self.vao.bind();
-            self.vbo.bind();
-            self.shader.bind();
-            gl::DrawArrays(gl::TRIANGLES, 0, 3);
-        }
+        self.vao.bind();
+        self.vbo.bind();
+        self.shader.bind();
+        gl_draw::draw_primitive(PrimitiveType::Triangles, 3);
     }
 }

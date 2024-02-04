@@ -1,7 +1,8 @@
 use crate::gl_buffer::BufferObject;
+use crate::gl_draw;
 use crate::gl_shader::{Shader, ShaderProgram};
 use crate::gl_texture::Texture;
-use crate::gl_types::{BufferType, BufferUsage, ShaderType};
+use crate::gl_types::{BufferType, BufferUsage, PrimitiveType, ShaderType};
 use crate::gl_vertex::{TexturedVertex, Vertex, VertexArrayObject};
 use crate::renderable::Renderable;
 use anyhow::Result;
@@ -76,16 +77,14 @@ impl TextureTriangle {
 
 impl Renderable for TextureTriangle {
     fn draw(&mut self) {
-        unsafe {
-            self.vao.bind();
-            self.vbo.bind();
-            self.texture.bind();
-            self.shader.bind();
-            self.shader
-                .set_uniform_value(self.use_color_location, self.use_color)
-                .unwrap(); // TODO draw() function should return a Result<()> instead of unwrapping!
-            gl::DrawArrays(gl::TRIANGLES, 0, 3);
-        }
+        self.vao.bind();
+        self.vbo.bind();
+        self.texture.bind();
+        self.shader.bind();
+        self.shader
+            .set_uniform_value(self.use_color_location, self.use_color)
+            .unwrap(); // TODO draw() function should return a Result<()> instead of unwrapping!
+        gl_draw::draw_primitive(PrimitiveType::Triangles, 3);
     }
 
     fn toggle_mode(&mut self) {

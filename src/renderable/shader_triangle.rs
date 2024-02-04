@@ -1,6 +1,7 @@
 use crate::gl_buffer::BufferObject;
+use crate::gl_draw;
 use crate::gl_shader::{Shader, ShaderProgram};
-use crate::gl_types::{BufferType, BufferUsage, ShaderType};
+use crate::gl_types::{BufferType, BufferUsage, PrimitiveType, ShaderType};
 use crate::gl_vertex::{RgbVertex, Vertex, VertexArrayObject};
 use crate::renderable::Renderable;
 use anyhow::Result;
@@ -77,16 +78,17 @@ impl Renderable for ShaderTriangle {
         self.vao.bind();
         self.vbo.bind();
         self.shader.bind();
-        unsafe {
-            let mut current_time = -1f64;
-            if self.use_uniform {
-                current_time = self.get_current_time_in_seconds();
-            };
 
-            let time_location = self.shader.get_uniform_location("time").unwrap();
-            gl::Uniform1f(time_location, current_time as GLfloat);
+        let mut current_time = -1f64;
+        if self.use_uniform {
+            current_time = self.get_current_time_in_seconds();
+        };
 
-            gl::DrawArrays(gl::TRIANGLES, 0, 3);
-        }
+        let time_location = self.shader.get_uniform_location("time").unwrap();
+        self.shader
+            .set_uniform_value(time_location, current_time as GLfloat)
+            .unwrap();
+
+        gl_draw::draw_primitive(PrimitiveType::Triangles, 3);
     }
 }

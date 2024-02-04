@@ -8,6 +8,10 @@ use std::os::raw::c_void;
 use crate::gl_utils;
 use gl::types::{GLboolean, GLenum, GLsizei, GLuint};
 
+//////////////////////////////////////////////////////////////////////////////
+// - BufferType -
+//////////////////////////////////////////////////////////////////////////////
+
 pub enum BufferType {
     /// Stores vertex attributes like vertex coordinates, normals, texture coordinates, etc.
     ArrayBuffer,
@@ -216,6 +220,69 @@ impl ShaderType {
         match self {
             ShaderType::Vertex => gl::VERTEX_SHADER,
             ShaderType::Fragment => gl::FRAGMENT_SHADER,
+        }
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// - PrimitiveType -
+//////////////////////////////////////////////////////////////////////////////
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PrimitiveType {
+    Points,
+    LineStrip,
+    LineLoop,
+    Lines,
+    LineStripAdjacency,
+    LinesAdjacency,
+    TriangleStrip,
+    TriangleFan,
+    Triangles,
+    TriangleStripAdjacency,
+    TrianglesAdjacency,
+    Patches,
+}
+
+impl PrimitiveType {
+    pub fn to_gl_enum(&self) -> u32 {
+        match self {
+            PrimitiveType::Points => gl::POINTS,
+            PrimitiveType::LineStrip => gl::LINE_STRIP,
+            PrimitiveType::LineLoop => gl::LINE_LOOP,
+            PrimitiveType::Lines => gl::LINES,
+            PrimitiveType::LineStripAdjacency => gl::LINE_STRIP_ADJACENCY,
+            PrimitiveType::LinesAdjacency => gl::LINES_ADJACENCY,
+            PrimitiveType::TriangleStrip => gl::TRIANGLE_STRIP,
+            PrimitiveType::TriangleFan => gl::TRIANGLE_FAN,
+            PrimitiveType::Triangles => gl::TRIANGLES,
+            PrimitiveType::TriangleStripAdjacency => gl::TRIANGLE_STRIP_ADJACENCY,
+            PrimitiveType::TrianglesAdjacency => gl::TRIANGLES_ADJACENCY,
+            PrimitiveType::Patches => gl::PATCHES,
+        }
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// - IndicesValueType -
+//////////////////////////////////////////////////////////////////////////////
+
+/// Enum `IndicesValueType` specifies the type of values in indices for OpenGL.
+/// It corresponds to the accepted values for the type of indices used in functions like `glDrawElements`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum IndicesValueType {
+    Byte,
+    Short,
+    Int,
+}
+
+impl IndicesValueType {
+    /// Converts `IndicesValueType` to its corresponding OpenGL constant.
+    pub fn to_gl_enum(&self) -> u32 {
+        match self {
+            IndicesValueType::Byte => gl::UNSIGNED_BYTE,
+            IndicesValueType::Short => gl::UNSIGNED_SHORT,
+            IndicesValueType::Int => gl::UNSIGNED_INT,
         }
     }
 }

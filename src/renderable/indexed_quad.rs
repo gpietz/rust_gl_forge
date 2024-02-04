@@ -1,6 +1,9 @@
 use crate::gl_buffer::BufferObject;
+use crate::gl_draw;
 use crate::gl_shader::{Shader, ShaderProgram};
-use crate::gl_types::{BufferType, BufferUsage, ShaderType, VertexAttributeType};
+use crate::gl_types::{
+    BufferType, BufferUsage, IndicesValueType, PrimitiveType, ShaderType, VertexAttributeType,
+};
 use crate::gl_vertex::VertexArrayObject;
 use crate::gl_vertex_attribute::VertexAttribute;
 use crate::renderable::Renderable;
@@ -8,7 +11,6 @@ use anyhow::Result;
 use cgmath::Vector3;
 use gl::types::GLfloat;
 use std::mem::size_of;
-use std::ptr;
 
 //////////////////////////////////////////////////////////////////////////////
 // - IndexedQuad -
@@ -81,12 +83,10 @@ impl IndexedQuad {
 
 impl Renderable for IndexedQuad {
     fn draw(&mut self) {
-        unsafe {
-            self.vao.bind();
-            self.vbo.bind();
-            self.ibo.bind();
-            self.shader.bind();
-            gl::DrawElements(gl::TRIANGLES, 6, gl::UNSIGNED_INT, ptr::null());
-        }
+        self.vao.bind();
+        self.vbo.bind();
+        self.ibo.bind();
+        self.shader.bind();
+        gl_draw::draw_elements(PrimitiveType::Triangles, 6, IndicesValueType::Int);
     }
 }
