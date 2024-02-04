@@ -124,26 +124,37 @@ impl Vertex for RgbVertex {
 #[derive(Clone, Copy, Debug)]
 pub struct TexturedVertex {
     pub position: [f32; 3],   // x, y, z
+    pub color: [f32; 4],      // r, g, b, a
     pub tex_coords: [f32; 2], // uv coordinates
 }
 
 impl Vertex for TexturedVertex {
     fn size() -> usize {
-        size_of::<[f32; 3]>() + size_of::<[f32; 2]>()
+        9 * size_of::<f32>() // 3 for position + 4 for color + 2 for texture coordinates
     }
 
     fn attributes() -> Vec<VertexAttribute> {
         let stride = Self::size();
+        let color_offset = 3 * size_of::<f32>();
+        let tex_coords_offset = 7 * size_of::<f32>();
         vec![
             VertexAttribute::new(0, 3, VertexAttributeType::Position, false, stride, 0),
             VertexAttribute::new(
                 1,
+                4,
+                VertexAttributeType::Color,
+                false,
+                stride,
+                color_offset,
+            ),
+            VertexAttribute::new(
+                2,
                 2,
                 VertexAttributeType::TexCoord,
                 false,
                 stride,
-                size_of::<Vector3<f32>>(),
-            ), //
+                tex_coords_offset,
+            ),
         ]
     }
 }

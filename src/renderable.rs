@@ -121,4 +121,6 @@ pub trait Renderable {
     /// # }
     /// ```
     fn cleanup(&mut self) {}
+
+    fn toggle_mode(&mut self) {}
 }

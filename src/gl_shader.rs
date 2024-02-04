@@ -347,6 +347,40 @@ impl ShaderProgram {
         Ok(())
     }
 
+    /// Sets the value of a shader uniform variable.
+    ///
+    /// This function applies a value to a specified uniform location within a shader program.
+    /// It is generic over types that implement the `UniformValue` trait, allowing for flexibility
+    /// in the types of values that can be passed as uniform variables (e.g., integers, floats, vectors, matrices).
+    ///
+    /// # Arguments
+    /// * `location` - The location identifier of the uniform variable within the shader program.
+    ///                This should be obtained via `glGetUniformLocation`.
+    /// * `value` - The value to be set for the uniform variable. The type `T` must implement the `UniformValue` trait.
+    ///
+    /// # Returns
+    /// * `Ok(())` if the uniform value was successfully set.
+    /// * `Err(anyhow::Error)` if the provided `location` is invalid (`-1`), indicating the uniform location was not found.
+    ///
+    /// # Examples
+    /// ```no_run
+    /// // Assuming `shader_program` is a compiled and linked shader program and `UniformValue` is implemented for `f32`.
+    /// let location = gl::GetUniformLocation(shader_program, c_str!("someUniform"));
+    /// set_uniform_value(location, 0.5f32).expect("Failed to set uniform value");
+    /// ```
+    ///
+    /// # Errors
+    /// This function returns an error if the uniform location is invalid (i.e., `location == -1`), which typically
+    /// indicates that the uniform name does not exist or was not active in the shader program.
+    pub fn set_uniform_value<T: UniformValue>(&self, location: i32, value: T) -> Result<()> {
+        if location == -1 {
+            return Err(anyhow!("Uniform location is invalid: -1"));
+        }
+
+        value.set_uniform(location);
+        Ok(())
+    }
+
     /// Retrieves the names of all active uniform variables in the shader program.
     ///
     /// This method queries the shader program for all active uniform variables and returns
@@ -484,6 +518,14 @@ impl Drop for ShaderProgram {
 
 pub trait UniformValue {
     fn set_uniform(&self, location: i32);
+}
+
+impl UniformValue for bool {
+    fn set_uniform(&self, location: i32) {
+        unsafe {
+            gl::Uniform1i(location, *self as GLint);
+        }
+    }
 }
 
 impl UniformValue for f32 {

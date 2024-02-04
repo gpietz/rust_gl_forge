@@ -65,6 +65,12 @@ fn main() -> Result<()> {
                             current_index = drawables.len() - 1;
                         }
                     }
+                    Keycode::F3 => {
+                        // Logic for F3 key
+                        if let Some(drawable) = drawables.get_mut(current_index) {
+                            drawable.toggle_mode();
+                        }
+                    }
                     _ => {}
                 },
                 _ => {}
