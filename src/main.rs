@@ -5,6 +5,7 @@ extern crate sdl2;
 mod color;
 mod conversion_utils;
 mod gl_buffer;
+mod gl_draw;
 mod gl_shader;
 mod gl_texture;
 mod gl_types;
@@ -69,6 +70,12 @@ fn main() -> Result<()> {
                         // Logic for F3 key
                         if let Some(drawable) = drawables.get_mut(current_index) {
                             drawable.toggle_mode();
+                        }
+                    }
+                    Keycode::F4 => {
+                        // Logic for F3 key
+                        if let Some(drawable) = drawables.get_mut(current_index) {
+                            drawable.toggle_shape();
                         }
                     }
                     _ => {}

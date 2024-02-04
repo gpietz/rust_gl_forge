@@ -122,5 +122,9 @@ pub trait Renderable {
     /// ```
     fn cleanup(&mut self) {}
 
+    /// Switches between different rendering modes.
     fn toggle_mode(&mut self) {}
+
+    /// Switches between different shapes.
+    fn toggle_shape(&mut self) {}
 }
