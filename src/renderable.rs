@@ -95,7 +95,7 @@ pub trait Renderable {
     /// #     fn cleanup(&mut self) {}
     /// # }
     /// ```
-    fn draw(&mut self);
+    fn draw(&mut self) -> Result<()>;
 
     /// Cleans up resources and state after rendering.
     ///
@@ -108,7 +108,7 @@ pub trait Renderable {
     /// ```
     /// # struct MyObject;
     /// # impl Renderable for MyObject {
-    /// fn cleanup(&mut self) {
+    /// fn clean_up(&mut self) {
     ///     // Cleanup logic here
     /// }
     /// #     fn setup(&mut self) -> Result<()> { Ok(()) }
@@ -117,10 +117,12 @@ pub trait Renderable {
     /// # trait Renderable {
     /// #     fn setup(&mut self) -> Result<()> { Ok(()) }
     /// #     fn draw(&mut self);
-    /// #     fn cleanup(&mut self) {}
+    /// #     fn clean_up(&mut self) {}
     /// # }
     /// ```
-    fn cleanup(&mut self) {}
+    fn clean_up(&mut self) -> Result<()> {
+        Ok(())
+    }
 
     /// Switches between different rendering modes.
     fn toggle_mode(&mut self) {}

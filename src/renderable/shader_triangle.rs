@@ -1,6 +1,7 @@
 use crate::gl_buffer::BufferObject;
 use crate::gl_draw;
 use crate::gl_shader::{ShaderFactory, ShaderProgram};
+use crate::gl_traits::Bindable;
 use crate::gl_types::{BufferType, BufferUsage, PrimitiveType};
 use crate::gl_vertex::{RgbVertex, Vertex, VertexArrayObject};
 use crate::renderable::Renderable;
@@ -39,12 +40,9 @@ impl ShaderTriangle {
             },
         ];
 
-        let vao = VertexArrayObject::new()?;
-        vao.bind();
-
-        let vbo = BufferObject::new(BufferType::ArrayBuffer, BufferUsage::StaticDraw, vertices);
-        vbo.bind();
-
+        let vao = VertexArrayObject::new_and_bind()?;
+        let vbo =
+            BufferObject::new_and_bind(BufferType::ArrayBuffer, BufferUsage::StaticDraw, vertices);
         for attribute in RgbVertex::attributes() {
             attribute.setup()?;
             attribute.enable()?;
@@ -71,9 +69,9 @@ impl ShaderTriangle {
 }
 
 impl Renderable for ShaderTriangle {
-    fn draw(&mut self) {
-        self.vao.bind();
-        self.vbo.bind();
+    fn draw(&mut self) -> Result<()> {
+        self.vao.bind()?;
+        self.vbo.bind()?;
         self.shader.bind();
 
         let mut current_time = -1f64;
@@ -87,5 +85,6 @@ impl Renderable for ShaderTriangle {
             .unwrap();
 
         gl_draw::draw_primitive(PrimitiveType::Triangles, 3);
+        Ok(())
     }
 }

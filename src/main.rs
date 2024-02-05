@@ -8,6 +8,7 @@ mod gl_buffer;
 mod gl_draw;
 mod gl_shader;
 mod gl_texture;
+mod gl_traits;
 mod gl_types;
 mod gl_utils;
 mod gl_vertex;
@@ -92,7 +93,7 @@ fn main() -> Result<()> {
 
         // Draw the current active drawable
         if let Some(drawable) = drawables.get_mut(current_index) {
-            drawable.draw();
+            drawable.draw()?;
         }
 
         window.swap();

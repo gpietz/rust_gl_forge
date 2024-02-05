@@ -9,6 +9,7 @@ use anyhow::Result;
 use cgmath::Vector3;
 use gl::types::GLfloat;
 
+use crate::gl_traits::Bindable;
 use std::mem::size_of;
 
 //////////////////////////////////////////////////////////////////////////////
@@ -30,11 +31,11 @@ impl FirstTriangle {
             Vector3::new(0.0, 0.5, 0.0),   // top
         ];
 
-        let vao = VertexArrayObject::new()?;
-        vao.bind();
+        let mut vao = VertexArrayObject::new()?;
+        vao.bind()?;
 
-        let vbo = BufferObject::new(BufferType::ArrayBuffer, BufferUsage::StaticDraw, vertices);
-        vbo.bind();
+        let mut vbo = BufferObject::new(BufferType::ArrayBuffer, BufferUsage::StaticDraw, vertices);
+        vbo.bind()?;
 
         let position = VertexAttribute::new(
             0,
@@ -63,10 +64,11 @@ impl FirstTriangle {
 }
 
 impl Renderable for FirstTriangle {
-    fn draw(&mut self) {
-        self.vao.bind();
-        self.vbo.bind();
+    fn draw(&mut self) -> Result<()> {
+        self.vao.bind()?;
+        self.vbo.bind()?;
         self.shader.bind();
         gl_draw::draw_primitive(PrimitiveType::Triangles, 3);
+        Ok(())
     }
 }

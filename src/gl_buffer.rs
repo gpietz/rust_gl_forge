@@ -1,5 +1,8 @@
+use crate::gl_traits::{Bindable, Deletable};
 use crate::gl_types::{BufferType, BufferUsage};
 use crate::gl_vertex::Vertex;
+use anyhow::Result;
+use gl::types::GLint;
 use std::ffi::c_void;
 
 //////////////////////////////////////////////////////////////////////////////
@@ -34,18 +37,14 @@ impl<T: Vertex> BufferObject<T> {
         }
     }
 
+    pub fn new_and_bind(r#type: BufferType, usage: BufferUsage, data: Vec<T>) -> BufferObject<T> {
+        let mut buffer_object = Self::new(r#type, usage, data);
+        buffer_object.bind().expect("Failed to bind buffer object");
+        buffer_object
+    }
+
     pub fn get_buffer_id(&self) -> u32 {
         self.id
-    }
-
-    pub fn bind(&self) {
-        unsafe { gl::BindBuffer(self.buffer_type.to_gl_enum(), self.id) }
-    }
-
-    pub fn unbind(&self) {
-        unsafe {
-            gl::BindBuffer(self.buffer_type.to_gl_enum(), 0);
-        }
     }
 
     /// Unbinds all OpenGL buffer types.
@@ -81,10 +80,47 @@ impl<T: Vertex> BufferObject<T> {
     }
 }
 
+impl<T: Vertex> Bindable for BufferObject<T> {
+    type Target = BufferObject<T>;
+
+    fn bind(&mut self) -> Result<&mut Self::Target> {
+        unsafe { gl::BindBuffer(self.buffer_type.to_gl_enum(), self.id) }
+        Ok(self)
+    }
+
+    fn unbind(&mut self) -> Result<&mut Self::Target> {
+        unsafe {
+            gl::BindBuffer(self.buffer_type.to_gl_enum(), 0);
+        }
+        Ok(self)
+    }
+
+    fn is_bound(&self) -> bool {
+        let mut current_buffer_id = 0;
+        unsafe {
+            gl::GetIntegerv(self.buffer_type.to_gl_enum(), &mut current_buffer_id);
+        }
+        current_buffer_id == self.id as GLint
+    }
+}
+
+impl<T: Vertex> Deletable for BufferObject<T> {
+    fn delete(&mut self) -> Result<()> {
+        if self.id != 0 {
+            unsafe {
+                gl::DeleteBuffers(1, &self.id);
+            }
+            self.id = 0;
+        }
+        Ok(())
+    }
+}
+
 impl<T: Vertex> Drop for BufferObject<T> {
     fn drop(&mut self) {
-        unsafe {
-            gl::DeleteBuffers(1, &self.id);
+        if let Err(err) = self.delete() {
+            eprintln!("Error while dropping BufferObject: {}", err);
+            // You might choose to log the error or take other appropriate actions here.
         }
     }
 }

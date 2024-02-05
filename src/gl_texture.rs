@@ -1,3 +1,4 @@
+use crate::gl_traits::Deletable;
 use crate::gl_utils::check_gl_error;
 use anyhow::{Context, Result};
 use gl::types::GLint;
@@ -91,10 +92,23 @@ impl Texture {
     }
 }
 
+impl Deletable for Texture {
+    fn delete(&mut self) -> Result<()> {
+        if self.id != 0 {
+            unsafe {
+                gl::DeleteTextures(1, &self.id);
+            }
+            self.id = 0;
+        }
+        Ok(())
+    }
+}
+
 impl Drop for Texture {
     fn drop(&mut self) {
-        unsafe {
-            gl::DeleteTextures(1, &self.id);
+        if let Err(err) = self.delete() {
+            eprintln!("Error while dropping texture: {}", err);
+            // You might choose to log the error or take other appropriate actions here.
         }
     }
 }

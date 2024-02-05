@@ -1,8 +1,9 @@
+use crate::gl_traits::{Bindable, Deletable};
 use crate::gl_types::VertexAttributeType;
 use crate::gl_vertex_attribute::VertexAttribute;
 use anyhow::{anyhow, Result};
 use cgmath::{Vector2, Vector3};
-use std::mem;
+use gl::types::GLint;
 use std::mem::size_of;
 
 //////////////////////////////////////////////////////////////////////////////
@@ -16,7 +17,7 @@ pub trait Vertex {
 
 impl Vertex for Vector2<f32> {
     fn size() -> usize {
-        mem::size_of::<Vector2<f32>>()
+        size_of::<Vector2<f32>>()
     }
 
     fn attributes() -> Vec<VertexAttribute> {
@@ -33,7 +34,7 @@ impl Vertex for Vector2<f32> {
 
 impl Vertex for Vector3<f32> {
     fn size() -> usize {
-        mem::size_of::<Vector3<f32>>()
+        size_of::<Vector3<f32>>()
     }
 
     fn attributes() -> Vec<VertexAttribute> {
@@ -45,7 +46,7 @@ impl Vertex for Vector3<f32> {
                 attribute_type: VertexAttributeType::Color,
                 normalized: false,
                 stride: Self::size(),
-                offset: 3 * std::mem::size_of::<f32>(), // Offset after the position
+                offset: 3 * size_of::<f32>(), // Offset after the position
             },
         ]
     }
@@ -53,7 +54,7 @@ impl Vertex for Vector3<f32> {
 
 impl Vertex for cgmath::Vector4<f32> {
     fn size() -> usize {
-        mem::size_of::<Self>()
+        size_of::<Self>()
     }
 
     fn attributes() -> Vec<VertexAttribute> {
@@ -91,7 +92,7 @@ pub struct RgbVertex {
 
 impl Vertex for RgbVertex {
     fn size() -> usize {
-        mem::size_of::<Self>()
+        size_of::<Self>()
     }
 
     fn attributes() -> Vec<VertexAttribute> {
@@ -180,16 +181,10 @@ impl VertexArrayObject {
         Ok(VertexArrayObject { id })
     }
 
-    pub fn bind(&self) {
-        unsafe {
-            gl::BindVertexArray(self.id);
-        }
-    }
-
-    pub fn unbind(&self) {
-        unsafe {
-            gl::BindVertexArray(0);
-        }
+    pub fn new_and_bind() -> Result<VertexArrayObject> {
+        let mut vao = VertexArrayObject::new()?;
+        vao.bind()?;
+        Ok(vao)
     }
 
     pub fn get_vertex_array_id(&self) -> u32 {
@@ -197,13 +192,49 @@ impl VertexArrayObject {
     }
 }
 
-impl Drop for VertexArrayObject {
-    fn drop(&mut self) {
+impl Bindable for VertexArrayObject {
+    type Target = VertexArrayObject;
+
+    fn bind(&mut self) -> Result<&mut Self::Target> {
+        unsafe {
+            gl::BindVertexArray(self.id);
+        }
+        Ok(self)
+    }
+
+    fn unbind(&mut self) -> Result<&mut Self::Target> {
+        unsafe {
+            gl::BindVertexArray(0);
+        }
+        Ok(self)
+    }
+
+    fn is_bound(&self) -> bool {
+        let mut current_vao = 0;
+        unsafe {
+            gl::GetIntegerv(gl::VERTEX_ARRAY_BINDING, &mut current_vao);
+        }
+        current_vao == self.id as GLint
+    }
+}
+
+impl Deletable for VertexArrayObject {
+    fn delete(&mut self) -> Result<()> {
         if self.id != 0 {
             unsafe {
                 gl::DeleteVertexArrays(1, &self.id);
             }
             self.id = 0;
+        }
+        Ok(())
+    }
+}
+
+impl Drop for VertexArrayObject {
+    fn drop(&mut self) {
+        if let Err(err) = self.delete() {
+            eprintln!("Error while dropping VertexArrayObject: {}", err);
+            // You might choose to log the error or take other appropriate actions here.
         }
     }
 }

@@ -6,7 +6,7 @@ use anyhow::Context;
 
 use crate::gl_types::VertexAttributeType;
 use crate::gl_utils::{as_c_void, check_gl_error};
-use gl::types::{GLboolean, GLsizei};
+use gl::types::{GLboolean, GLenum, GLsizei};
 
 #[derive(Clone)]
 pub struct VertexAttribute {
@@ -68,5 +68,47 @@ impl VertexAttribute {
             check_gl_error().context("Failed to disable VertexAttribute")?;
         }
         Ok(())
+    }
+
+    /// Checks if the vertex attribute array at the specified index is enabled.
+    ///
+    /// This function queries the OpenGL state to determine whether the vertex attribute array
+    /// at the given index is enabled or disabled. Vertex attribute arrays are used to store
+    /// per-vertex data that is used during rendering. Enabling an attribute array means that
+    /// it is actively used in the rendering pipeline.
+    ///
+    /// # Parameters
+    ///
+    /// - `self`: A reference to the struct that implements this method.
+    ///
+    /// # Returns
+    ///
+    /// - `bool`: `true` if the vertex attribute array is enabled; `false` if it is disabled.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// use gl_vertex_attribute::VertexAttribute;
+    ///
+    /// let vao = VertexAttribute::new(0, 0, ); // Create a new vertex attribute array at index 0
+    /// vao.enable(); // Enable the vertex attribute array
+    ///
+    /// if vao.is_enabled() {
+    ///     println!("Vertex attribute array at index 0 is enabled.");
+    /// } else {
+    ///     println!("Vertex attribute array at index 0 is disabled.");
+    /// }
+    /// ```
+    ///
+    /// # Safety
+    ///
+    /// This function uses unsafe OpenGL calls to query the state of the vertex attribute array.
+    /// Ensure that the OpenGL context is properly initialized before calling this function.
+    ///
+    pub fn is_enabled(&self) -> bool {
+        unsafe {
+            let enabled = gl::IsEnabled(gl::VERTEX_ATTRIB_ARRAY_ENABLED | (self.index as GLenum));
+            enabled == gl::TRUE
+        }
     }
 }

@@ -1,3 +1,4 @@
+use crate::gl_traits::Deletable;
 use crate::gl_types::ShaderType;
 use crate::gl_utils::check_gl_error;
 use crate::string_utils::*;
@@ -147,7 +148,9 @@ impl Shader {
     pub fn load_fragment_shader(source: &str) -> Result<Shader> {
         Shader::from_source(source, ShaderType::Fragment).context("Failed to load fragment shader")
     }
+}
 
+impl Deletable for Shader {
     /// Deletes the shader from the OpenGL context.
     ///
     /// This method safely deletes the shader associated with this instance from the GPU,
@@ -174,19 +177,23 @@ impl Shader {
     /// // Use the shader...
     /// shader.delete(); // Explicitly delete the shader when done
     /// ```
-    pub fn delete(&mut self) {
+    fn delete(&mut self) -> Result<()> {
         unsafe {
             if self.id != 0 {
                 gl::DeleteShader(self.id);
                 self.id = 0;
             }
         }
+        Ok(())
     }
 }
 
 impl Drop for Shader {
     fn drop(&mut self) {
-        self.delete();
+        if let Err(err) = self.delete() {
+            eprintln!("Error while dropping shader: {}", err);
+            // You might choose to log the error or take other appropriate actions here.
+        }
     }
 }
 
@@ -232,13 +239,15 @@ impl ShaderProgram {
             }
         }
 
-        // Detach an delete shaders after successful linking
+        // Detach shaders after successful linking
         unsafe {
             gl::DetachShader(program_id, vertex_shader.get_shader_id());
-            vertex_shader.delete();
             gl::DetachShader(program_id, fragment_shader.get_shader_id());
-            fragment_shader.delete();
         }
+
+        // Delete shaders cause they are no longer required
+        vertex_shader.delete()?;
+        fragment_shader.delete()?;
 
         println!("Shader program created successfully (id: {})", program_id);
 
@@ -487,10 +496,23 @@ impl ShaderProgram {
     //pub fn set_geometry_shader(&mut self, shader: Shader) -> Result<()>
 }
 
+impl Deletable for ShaderProgram {
+    fn delete(&mut self) -> Result<()> {
+        if self.id != 0 {
+            unsafe {
+                gl::DeleteProgram(self.id);
+            }
+            self.id = 0;
+        }
+        Ok(())
+    }
+}
+
 impl Drop for ShaderProgram {
     fn drop(&mut self) {
-        unsafe {
-            gl::DeleteProgram(self.id);
+        if let Err(err) = self.delete() {
+            eprintln!("Error while dropping shader program: {}", err);
+            // You might choose to log the error or take other appropriate actions here.
         }
     }
 }
@@ -576,8 +598,8 @@ impl ShaderFactory {
         let mut vertex_shader = Shader::from_file(vertex_shader, ShaderType::Vertex)?;
         let mut fragment_shader = Shader::from_file(fragment_shader, ShaderType::Fragment)?;
         let shader_program = ShaderProgram::new(&mut vertex_shader, &mut fragment_shader)?;
-        vertex_shader.delete();
-        fragment_shader.delete();
+        vertex_shader.delete()?;
+        fragment_shader.delete()?;
         Ok(shader_program)
     }
 }
