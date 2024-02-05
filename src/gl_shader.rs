@@ -499,6 +499,28 @@ impl Drop for ShaderProgram {
 // - ShaderFactory -
 //////////////////////////////////////////////////////////////////////////////
 
+/// A factory for creating shader programs.
+///
+/// The `ShaderFactory` struct provides a simple interface for creating shader programs
+/// by loading and compiling vertex and fragment shaders from different sources. It abstracts
+/// the process of shader creation, allowing you to quickly generate shader programs for
+/// use in your graphics applications.
+///
+/// # Example
+///
+/// ```rust
+/// use gl_shader::ShaderFactory;
+///
+/// // Create a shader program using the ShaderFactory
+/// match ShaderFactory::from_files("vertex_shader.glsl", "fragment_shader.glsl") {
+///     Ok(shader_program) => {
+///         // Successfully created a shader program
+///     },
+///     Err(error) => {
+///         eprintln!("Error: {}", error);
+///     },
+/// }
+/// ```
 pub struct ShaderFactory;
 
 impl ShaderFactory {
@@ -506,6 +528,50 @@ impl ShaderFactory {
     //     unimplemented!();
     // }
 
+    /// Creates a new shader program from vertex and fragment shader source files.
+    ///
+    /// This function takes the file paths to the vertex and fragment shaders, compiles
+    /// them, links them into a shader program, and returns a `Result` containing the
+    /// resulting `ShaderProgram` if successful.
+    ///
+    /// # Arguments
+    ///
+    /// * `vertex_shader` - A string representing the file path to the vertex shader source file.
+    /// * `fragment_shader` - A string representing the file path to the fragment shader source file.
+    ///
+    /// # Returns
+    ///
+    /// * `Result<ShaderProgram>` - If the shader program creation is successful, it returns
+    ///   a `ShaderProgram`. If there are any errors during shader compilation or program linking,
+    ///   it returns an `Err` with an error message.
+    ///
+    /// # Errors
+    ///
+    /// This function may return an `Err` if:
+    ///
+    /// * The vertex shader file cannot be loaded or compiled.
+    /// * The fragment shader file cannot be loaded or compiled.
+    /// * The shader program cannot be linked successfully.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use gl_shader::{ShaderFactory, ShaderProgram};
+    ///
+    /// match ShaderFactory::from_files("vertex_shader.glsl", "fragment_shader.glsl") {
+    ///     Ok(shader_program) => {
+    ///         // Successfully created a shader program
+    ///     },
+    ///     Err(error) => {
+    ///         eprintln!("Error: {}", error);
+    ///     },
+    /// }
+    /// ```
+    ///
+    /// # Note
+    ///
+    /// This function assumes the existence of a custom shader library (your_shader_library)
+    /// with appropriate types and functions for shader handling (e.g., `Shader`, `ShaderType`, etc.).
     pub fn from_files(vertex_shader: &str, fragment_shader: &str) -> Result<ShaderProgram> {
         let mut vertex_shader = Shader::from_file(vertex_shader, ShaderType::Vertex)?;
         let mut fragment_shader = Shader::from_file(fragment_shader, ShaderType::Fragment)?;
