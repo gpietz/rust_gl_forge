@@ -15,4 +15,4 @@ However, with each new insight, my awe for the necessary data wrangling grows. B
 I am currently very satisfied with and confident in the project's progress. The newly structured BufferObject is highly flexible, capable of managing various data formats. 
 I have successfully ported two drawables from the old project to this new structure. These can be toggled using the F1 and F2 keys. I plan to continue developing the project further.
 
-![screenshot_m1_20240128](https://github.com/gpietz/rust_sdl_2024/assets/77841571/b9b8882d-cc8c-42cb-b3b9-e839118e2a34)
+![screenshot_m1_20240205](https://github.com/gpietz/rust_sdl_2024/assets/77841571/69ede581-c57f-492c-a663-180d265f6d08)
