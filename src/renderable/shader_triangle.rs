@@ -52,8 +52,8 @@ impl ShaderTriangle {
 
         // Create the shader program
         let shader = ShaderFactory::from_files(
-            "assets/shaders/simpleVertexShader.glsl",
-            "assets/shaders/simpleFragmentShader.glsl",
+            "assets/shaders/simple/vertex_shader.glsl",
+            "assets/shaders/simple/fragment_shader.glsl",
         )?;
 
         Ok(ShaderTriangle {
