@@ -1,8 +1,8 @@
 use crate::gl_buffer::BufferObject;
 use crate::gl_draw;
-use crate::gl_shader::{Shader, ShaderProgram};
+use crate::gl_shader::{ShaderFactory, ShaderProgram};
 use crate::gl_texture::Texture;
-use crate::gl_types::{BufferType, BufferUsage, PrimitiveType, ShaderType};
+use crate::gl_types::{BufferType, BufferUsage, PrimitiveType};
 use crate::gl_vertex::{TexturedVertex, Vertex, VertexArrayObject};
 use crate::renderable::Renderable;
 use anyhow::Result;
@@ -54,14 +54,11 @@ impl TextureTriangle {
             attribute.setup()?;
         }
 
-        // Load shaders
-        #[rustfmt::skip]
-        let mut vertex_shader = Shader::from_file("assets/shaders/texture_triangle/vertexShader.glsl", ShaderType::Vertex)?;
-        #[rustfmt::skip]
-        let mut fragment_shader = Shader::from_file("assets/shaders/texture_triangle/fragmentShader.glsl", ShaderType::Fragment)?;
-
-        // Create the shader program
-        let mut shader = ShaderProgram::new(&mut vertex_shader, &mut fragment_shader)?;
+        // Create shader program
+        let mut shader = ShaderFactory::from_files(
+            "assets/shaders/texture_triangle/vertexShader.glsl",
+            "assets/shaders/texture_triangle/fragmentShader.glsl",
+        )?;
         let use_color_location = shader.get_uniform_location("useColor")?;
 
         Ok(TextureTriangle {

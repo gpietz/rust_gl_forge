@@ -499,18 +499,78 @@ impl Drop for ShaderProgram {
 // - ShaderFactory -
 //////////////////////////////////////////////////////////////////////////////
 
-// pub struct ShaderFactory;
-//
-// impl ShaderFactory {
-//     pub fn create(shader_sources: Vec<ShaderSource>) -> Result<ShaderProgram> {
-//     }
-// }
+pub struct ShaderFactory;
 
+impl ShaderFactory {
+    // pub fn from_vec(sources: Vec<ShaderSource>) -> Result<ShaderProgram> {
+    //     unimplemented!();
+    // }
+
+    pub fn from_files(vertex_shader: &str, fragment_shader: &str) -> Result<ShaderProgram> {
+        let mut vertex_shader = Shader::from_file(vertex_shader, ShaderType::Vertex)?;
+        let mut fragment_shader = Shader::from_file(fragment_shader, ShaderType::Fragment)?;
+        let shader_program = ShaderProgram::new(&mut vertex_shader, &mut fragment_shader)?;
+        vertex_shader.delete();
+        fragment_shader.delete();
+        Ok(shader_program)
+    }
+}
 //////////////////////////////////////////////////////////////////////////////
 // - ShaderSource -
 //////////////////////////////////////////////////////////////////////////////
 
-// pub struct ShaderSource {}
+/// Represents a shader source, which can be loaded either from a file or provided as a String.
+pub struct ShaderSource {
+    /// The type of shader (e.g., vertex, fragment, etc.).
+    pub r#type: ShaderType,
+    /// The source code of the shader.
+    pub source: String,
+    /// Indicates whether the source should be loaded from a file (`true`) or provided directly (`false`).
+    pub is_file: bool,
+}
+
+impl ShaderSource {
+    /// Checks if the shader source is valid, ensuring it is not empty or consists only of whitespace.
+    ///
+    /// # Returns
+    ///
+    /// - `Ok(())` if the shader source is not empty or contains non-whitespace characters.
+    /// - `Err` with an error message if the shader source is empty.
+    ///
+    /// # Example
+    ///
+    /// ```
+    /// use my_shader_library::Shader;
+    ///
+    /// let shader = Shader::new("vertex_shader.glsl", "   ").unwrap();
+    /// let result = shader.is_valid();
+    ///
+    /// assert!(result.is_err());
+    /// ```
+    pub fn is_valid(&self) -> Result<()> {
+        if self.source.trim().is_empty() {
+            Err(anyhow!("Empty shader source is invalid"))
+        } else {
+            Ok(())
+        }
+    }
+
+    pub fn from_file(r#type: ShaderType, source: &str) -> Self {
+        Self {
+            r#type,
+            source: source.to_owned(),
+            is_file: true,
+        }
+    }
+
+    pub fn from_source(r#type: ShaderType, source: &str) -> Self {
+        Self {
+            r#type,
+            source: source.to_owned(),
+            is_file: false,
+        }
+    }
+}
 
 //////////////////////////////////////////////////////////////////////////////
 // - UniformValue -

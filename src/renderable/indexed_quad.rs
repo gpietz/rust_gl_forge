@@ -1,8 +1,8 @@
 use crate::gl_buffer::BufferObject;
 use crate::gl_draw;
-use crate::gl_shader::{Shader, ShaderProgram};
+use crate::gl_shader::{ShaderFactory, ShaderProgram};
 use crate::gl_types::{
-    BufferType, BufferUsage, IndicesValueType, PrimitiveType, ShaderType, VertexAttributeType,
+    BufferType, BufferUsage, IndicesValueType, PrimitiveType, VertexAttributeType,
 };
 use crate::gl_vertex::VertexArrayObject;
 use crate::gl_vertex_attribute::VertexAttribute;
@@ -58,18 +58,11 @@ impl IndexedQuad {
         position_attribute.setup()?;
         position_attribute.enable()?;
 
-        // Load shaders
-        let mut vertex_shader = Shader::from_file(
+        // Create shader program
+        let shader = ShaderFactory::from_files(
             "assets/shaders/simple_color/vertex_shader.glsl",
-            ShaderType::Vertex,
-        )?;
-        let mut fragment_shader = Shader::from_file(
             "assets/shaders/simple_color/fragment_shader.glsl",
-            ShaderType::Fragment,
         )?;
-
-        // Create the shader program
-        let shader = ShaderProgram::new(&mut vertex_shader, &mut fragment_shader)?;
 
         Ok(IndexedQuad {
             vao,

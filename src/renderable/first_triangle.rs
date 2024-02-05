@@ -1,13 +1,14 @@
 use crate::gl_buffer::BufferObject;
 use crate::gl_draw;
-use crate::gl_shader::{Shader, ShaderProgram};
-use crate::gl_types::{BufferType, BufferUsage, PrimitiveType, ShaderType, VertexAttributeType};
+use crate::gl_shader::{ShaderFactory, ShaderProgram};
+use crate::gl_types::{BufferType, BufferUsage, PrimitiveType, VertexAttributeType};
 use crate::gl_vertex::VertexArrayObject;
 use crate::gl_vertex_attribute::VertexAttribute;
 use crate::renderable::Renderable;
 use anyhow::Result;
 use cgmath::Vector3;
 use gl::types::GLfloat;
+
 use std::mem::size_of;
 
 //////////////////////////////////////////////////////////////////////////////
@@ -46,18 +47,11 @@ impl FirstTriangle {
         position.setup()?;
         position.enable()?;
 
-        // Load shaders
-        let mut vertex_shader = Shader::from_file(
+        // Create shader program
+        let shader = ShaderFactory::from_files(
             "assets/shaders/simple_color/vertex_shader.glsl",
-            ShaderType::Vertex,
-        )?;
-        let mut fragment_shader = Shader::from_file(
             "assets/shaders/simple_color/fragment_shader.glsl",
-            ShaderType::Fragment,
         )?;
-
-        // Create the shader program
-        let shader = ShaderProgram::new(&mut vertex_shader, &mut fragment_shader)?;
 
         Ok(FirstTriangle {
             vao,

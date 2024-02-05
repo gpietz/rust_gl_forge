@@ -1,7 +1,7 @@
 use crate::gl_buffer::BufferObject;
 use crate::gl_draw;
-use crate::gl_shader::{Shader, ShaderProgram};
-use crate::gl_types::{BufferType, BufferUsage, PrimitiveType, ShaderType};
+use crate::gl_shader::{ShaderFactory, ShaderProgram};
+use crate::gl_types::{BufferType, BufferUsage, PrimitiveType};
 use crate::gl_vertex::{RgbVertex, Vertex, VertexArrayObject};
 use crate::renderable::Renderable;
 use anyhow::Result;
@@ -50,14 +50,11 @@ impl ShaderTriangle {
             attribute.enable()?;
         }
 
-        // Load shaders
-        #[rustfmt::skip]
-        let mut vertex_shader = Shader::from_file("assets/shaders/simpleVertexShader.glsl", ShaderType::Vertex)?;
-        #[rustfmt::skip]
-        let mut fragment_shader = Shader::from_file("assets/shaders/simpleFragmentShader.glsl", ShaderType::Fragment)?;
-
         // Create the shader program
-        let shader = ShaderProgram::new(&mut vertex_shader, &mut fragment_shader)?;
+        let shader = ShaderFactory::from_files(
+            "assets/shaders/simpleVertexShader.glsl",
+            "assets/shaders/simpleFragmentShader.glsl",
+        )?;
 
         Ok(ShaderTriangle {
             vao,
