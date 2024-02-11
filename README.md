@@ -2,6 +2,12 @@
 
 In recent years, I've experimented with the SDL2 library in conjunction with Rust and OpenGL. This year, I aim to revisit and further develop the source codes I've accumulated on this topic.
 
+## Project status 11.02.2024
+Today, I successfully completed the multitexturing topic and can now focus on transformations. To simplify multitexturing in the future, I need to come up with a solution. The way it's solved now requires considering too much.
+
+![screenshot_20240211](https://github.com/gpietz/rust_sdl_2024/assets/77841571/ce659fec-04eb-42e4-9cec-cab2f6ee5656)
+
+
 ## Project status 01.02.2024
 Over the past few days, I've been wrestling with shaders, which initially led to a few unsightly bugs, but now everything 
 is smooth sailing, and I've also managed to implement uniforms pretty swiftly. Thanks to ChatGPT, I always have a buddy 
