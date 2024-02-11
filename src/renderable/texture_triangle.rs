@@ -1,12 +1,20 @@
-use crate::gl_buffer::BufferObject;
-use crate::gl_draw;
-use crate::gl_shader::{ShaderFactory, ShaderProgram};
-use crate::gl_texture::Texture;
-use crate::gl_traits::{Bindable, Deletable};
-use crate::gl_types::{BufferType, BufferUsage, IndicesValueType, PrimitiveType};
-use crate::gl_vertex::{TexturedVertex, Vertex, VertexArrayObject};
+use shared_lib::gl_buffer::BufferObject;
+use shared_lib::gl_draw;
+use shared_lib::gl_shader::{ShaderFactory, ShaderProgram};
+use shared_lib::gl_texture::{Texture, TextureBuilder};
+use shared_lib::gl_traits::{Bindable, Deletable};
+use shared_lib::gl_types::{BufferType, BufferUsage, IndicesValueType, PrimitiveType};
+use shared_lib::gl_vertex::{TexturedVertex, Vertex, VertexArrayObject};
 use crate::renderable::Renderable;
 use anyhow::Result;
+
+fn create_texture(path: &str, has_alpha: bool, flip_vertical: bool) -> Result<Texture> {
+    TextureBuilder::default()
+        .path(path)
+        .has_alpha(has_alpha)
+        .flip_vertical(flip_vertical)
+        .build()
+}
 
 //////////////////////////////////////////////////////////////////////////////
 // - TextureTriangle -
@@ -16,12 +24,15 @@ pub struct TextureTriangle {
     vao: Option<VertexArrayObject>,
     vbo: Option<BufferObject<TexturedVertex>>,
     ibo: Option<BufferObject<u32>>,
-    textures: [Texture; 2],
+    textures: [Texture; 3],
     shader: Option<ShaderProgram>,
     use_color: bool,
     use_color_location: i32,
     draw_quad: bool,
     vertex_count: u32,
+    use_awesomeface: bool,
+    use_awesomeface_location: i32,
+    setup_called: bool,
 }
 
 impl TextureTriangle {
@@ -31,14 +42,18 @@ impl TextureTriangle {
             vbo: None,
             ibo: None,
             textures: [
-                Texture::new("assets/textures/m-016-018-bg.jpg")?,
-                Texture::new("assets/textures/container.jpg")?,
+                create_texture("assets/textures/m-016-018-bg.jpg", false, false)?,
+                create_texture("assets/textures/container.jpg", false, false)?,
+                create_texture("assets/textures/awesomeface2.png", true, true)?,
             ],
             shader: None,
             use_color: true,
             use_color_location: 0,
             draw_quad: false,
             vertex_count: 0,
+            use_awesomeface: false,
+            use_awesomeface_location: 0,
+            setup_called: false
         };
 
         // TODO Replace with something smarter
@@ -93,6 +108,21 @@ impl TextureTriangle {
             vec![0, 1, 3, 1, 2, 3]
         }
     }
+
+    fn print_render_mode(&self) {
+        if !self.draw_quad {
+            println!("Rendering triangle");
+        } else if self.use_awesomeface {
+            println!("Rendering quad with awesome face");
+        } else  {
+            println!("Rendering quad");
+        }
+    }
+
+    fn print_color_mode(&self) {
+        let color_mode = if self.use_color { "ON" } else { "OFF" };
+        println!("Vertex coloring: {color_mode}");
+    }
 }
 
 impl Renderable for TextureTriangle {
@@ -123,8 +153,17 @@ impl Renderable for TextureTriangle {
             "assets/shaders/texture_triangle/vertexShader.glsl",
             "assets/shaders/texture_triangle/fragmentShader.glsl",
         )?;
+        
         self.use_color_location = shader.get_uniform_location("useColor")?;
+        self.use_awesomeface_location = shader.get_uniform_location("useTexture2")?;
         self.shader = Some(shader);
+    
+        self.print_render_mode();
+
+        if !self.setup_called {
+            self.setup_called = true;
+            self.print_color_mode();
+        }
 
         Ok(())
     }
@@ -142,14 +181,29 @@ impl Renderable for TextureTriangle {
         if !self.draw_quad {
             self.textures[0].bind();
         } else {
-            self.textures[1].bind();
+            if !self.use_awesomeface {
+                self.textures[1].bind();
+            } else {
+                self.textures[1].bind_as_unit(0);
+                self.textures[2].bind_as_unit(1);
+            }
         }
+
         if let Some(shader) = self.shader.as_mut() {
             shader.bind();
+            shader.set_uniform("texture1",  0)?;
+            shader.set_uniform("texture2",  1)?;
+
             shader
                 .set_uniform_value(self.use_color_location, self.use_color)
                 .unwrap(); // TODO draw() function should return a Result<()> instead of unwrapping!
+            shader
+                .set_uniform_value(self.use_awesomeface_location, self.use_awesomeface)
+                .unwrap(); // TODO draw() function should return a Result<()> instead of unwrapping!
+        } else {
+            panic!("Shader progam is not available!");
         }
+
         gl_draw::draw_elements(
             PrimitiveType::Triangles,
             self.vertex_count,
@@ -180,10 +234,17 @@ impl Renderable for TextureTriangle {
 
     fn toggle_mode(&mut self) {
         self.use_color = !self.use_color;
+        self.print_color_mode();
     }
 
     fn toggle_shape(&mut self) {
-        self.draw_quad = !self.draw_quad;
+        if self.draw_quad && !self.use_awesomeface {
+            self.use_awesomeface = true;
+        } else {
+            self.draw_quad = !self.draw_quad;
+            self.use_awesomeface = false;
+        }
+
         self.clean_up().unwrap(); // Expect should be used here!
         self.setup().unwrap();
     }

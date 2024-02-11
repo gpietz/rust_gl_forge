@@ -8,6 +8,6 @@ out vec2 TexCoord;
 
 void main() {
     gl_Position = vec4(aPos, 1.0);
-    VertexColor = aColor; // Pass colro to the fragment shader
-    TexCoord = aTexCoord;
+    VertexColor = aColor;    // Pass color to the fragment shader
+    TexCoord    = aTexCoord;
 }

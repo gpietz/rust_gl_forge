@@ -1,15 +1,14 @@
-use crate::gl_buffer::BufferObject;
-use crate::gl_draw;
-use crate::gl_shader::{ShaderFactory, ShaderProgram};
-use crate::gl_types::{BufferType, BufferUsage, PrimitiveType, VertexAttributeType};
-use crate::gl_vertex::VertexArrayObject;
-use crate::gl_vertex_attribute::VertexAttribute;
+use shared_lib::gl_buffer::BufferObject;
+use shared_lib::gl_draw;
+use shared_lib::gl_shader::{ShaderFactory, ShaderProgram};
+use shared_lib::gl_types::{BufferType, BufferUsage, PrimitiveType, VertexAttributeType};
+use shared_lib::gl_vertex::VertexArrayObject;
+use shared_lib::gl_vertex_attribute::VertexAttribute;
 use crate::renderable::Renderable;
 use anyhow::Result;
 use cgmath::Vector3;
 use gl::types::GLfloat;
-
-use crate::gl_traits::Bindable;
+use shared_lib::gl_traits::Bindable;
 use std::mem::size_of;
 
 //////////////////////////////////////////////////////////////////////////////

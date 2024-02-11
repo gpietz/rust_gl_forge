@@ -11,7 +11,16 @@ anyhow = "1.0.79"
 cgmath = "0.18.0"
 memoffset = "0.9.0"
 image = { version = "0.24.8", features = ["default"] }
+rusttype = "0.9.3"
+shared_lib = { path = "shared_lib" }
 
 [dependencies.sdl2]
 version = "0.36.0"
 features = ["bundled", "static-link"]
+
+[workspace]
+members = [
+    ".",
+    "shared_lib",
+    "research/multitexturing",
+]

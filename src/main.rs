@@ -1,21 +1,9 @@
 #![allow(dead_code)]
 extern crate gl;
+extern crate rusttype;
 extern crate sdl2;
 
-mod color;
-mod conversion_utils;
-mod gl_buffer;
-mod gl_draw;
-mod gl_shader;
-mod gl_texture;
-mod gl_traits;
-mod gl_types;
-mod gl_utils;
-mod gl_vertex;
-mod gl_vertex_attribute;
 mod renderable;
-mod sdl_window;
-mod string_utils;
 
 use crate::renderable::first_triangle::FirstTriangle;
 use crate::renderable::indexed_quad::IndexedQuad;
@@ -23,10 +11,10 @@ use crate::renderable::shader_triangle::ShaderTriangle;
 use crate::renderable::texture_triangle::TextureTriangle;
 use crate::renderable::Renderable;
 use anyhow::Result;
-use color::Color;
+use shared_lib::color::Color;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
-use sdl_window::SdlWindow;
+use shared_lib::sdl_window::SdlWindow;
 
 fn main() -> Result<()> {
     let mut window = SdlWindow::new(800, 600, "RUST SDL 2024", true)?;

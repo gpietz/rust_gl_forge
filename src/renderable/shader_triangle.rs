@@ -1,9 +1,9 @@
-use crate::gl_buffer::BufferObject;
-use crate::gl_draw;
-use crate::gl_shader::{ShaderFactory, ShaderProgram};
-use crate::gl_traits::Bindable;
-use crate::gl_types::{BufferType, BufferUsage, PrimitiveType};
-use crate::gl_vertex::{RgbVertex, Vertex, VertexArrayObject};
+use shared_lib::gl_buffer::BufferObject;
+use shared_lib::gl_draw;
+use shared_lib::gl_shader::{ShaderFactory, ShaderProgram};
+use shared_lib::gl_traits::Bindable;
+use shared_lib::gl_types::{BufferType, BufferUsage, PrimitiveType};
+use shared_lib::gl_vertex::{RgbVertex, Vertex, VertexArrayObject};
 use crate::renderable::Renderable;
 use anyhow::Result;
 use gl::types::GLfloat;
