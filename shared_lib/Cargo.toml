@@ -1,0 +1,15 @@
+[package]
+name = "shared_lib"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1.0.79"
+cgmath = "0.18.0"
+gl = "0.14.0"
+image = { version = "0.24.8", features = ["default"] }
+bitflags = "2.4.2"
+
+[dependencies.sdl2]
+version = "0.36.0"
+features = ["bundled", "static-link"]
