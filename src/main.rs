@@ -4,16 +4,19 @@ extern crate rusttype;
 extern crate sdl2;
 
 mod renderable;
+mod texture_utils;
+mod vertex_data;
 
 use crate::renderable::first_triangle::FirstTriangle;
 use crate::renderable::indexed_quad::IndexedQuad;
 use crate::renderable::shader_triangle::ShaderTriangle;
 use crate::renderable::texture_triangle::TextureTriangle;
+use crate::renderable::transformation::Transformation;
 use crate::renderable::Renderable;
 use anyhow::Result;
-use shared_lib::color::Color;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
+use shared_lib::color::Color;
 use shared_lib::sdl_window::SdlWindow;
 
 fn main() -> Result<()> {

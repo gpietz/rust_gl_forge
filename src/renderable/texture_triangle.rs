@@ -1,20 +1,13 @@
+use crate::renderable::Renderable;
+use crate::texture_utils::*;
+use anyhow::Result;
 use shared_lib::gl_buffer::BufferObject;
 use shared_lib::gl_draw;
 use shared_lib::gl_shader::{ShaderFactory, ShaderProgram};
-use shared_lib::gl_texture::{Texture, TextureBuilder};
+use shared_lib::gl_texture::Texture;
 use shared_lib::gl_traits::{Bindable, Deletable};
-use shared_lib::gl_types::{BufferType, BufferUsage, IndicesValueType, PrimitiveType};
-use shared_lib::gl_vertex::{TexturedVertex, Vertex, VertexArrayObject};
-use crate::renderable::Renderable;
-use anyhow::Result;
-
-fn create_texture(path: &str, has_alpha: bool, flip_vertical: bool) -> Result<Texture> {
-    TextureBuilder::default()
-        .path(path)
-        .has_alpha(has_alpha)
-        .flip_vertical(flip_vertical)
-        .build()
-}
+use shared_lib::gl_types::{IndicesValueType, PrimitiveType};
+use shared_lib::gl_vertex::{TexturedVertex, VertexArrayObject};
 
 //////////////////////////////////////////////////////////////////////////////
 // - TextureTriangle -
@@ -53,7 +46,7 @@ impl TextureTriangle {
             vertex_count: 0,
             use_awesomeface: false,
             use_awesomeface_location: 0,
-            setup_called: false
+            setup_called: false,
         };
 
         // TODO Replace with something smarter
@@ -72,49 +65,12 @@ impl TextureTriangle {
         }
     }
 
-    fn create_vertex_data(&self) -> Vec<TexturedVertex> {
-        let vertices = if !self.draw_quad {
-            vec![
-                [-0.5, -0.5, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0],
-                [0.5, -0.5, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0],
-                [0.0, 0.5, 0.0, 0.0, 0.0, 1.0, 0.5, 1.0],
-            ]
-        } else {
-            vec![
-                [0.5, 0.5, 0.0, 1.0, 0.0, 0.0, 1.0, 1.0],
-                [0.5, -0.5, 0.0, 0.0, 1.0, 0.0, 1.0, 0.0],
-                [-0.5, -0.5, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0],
-                [-0.5, 0.5, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0],
-            ]
-        };
-
-        let mut vec = Vec::new();
-
-        for vertex_data in &vertices {
-            vec.push(TexturedVertex {
-                position: [vertex_data[0], vertex_data[1], vertex_data[2]],
-                color: [vertex_data[3], vertex_data[4], vertex_data[5], 1.0],
-                tex_coords: [vertex_data[6], vertex_data[7]],
-            });
-        }
-
-        vec
-    }
-
-    fn create_index_data(&mut self) -> Vec<u32> {
-        if !self.draw_quad {
-            vec![0, 1, 2]
-        } else {
-            vec![0, 1, 3, 1, 2, 3]
-        }
-    }
-
     fn print_render_mode(&self) {
         if !self.draw_quad {
             println!("Rendering triangle");
         } else if self.use_awesomeface {
             println!("Rendering quad with awesome face");
-        } else  {
+        } else {
             println!("Rendering quad");
         }
     }
@@ -127,37 +83,28 @@ impl TextureTriangle {
 
 impl Renderable for TextureTriangle {
     fn setup(&mut self) -> Result<()> {
-        let vertex_data = self.create_vertex_data();
+        let vertex_data = if self.draw_quad {
+            crate::vertex_data::create_quad()
+        } else {
+            crate::vertex_data::create_triangle()
+        };
 
+        self.vertex_count = vertex_data.indices.len() as u32;
         self.vao = Some(VertexArrayObject::new_and_bind()?);
-        self.vbo = Some(BufferObject::new(
-            BufferType::ArrayBuffer,
-            BufferUsage::StaticDraw,
-            vertex_data,
-        ));
-
-        let index_data = self.create_index_data();
-        self.vertex_count = index_data.len() as u32;
-        self.ibo = Some(BufferObject::new_and_bind(
-            BufferType::ElementArrayBuffer,
-            BufferUsage::StaticDraw,
-            index_data,
-        ));
-
-        for attribute in TexturedVertex::attributes() {
-            attribute.setup()?;
-        }
+        self.vbo = Some(vertex_data.create_vbo());
+        self.ibo = Some(vertex_data.create_ibo());
+        vertex_data.set_vertex_attributes();
 
         // Create shader program
         let mut shader = ShaderFactory::from_files(
             "assets/shaders/texture_triangle/vertexShader.glsl",
             "assets/shaders/texture_triangle/fragmentShader.glsl",
         )?;
-        
+
         self.use_color_location = shader.get_uniform_location("useColor")?;
         self.use_awesomeface_location = shader.get_uniform_location("useTexture2")?;
         self.shader = Some(shader);
-    
+
         self.print_render_mode();
 
         if !self.setup_called {
@@ -191,8 +138,8 @@ impl Renderable for TextureTriangle {
 
         if let Some(shader) = self.shader.as_mut() {
             shader.bind();
-            shader.set_uniform("texture1",  0)?;
-            shader.set_uniform("texture2",  1)?;
+            shader.set_uniform("texture1", 0)?;
+            shader.set_uniform("texture2", 1)?;
 
             shader
                 .set_uniform_value(self.use_color_location, self.use_color)
