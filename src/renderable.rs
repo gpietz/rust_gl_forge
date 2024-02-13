@@ -75,28 +75,37 @@ pub trait Renderable {
         Ok(())
     }
 
-    /// Renders the object.
+    /// Renders the object, considering the elapsed time since the last frame.
     ///
-    /// This method is called for each frame where the object needs to be drawn.
-    /// Override this method with the specific drawing logic for the implementation.
+    /// This method should be called for each frame to draw the object, using `delta_time` to adjust for any
+    /// animations or time-sensitive changes. Implement this method with the specific drawing logic
+    /// for the object, taking into account the time passed to ensure smooth updates.
+    ///
+    /// # Parameters
+    /// - `delta_time`: The time in seconds that has elapsed since the last frame. This parameter
+    ///   is essential for creating smooth animations or movements by updating the object's state
+    ///   based on the elapsed time.
+    ///
+    /// # Returns
+    /// - `Result<(), Box<dyn std::error::Error>>`: A result indicating the success or failure of the drawing operation.
+    ///   Returns `Ok(())` if the drawing operation succeeds, or an error if it fails.
     ///
     /// # Examples
-    ///
     /// ```
+    /// # use std::error::Error;
     /// # struct MyObject;
     /// # impl Renderable for MyObject {
-    /// fn draw(&mut self) {
-    ///     // Drawing logic here
-    /// }
-    /// #     fn setup(&mut self) -> Result<()> { Ok(()) }
+    /// #     fn draw(&mut self, delta_time: f32) -> Result<(), Box<dyn Error>> {
+    /// #         // Example drawing logic using delta_time
+    /// #         println!("Drawing object with delta_time: {}", delta_time);
+    /// #         Ok(())
+    /// #     }
     /// # }
     /// # trait Renderable {
-    /// #     fn setup(&mut self) -> Result<()> { Ok(()) }
-    /// #     fn draw(&mut self);
-    /// #     fn cleanup(&mut self) {}
+    /// #     fn draw(&mut self, delta_time: f32) -> Result<(), Box<dyn Error>>;
     /// # }
     /// ```
-    fn draw(&mut self) -> Result<()>;
+    fn draw(&mut self, delta_time: f32) -> Result<()>;
 
     /// Cleans up resources and state after rendering.
     ///

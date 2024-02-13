@@ -1,12 +1,12 @@
+use crate::renderable::Renderable;
+use anyhow::Result;
+use gl::types::GLfloat;
 use shared_lib::gl_buffer::BufferObject;
 use shared_lib::gl_draw;
 use shared_lib::gl_shader::{ShaderFactory, ShaderProgram};
 use shared_lib::gl_traits::Bindable;
 use shared_lib::gl_types::{BufferType, BufferUsage, PrimitiveType};
 use shared_lib::gl_vertex::{RgbVertex, Vertex, VertexArrayObject};
-use crate::renderable::Renderable;
-use anyhow::Result;
-use gl::types::GLfloat;
 use std::time::Instant;
 
 //////////////////////////////////////////////////////////////////////////////
@@ -69,7 +69,7 @@ impl ShaderTriangle {
 }
 
 impl Renderable for ShaderTriangle {
-    fn draw(&mut self) -> Result<()> {
+    fn draw(&mut self, _: f32) -> Result<()> {
         self.vao.bind()?;
         self.vbo.bind()?;
         self.shader.bind();

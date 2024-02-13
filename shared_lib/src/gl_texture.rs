@@ -7,7 +7,6 @@ use gl::types::{GLenum, GLint};
 use image::GenericImageView;
 use std::os::raw::c_void;
 use std::path::Path;
-use std::sync::MutexGuard;
 
 //////////////////////////////////////////////////////////////////////////////
 // - Texture -
@@ -30,7 +29,7 @@ impl Texture {
         flip_horizontal: bool,
         flip_vertical: bool,
         uniform_name: &str,
-        texture_type: TextureTarget
+        texture_type: TextureTarget,
     ) -> Result<Self> {
         let mut img = image::open(path.as_ref())
             .with_context(|| format!("Failed to load texture from {:?}", path.as_ref()))?;
@@ -100,7 +99,11 @@ impl Texture {
         #[rustfmt::skip]
         println!("Loaded texture: {} (id: {}, {}x{})", path.as_ref().to_string_lossy(), texture_id, width, height);
 
-        let uniform_name = if uniform_name.len() == 0 { None } else { Some(uniform_name.to_string()) };
+        let uniform_name = if uniform_name.len() == 0 {
+            None
+        } else {
+            Some(uniform_name.to_string())
+        };
 
         Ok(Texture {
             id: texture_id,
@@ -109,7 +112,7 @@ impl Texture {
             flip: [flip_horizontal, flip_vertical],
             dimension: [width, height],
             uniform_name,
-            texture_type
+            texture_type,
         })
     }
 
@@ -132,7 +135,7 @@ impl Texture {
     /// to the GL_TEXTURE_2D target within that unit. This is necessary for multitexturing
     /// and when you need to assign multiple textures to different texture units for use
     /// in a shader.
-    /// 
+    ///
     /// # Parameters
     ///
     /// - `texture_unit`: The index of the texture unit to which this texture will be bound.
@@ -158,7 +161,7 @@ impl Texture {
     /// * `texture_unit` - The texture unit to activate before binding this texture. This should be
     ///   `gl::TEXTURE0` + n, where n is the index of the desired texture unit (starting from 0).
     pub fn bind_as_gl_enum(&self, texture_unit: GLenum) {
-        if texture_unit < gl::TEXTURE0 || texture_unit > gl::TEXTURE31 {
+        if !(gl::TEXTURE0..=gl::TEXTURE31).contains(&texture_unit) {
             panic!("Texture unit must be in range from GL_TEXTURE0 to GL_TEXTURE31.");
         }
         unsafe {
@@ -231,7 +234,7 @@ pub struct TextureBuilder {
     flip_horizontal: bool,
     flip_vertical: bool,
     uniform_name: Option<String>,
-    texture_target: Option<TextureTarget>
+    texture_target: Option<TextureTarget>,
 }
 
 impl TextureBuilder {
@@ -266,15 +269,18 @@ impl TextureBuilder {
     }
 
     pub fn build(&self) -> Result<Texture> {
-        let uniform_name =  self.uniform_name.clone().unwrap_or(String::new());
-        let texture_target = self.texture_target.clone().unwrap_or(TextureTarget::Texture2D);
+        let uniform_name = self.uniform_name.clone().unwrap_or(String::new());
+        let texture_target = self
+            .texture_target
+            .clone()
+            .unwrap_or(TextureTarget::Texture2D);
         Texture::new(
             self.path.clone().with_context(|| "No path specified")?,
             self.has_alpha,
             self.flip_horizontal,
             self.flip_vertical,
             &uniform_name,
-            texture_target
+            texture_target,
         )
     }
 }
@@ -291,7 +297,7 @@ impl MultiTexture {
     pub fn new() -> Self {
         MultiTexture {
             textures: Vec::new(),
-        }    
+        }
     }
 
     pub fn add_texture(&mut self, texture: Texture) {
@@ -300,7 +306,7 @@ impl MultiTexture {
 
     pub fn clear(&mut self) {
         self.textures.clear();
-    }       
+    }
 
     pub fn bind_textures(&self, shader_program: &mut ShaderProgram) -> Result<()> {
         for (index, texture) in self.textures.iter().enumerate() {

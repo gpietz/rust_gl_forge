@@ -3,7 +3,8 @@ use crate::gl_types::ShaderType;
 use crate::gl_utils::check_gl_error;
 use crate::string_utils::*;
 use anyhow::{anyhow, Context, Result};
-use gl::types::{GLchar, GLenum, GLint, GLuint};
+use cgmath::{Array, Matrix};
+use gl::types::{GLboolean, GLchar, GLenum, GLint, GLuint};
 use std::collections::HashMap;
 use std::ffi::CString;
 use std::fs::File;
@@ -390,6 +391,20 @@ impl ShaderProgram {
         Ok(())
     }
 
+    pub fn set_uniform_matrix<T: UniformMatrix>(
+        &mut self,
+        name: &str,
+        transpose: bool,
+        matrix: &T,
+    ) -> Result<()> {
+        let location = self.get_uniform_location(name)?;
+        if location == -1 {
+            return Err(anyhow!("Uniform '{}' not found in shader", name));
+        }
+        matrix.set_uniform_matrix(location, transpose);
+        Ok(())
+    }
+
     /// Retrieves the names of all active uniform variables in the shader program.
     ///
     /// This method queries the shader program for all active uniform variables and returns
@@ -720,6 +735,37 @@ impl UniformValue for cgmath::Vector3<f32> {
     fn set_uniform(&self, location: i32) {
         unsafe {
             gl::Uniform3f(location, self.x, self.y, self.z);
+        }
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// - UniformMatrix -
+//////////////////////////////////////////////////////////////////////////////
+
+/// `UniformMatrix` is a trait designed for setting uniform matrix values in a shader program.
+///
+/// This trait abstracts the operation of passing matrix data from your Rust code to shaders
+/// within your graphics API (e.g., OpenGL, Vulkan, etc.). Implementing this trait allows for
+/// a uniform way to set matrix uniforms across different shader programs and matrix types.
+///
+/// # Parameters
+/// - `location`: The location identifier for the uniform variable in the shader program. This
+///   is typically obtained by querying the shader program with the name of the uniform variable.
+///
+/// - `transpose`: Specifies whether the supplied matrix should be transposed before being
+///   sent to the shader. If `true`, the matrix's transpose (i.e., its rows and columns are
+///   swapped) is used. This is particularly useful because Rust and some graphics APIs like
+///   OpenGL expect matrices in different formats (row-major vs column-major).
+pub trait UniformMatrix {
+    fn set_uniform_matrix(&self, location: i32, transpose: bool);
+}
+
+impl UniformMatrix for cgmath::Matrix4<f32> {
+    fn set_uniform_matrix(&self, location: i32, transpose: bool) {
+        unsafe {
+            let matrix_ptr = self.as_ptr();
+            gl::UniformMatrix4fv(location, 1, transpose as GLboolean, matrix_ptr);
         }
     }
 }

@@ -18,6 +18,7 @@ use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use shared_lib::color::Color;
 use shared_lib::sdl_window::SdlWindow;
+use std::time::Instant;
 
 fn main() -> Result<()> {
     let mut window = SdlWindow::new(800, 600, "RUST SDL 2024", true)?;
@@ -29,11 +30,20 @@ fn main() -> Result<()> {
     add_drawable(&mut drawables, || ShaderTriangle::new(false));
     add_drawable(&mut drawables, || ShaderTriangle::new(true));
     add_drawable(&mut drawables, TextureTriangle::new);
+    add_drawable(&mut drawables, Transformation::new);
 
     // Set the initial drawable to the last one
     let mut current_index = drawables.len().saturating_sub(1);
 
+    // Initializes tracking of the update interval;
+    // essential for calculating delta time for smooth transformations.
+    let mut last_update_time = Instant::now();
+
     'main_loop: loop {
+        // Calculate the delta time
+        let delta_time = get_delta_time(&mut last_update_time);
+
+        // Process key events
         for event in window.event_pump.poll_iter() {
             match event {
                 Event::Quit { .. } => break 'main_loop,
@@ -84,7 +94,7 @@ fn main() -> Result<()> {
 
         // Draw the current active drawable
         if let Some(drawable) = drawables.get_mut(current_index) {
-            drawable.draw()?;
+            drawable.draw(delta_time)?;
         }
 
         window.swap();
@@ -103,4 +113,13 @@ where
         Ok(drawable) => drawables.push(Box::new(drawable)),
         Err(e) => eprintln!("Failed to create drawable: {:?}", e),
     }
+}
+
+/// Calculates and returns the delta time in seconds since the last update,
+/// and updates the last update time.
+fn get_delta_time(last_update_time: &mut Instant) -> f32 {
+    let now = Instant::now();
+    let delta = now.duration_since(*last_update_time);
+    *last_update_time = Instant::now();
+    delta.as_secs_f32()
 }

@@ -115,7 +115,7 @@ impl Renderable for TextureTriangle {
         Ok(())
     }
 
-    fn draw(&mut self) -> Result<()> {
+    fn draw(&mut self, _: f32) -> Result<()> {
         if let Some(vao) = self.vao.as_mut() {
             vao.bind()?;
         }
@@ -127,13 +127,11 @@ impl Renderable for TextureTriangle {
         }
         if !self.draw_quad {
             self.textures[0].bind();
+        } else if !self.use_awesomeface {
+            self.textures[1].bind();
         } else {
-            if !self.use_awesomeface {
-                self.textures[1].bind();
-            } else {
-                self.textures[1].bind_as_unit(0);
-                self.textures[2].bind_as_unit(1);
-            }
+            self.textures[1].bind_as_unit(0);
+            self.textures[2].bind_as_unit(1);
         }
 
         if let Some(shader) = self.shader.as_mut() {
