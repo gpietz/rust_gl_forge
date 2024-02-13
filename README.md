@@ -2,6 +2,12 @@
 
 In recent years, I've experimented with the SDL2 library in conjunction with Rust and OpenGL. This year, I aim to revisit and further develop the source codes I've accumulated on this topic.
 
+## Project status 13.02.2024
+Today, I delved into basic transformations, with a significant focus on mastering cgmath, which was the most time-consuming part. The initial transformation test produced unexpected results, highlighting that basing rotation degrees solely on seconds leads to choppy animations - 
+a method I've realized is not optimal. However, the provided screenshots serve as evidence that, when executed correctly, colored vertices, multitexturing and transformations are indeed possible with OpenGL. It's all about getting the technique right. :)
+
+![screenshot_20240213](https://github.com/gpietz/rust_sdl_2024/assets/77841571/8f88484a-2a95-46db-8147-59f7022f50b0)
+
 ## Project status 11.02.2024
 Today, I successfully completed the multitexturing topic and can now focus on transformations. To simplify multitexturing in the future, I need to come up with a solution. The way it's solved now requires considering too much.
 
