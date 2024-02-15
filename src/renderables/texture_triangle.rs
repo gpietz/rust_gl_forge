@@ -1,4 +1,4 @@
-use crate::renderable::Renderable;
+use crate::renderables::Renderable;
 use crate::texture_utils::*;
 use anyhow::Result;
 use shared_lib::gl_buffer::BufferObject;

@@ -1,4 +1,4 @@
-use crate::renderable::Renderable;
+use crate::renderables::Renderable;
 use anyhow::Result;
 use cgmath::Vector3;
 use gl::types::GLfloat;

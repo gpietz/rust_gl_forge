@@ -3,16 +3,16 @@ extern crate gl;
 extern crate rusttype;
 extern crate sdl2;
 
-mod renderable;
+mod renderables;
 mod texture_utils;
 mod vertex_data;
 
-use crate::renderable::first_triangle::FirstTriangle;
-use crate::renderable::indexed_quad::IndexedQuad;
-use crate::renderable::shader_triangle::ShaderTriangle;
-use crate::renderable::texture_triangle::TextureTriangle;
-use crate::renderable::transformation::Transformation;
-use crate::renderable::Renderable;
+use crate::renderables::first_triangle::FirstTriangle;
+use crate::renderables::indexed_quad::IndexedQuad;
+use crate::renderables::shader_triangle::ShaderTriangle;
+use crate::renderables::texture_triangle::TextureTriangle;
+use crate::renderables::transformation::Transformation;
+use crate::renderables::Renderable;
 use anyhow::Result;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
@@ -26,16 +26,16 @@ fn main() -> Result<()> {
     let mut window = SdlWindow::new(800, 600, WINDOW_TITLE, true)?;
     window.clear_color = Color::new(0.10, 0.10, 0.25, 1.0);
 
-    let mut drawables: Vec<Box<dyn Renderable>> = Vec::new();
-    add_drawable(&mut drawables, FirstTriangle::new);
-    add_drawable(&mut drawables, IndexedQuad::new);
-    add_drawable(&mut drawables, || ShaderTriangle::new(false));
-    add_drawable(&mut drawables, || ShaderTriangle::new(true));
-    add_drawable(&mut drawables, TextureTriangle::new);
-    add_drawable(&mut drawables, Transformation::new);
+    let mut renderables: Vec<Box<dyn Renderable>> = Vec::new();
+    add_drawable(&mut renderables, FirstTriangle::new);
+    add_drawable(&mut renderables, IndexedQuad::new);
+    add_drawable(&mut renderables, || ShaderTriangle::new(false));
+    add_drawable(&mut renderables, || ShaderTriangle::new(true));
+    add_drawable(&mut renderables, TextureTriangle::new);
+    add_drawable(&mut renderables, Transformation::new);
 
     // Set the initial drawable to the last one
-    let mut current_index = drawables.len().saturating_sub(1);
+    let mut current_index = renderables.len().saturating_sub(1);
 
     // Initializes tracking of the update interval;
     // essential for calculating delta time for smooth transformations.
@@ -74,21 +74,21 @@ fn main() -> Result<()> {
                     }
                     Keycode::F2 => {
                         // Logic for F2 key
-                        if current_index < drawables.len() - 1 {
+                        if current_index < renderables.len() - 1 {
                             current_index += 1;
                         } else {
-                            current_index = drawables.len() - 1;
+                            current_index = renderables.len() - 1;
                         }
                     }
                     Keycode::F3 => {
                         // Logic for F3 key
-                        if let Some(drawable) = drawables.get_mut(current_index) {
+                        if let Some(drawable) = renderables.get_mut(current_index) {
                             drawable.toggle_mode();
                         }
                     }
                     Keycode::F4 => {
                         // Logic for F3 key
-                        if let Some(drawable) = drawables.get_mut(current_index) {
+                        if let Some(drawable) = renderables.get_mut(current_index) {
                             drawable.toggle_shape();
                         }
                     }
@@ -120,7 +120,7 @@ fn main() -> Result<()> {
         window.clear();
 
         // Draw the current active drawable
-        if let Some(drawable) = drawables.get_mut(current_index) {
+        if let Some(drawable) = renderables.get_mut(current_index) {
             drawable.draw(delta_time)?;
         }
 
@@ -135,14 +135,14 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn add_drawable<F, R, E>(drawables: &mut Vec<Box<dyn Renderable>>, creator: F)
+fn add_drawable<F, R, E>(renderables: &mut Vec<Box<dyn Renderable>>, creator: F)
 where
     F: FnOnce() -> Result<R, E>,
     R: Renderable + 'static, // Ensure R implements Renderable and has a static lifetime
     E: std::fmt::Debug,      // E can be any type that implements Debug (for error handling)
 {
     match creator() {
-        Ok(drawable) => drawables.push(Box::new(drawable)),
+        Ok(drawable) => renderables.push(Box::new(drawable)),
         Err(e) => eprintln!("Failed to create drawable: {:?}", e),
     }
 }
