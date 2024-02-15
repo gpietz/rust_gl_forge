@@ -3,7 +3,7 @@ use crate::gl_types::ShaderType;
 use crate::gl_utils::check_gl_error;
 use crate::string_utils::*;
 use anyhow::{anyhow, Context, Result};
-use cgmath::{Array, Matrix};
+use cgmath::Matrix;
 use gl::types::{GLboolean, GLchar, GLenum, GLint, GLuint};
 use std::collections::HashMap;
 use std::ffi::CString;

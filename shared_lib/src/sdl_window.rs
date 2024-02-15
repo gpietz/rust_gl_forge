@@ -1,4 +1,4 @@
-use anyhow::{Error, Result};
+use anyhow::{Context, Error, Result};
 use sdl2::{
     video::{GLContext, SwapInterval, Window},
     EventPump, Sdl,
@@ -161,5 +161,36 @@ impl SdlWindow {
     /// This should be called after rendering to display the updated content.
     pub fn swap(&self) {
         self.window.gl_swap_window();
+    }
+
+    /// Sets the title of the window.
+    ///
+    /// This function attempts to update the window's title to the specified value. If successful, it returns `Ok(())`.
+    /// In case of failure, it returns an `Err` with a detailed error message explaining that the window title could not be updated.
+    ///
+    /// # Arguments
+    /// * `title` - A reference to a string slice (`&str`) that holds the new title for the window.
+    ///
+    /// # Returns
+    /// * `Result<()>` - A result type that is `Ok` if the window title was successfully updated, or an `Err` with an error message if the operation failed.
+    ///
+    /// # Errors
+    /// This function can return an error if there is a failure in updating the window's title, encapsulated within the context of the error message "Error occurred while updating the window title."
+    pub fn set_window_title(&mut self, title: &str) -> Result<()> {
+        self.window
+            .set_title(title)
+            .with_context(|| "Error occurred while updating the window title.")?;
+        Ok(())
+    }
+
+    /// Retrieves the current title of the window.
+    ///
+    /// This method returns a reference to a string slice (`&str`) that represents the current title of the window.
+    /// It provides a way to access the window's title at any point after the window has been created or its title has been set.
+    ///
+    /// # Returns
+    /// * `&str` - A string slice representing the window's current title.
+    pub fn get_window_title(&self) -> &str {
+        self.window.title()
     }
 }

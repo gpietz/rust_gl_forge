@@ -1,10 +1,10 @@
 use crate::gl_utils;
-use gl::types::{GLboolean, GLenum, GLsizei, GLuint};
 use anyhow::{Context, Result};
-use gl_utils::*;
-use gl::types::GLbitfield;
-use std::os::raw::c_void;
 use bitflags::*;
+use gl::types::GLbitfield;
+use gl::types::{GLboolean, GLenum, GLsizei, GLuint};
+use gl_utils::*;
+use std::os::raw::c_void;
 
 //////////////////////////////////////////////////////////////////////////////
 // - BufferType -
@@ -95,6 +95,7 @@ impl BufferType {
 // - BufferUsage -
 //////////////////////////////////////////////////////////////////////////////
 
+#[derive(Copy, Clone, Debug)]
 pub enum BufferUsage {
     /// Used when the data in the buffer will not change or will change only infrequently and is
     /// used primarily for drawing.

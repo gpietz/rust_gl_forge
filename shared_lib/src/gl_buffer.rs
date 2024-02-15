@@ -47,6 +47,14 @@ impl<T: Vertex> BufferObject<T> {
         self.id
     }
 
+    pub fn buffer_usage(&self) -> BufferUsage {
+        self.buffer_usage
+    }
+
+    pub fn data(&self) -> &Vec<T> {
+        &self.data
+    }
+
     /// Unbinds all OpenGL buffer types.
     ///
     /// This function iterates over all buffer types defined in the `BufferType` enum

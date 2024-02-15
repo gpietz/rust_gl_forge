@@ -71,8 +71,9 @@ impl Texture {
 
             let format = if has_alpha { gl::RGBA } else { gl::RGB };
 
+            let gl_texture_type = texture_type.to_gl_enum();
             gl::TexImage2D(
-                gl::TEXTURE_2D,
+                gl_texture_type,
                 0,
                 format as GLint,
                 width as GLint,
@@ -83,7 +84,7 @@ impl Texture {
                 img_raw.as_ptr() as *const c_void,
             );
 
-            gl::GenerateMipmap(gl::TEXTURE_2D);
+            gl::GenerateMipmap(gl_texture_type);
             check_gl_error().with_context(|| {
                 format!(
                     "Failed to generate mipmap: {:?} (id: {})",
@@ -93,13 +94,13 @@ impl Texture {
             })?;
 
             // Unbind the texture
-            gl::BindTexture(gl::TEXTURE_2D, 0);
+            gl::BindTexture(gl_texture_type, 0);
         }
 
         #[rustfmt::skip]
         println!("Loaded texture: {} (id: {}, {}x{})", path.as_ref().to_string_lossy(), texture_id, width, height);
 
-        let uniform_name = if uniform_name.len() == 0 {
+        let uniform_name = if uniform_name.is_empty() {
             None
         } else {
             Some(uniform_name.to_string())
@@ -119,6 +120,10 @@ impl Texture {
     /// Returns id associated with this texture.
     pub fn get_texture_id(&self) -> u32 {
         self.id
+    }
+
+    pub fn texture_type(&self) -> TextureTarget {
+        self.texture_type
     }
 
     /// Binds the texture for use in rendering.
