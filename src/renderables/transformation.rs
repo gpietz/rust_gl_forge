@@ -97,11 +97,15 @@ impl Renderable for Transformation {
 
         let mut transform: Matrix4<f32> = Matrix4::identity();
         let rotation_angle_radians: Rad<f32> = Deg(self.rotation_angle).into();
+        let required_render_cycles = match self.render_mode {
+            RenderMode::SecondQuad => 2,
+            _ => 1,
+        };
         match self.render_mode {
             RenderMode::Normal => {
                 transform = transform * Matrix4::from_angle_z(-rotation_angle_radians);
             }
-            RenderMode::TransformRotate => {
+            RenderMode::TransformRotate | RenderMode::SecondQuad => {
                 transform = transform * Matrix4::<f32>::from_translation(vec3(0.5, -0.5, 0.0));
                 transform = transform * Matrix4::from_angle_z(-rotation_angle_radians);
             }
@@ -111,16 +115,24 @@ impl Renderable for Transformation {
             }
         }
 
-        // Get matrix uniform location an set matrix
-        self.shader.bind();
-        self.shader
-            .set_uniform_matrix("transform", false, &transform)?;
+        for render_cycle in 0..required_render_cycles {
+            // Get matrix uniform location an set matrix
+            self.shader.bind();
+            self.shader
+                .set_uniform_matrix("transform", false, &transform)?;
 
-        gl_draw::draw_elements(
-            PrimitiveType::Triangles,
-            self.vertex_count,
-            IndicesValueType::Int,
-        );
+            gl_draw::draw_elements(
+                PrimitiveType::Triangles,
+                self.vertex_count,
+                IndicesValueType::Int,
+            );
+
+            if self.render_mode == RenderMode::SecondQuad && render_cycle == 0 {
+                transform = Matrix4::identity();
+                transform = transform * Matrix4::<f32>::from_translation(vec3(-0.5, 0.5, 0.0));
+                transform = transform * Matrix4::from_angle_z(-rotation_angle_radians);
+            }
+        }
 
         Ok(())
     }
@@ -129,7 +141,8 @@ impl Renderable for Transformation {
         self.render_mode = match self.render_mode {
             RenderMode::Normal => RenderMode::TransformRotate,
             RenderMode::TransformRotate => RenderMode::RotateTransform,
-            RenderMode::RotateTransform => RenderMode::Normal,
+            RenderMode::RotateTransform => RenderMode::SecondQuad,
+            RenderMode::SecondQuad => RenderMode::Normal,
         };
         println!("Render mode: {}", self.render_mode);
     }
@@ -139,10 +152,12 @@ impl Renderable for Transformation {
 // - RenderMode -
 //////////////////////////////////////////////////////////////////////////////
 
+#[derive(PartialEq)]
 enum RenderMode {
     Normal,
     TransformRotate,
     RotateTransform,
+    SecondQuad,
 }
 
 impl Display for RenderMode {
@@ -151,6 +166,7 @@ impl Display for RenderMode {
             RenderMode::Normal => write!(f, "Normal"),
             RenderMode::TransformRotate => write!(f, "TransformRotate"),
             RenderMode::RotateTransform => write!(f, "RotateTransform"),
+            RenderMode::SecondQuad => write!(f, "SecondQuad"),
         }
     }
 }
