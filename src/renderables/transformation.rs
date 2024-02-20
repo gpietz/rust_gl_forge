@@ -126,12 +126,11 @@ impl Renderable for Transformation {
     }
 
     fn toggle_mode(&mut self) {
-        let render_mode = match self.render_mode {
+        self.render_mode = match self.render_mode {
             RenderMode::Normal => RenderMode::TransformRotate,
             RenderMode::TransformRotate => RenderMode::RotateTransform,
             RenderMode::RotateTransform => RenderMode::Normal,
         };
-        self.render_mode = render_mode;
         println!("Render mode: {}", self.render_mode);
     }
 }
