@@ -57,9 +57,12 @@ impl SdlWindow {
     /// # Examples
     ///
     /// ```
+    /// use sdl_window::SdlWindow;
+    /// use shared_lib::sdl_window;
+    ///
     /// let window = SdlWindow::new(800, 600, "My OpenGL Window", true);
     /// match window {
-    ///     Ok(win) => { /* Proceed with window and OpenGL operations */ },
+    ///     Ok(win) => { /* Proceed with window and OpenGL operations */ }
     ///     Err(e) => { /* Handle error (e.g., logging) */ }
     /// }
     /// ```
@@ -102,7 +105,9 @@ impl SdlWindow {
             clear_color: Color::BLACK,
         })
     }
+}
 
+impl SdlWindow {
     /// Clears the framebuffer by setting it to a predefined clear color and clearing the color,
     /// depth, and stencil buffers.
     ///
@@ -134,26 +139,26 @@ impl SdlWindow {
     ///   If `None`, all buffers (color, depth, and stencil) are cleared.
     pub fn clear_buffer(&self, buffer_bits: Option<BufferBit>) {
         unsafe {
-            if let Some(bits) = buffer_bits {
-                if bits.contains(BufferBit::COLOR_BUFFER_BIT) {
-                    gl::ClearColor(
-                        self.clear_color.r,
-                        self.clear_color.g,
-                        self.clear_color.b,
-                        self.clear_color.a,
-                    );
-                }
-                gl::Clear(bits.to_gl());
-                return;
-            };
-
             gl::ClearColor(
                 self.clear_color.r,
                 self.clear_color.g,
                 self.clear_color.b,
                 self.clear_color.a,
             );
-            gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT | gl::STENCIL_BUFFER_BIT);
+
+            match buffer_bits {
+                Some(bits) => {
+                    // If specific bits are provided, clear using those.
+                    // This assumes `to_gl()` translates `BufferBit` to the appropriate OpenGL flags.
+                    gl::Clear(bits.to_gl())
+                }
+                None => {
+                    // Use a default mask if no bits are specified.
+                    // This combines color, depth, and stencil buffer bits as the default clearing
+                    // behavior.
+                    gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT | gl::STENCIL_BUFFER_BIT);
+                }
+            }
         }
     }
 
@@ -190,7 +195,7 @@ impl SdlWindow {
     ///
     /// # Returns
     /// * `&str` - A string slice representing the window's current title.
-    pub fn get_window_title(&self) -> &str {
+    pub fn window_title(&self) -> &str {
         self.window.title()
     }
 }
