@@ -1,7 +1,8 @@
+use std::fmt::{Display, Formatter};
 use std::time::Instant;
 
 use anyhow::Result;
-use cgmath::{Deg, Matrix4, Rad, SquareMatrix};
+use cgmath::{vec3, Deg, Matrix4, Rad, SquareMatrix};
 use shared_lib::{
     gl_buffer::BufferObject,
     gl_draw,
@@ -29,6 +30,7 @@ pub struct Transformation {
     vertex_count: u32,
     start_time: Instant,
     rotation_angle: f32,
+    render_mode: RenderMode,
 }
 
 impl Transformation {
@@ -61,6 +63,7 @@ impl Transformation {
             vertex_count: vertex_data.indices.len() as u32,
             start_time: Instant::now(),
             rotation_angle: 0.0,
+            render_mode: RenderMode::Normal,
         })
     }
 
@@ -94,7 +97,19 @@ impl Renderable for Transformation {
 
         let mut transform: Matrix4<f32> = Matrix4::identity();
         let rotation_angle_radians: Rad<f32> = Deg(self.rotation_angle).into();
-        transform = transform * Matrix4::from_angle_z(-rotation_angle_radians);
+        match self.render_mode {
+            RenderMode::Normal => {
+                transform = transform * Matrix4::from_angle_z(-rotation_angle_radians);
+            }
+            RenderMode::TransformRotate => {
+                transform = transform * Matrix4::<f32>::from_translation(vec3(0.5, -0.5, 0.0));
+                transform = transform * Matrix4::from_angle_z(-rotation_angle_radians);
+            }
+            RenderMode::RotateTransform => {
+                transform = transform * Matrix4::from_angle_z(-rotation_angle_radians);
+                transform = transform * Matrix4::<f32>::from_translation(vec3(0.5, -0.5, 0.0));
+            }
+        }
 
         // Get matrix uniform location an set matrix
         self.shader.bind();
@@ -108,5 +123,35 @@ impl Renderable for Transformation {
         );
 
         Ok(())
+    }
+
+    fn toggle_mode(&mut self) {
+        let render_mode = match self.render_mode {
+            RenderMode::Normal => RenderMode::TransformRotate,
+            RenderMode::TransformRotate => RenderMode::RotateTransform,
+            RenderMode::RotateTransform => RenderMode::Normal,
+        };
+        self.render_mode = render_mode;
+        println!("Render mode: {}", self.render_mode);
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// - RenderMode -
+//////////////////////////////////////////////////////////////////////////////
+
+enum RenderMode {
+    Normal,
+    TransformRotate,
+    RotateTransform,
+}
+
+impl Display for RenderMode {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            RenderMode::Normal => write!(f, "Normal"),
+            RenderMode::TransformRotate => write!(f, "TransformRotate"),
+            RenderMode::RotateTransform => write!(f, "RotateTransform"),
+        }
     }
 }
