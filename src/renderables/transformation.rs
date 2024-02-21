@@ -20,6 +20,8 @@ use super::Renderable;
 
 const MAX_ROTATION_SPEED: i32 = 512;
 const ROTATION_SPEED_CHANGE: i32 = 16;
+const MIN_SCALE: f32 = 0.5;
+const MAX_SCALE: f32 = 1.5;
 
 //////////////////////////////////////////////////////////////////////////////
 // - Transformation  -
@@ -36,6 +38,7 @@ pub struct Transformation {
     rotation_angle: f32,
     render_mode: RenderMode,
     rotation_speed: i32,
+    scale_time: f32,
 }
 
 impl Transformation {
@@ -70,6 +73,7 @@ impl Transformation {
             rotation_angle: 0.0,
             render_mode: RenderMode::Normal,
             rotation_speed: 16,
+            scale_time: 0.0,
         })
     }
 
@@ -100,23 +104,30 @@ impl Renderable for Transformation {
         self.rotation_angle += self.rotation_speed as f32 * delta_time;
         self.rotation_angle %= 360.0;
 
+        // calculate rotation transformation
         let mut transform: Matrix4<f32> = Matrix4::identity();
         let rotation_angle_radians: Rad<f32> = Deg(self.rotation_angle).into();
         let required_render_cycles = match self.render_mode {
-            RenderMode::SecondQuad => 2,
+            RenderMode::SecondQuad
+            | RenderMode::SecondQuadScale
+            | RenderMode::SecondQuadScaleRotate => 2,
             _ => 1,
         };
+
+        // calculate scaling transformation
+        self.scale_time += delta_time * 1.0;
+
         match self.render_mode {
             RenderMode::Normal => {
-                transform = transform * Matrix4::from_angle_z(-rotation_angle_radians);
-            }
-            RenderMode::TransformRotate | RenderMode::SecondQuad => {
-                transform = transform * Matrix4::<f32>::from_translation(vec3(0.5, -0.5, 0.0));
                 transform = transform * Matrix4::from_angle_z(-rotation_angle_radians);
             }
             RenderMode::RotateTransform => {
                 transform = transform * Matrix4::from_angle_z(-rotation_angle_radians);
                 transform = transform * Matrix4::<f32>::from_translation(vec3(0.5, -0.5, 0.0));
+            }
+            _ => {
+                transform = transform * Matrix4::<f32>::from_translation(vec3(0.5, -0.5, 0.0));
+                transform = transform * Matrix4::from_angle_z(-rotation_angle_radians);
             }
         }
 
@@ -132,10 +143,27 @@ impl Renderable for Transformation {
                 IndicesValueType::Int,
             );
 
-            if self.render_mode == RenderMode::SecondQuad && render_cycle == 0 {
+            if render_cycle == 0 {
                 transform = Matrix4::identity();
                 transform = transform * Matrix4::<f32>::from_translation(vec3(-0.5, 0.5, 0.0));
-                transform = transform * Matrix4::from_angle_z(-rotation_angle_radians);
+                match self.render_mode {
+                    RenderMode::SecondQuad => {
+                        transform = transform * Matrix4::from_angle_z(-rotation_angle_radians);
+                    }
+                    #[rustfmt::skip]
+                    RenderMode::SecondQuadScale => {
+                        let scale_factor = (MAX_SCALE - MIN_SCALE) * 0.5 * (1.0 + (self.scale_time.cos())) + MIN_SCALE;
+                        let scaling_matrix = Matrix4::from_scale(scale_factor);
+                        transform = transform * scaling_matrix;
+                    }
+                    #[rustfmt::skip]
+                    RenderMode::SecondQuadScaleRotate => {
+                        let scale_factor = (MAX_SCALE - MIN_SCALE) * 0.5 * (1.0 + (self.scale_time.cos())) + MIN_SCALE;
+                        let scaling_matrix = Matrix4::from_scale(scale_factor);
+                        transform = transform * scaling_matrix * Matrix4::from_angle_z(-rotation_angle_radians);
+                    }
+                    _ => {}
+                }
             }
         }
 
@@ -143,12 +171,7 @@ impl Renderable for Transformation {
     }
 
     fn toggle_mode(&mut self) {
-        self.render_mode = match self.render_mode {
-            RenderMode::Normal => RenderMode::TransformRotate,
-            RenderMode::TransformRotate => RenderMode::RotateTransform,
-            RenderMode::RotateTransform => RenderMode::SecondQuad,
-            RenderMode::SecondQuad => RenderMode::Normal,
-        };
+        self.render_mode = self.render_mode.next();
         println!("Render mode: {}", self.render_mode);
     }
 
@@ -177,14 +200,27 @@ impl Renderable for Transformation {
 // - RenderMode -
 //////////////////////////////////////////////////////////////////////////////
 
-#[derive(PartialEq)]
+#[derive(Copy, Clone, PartialEq)]
 enum RenderMode {
     Normal,
     TransformRotate,
     RotateTransform,
     SecondQuad,
-    // SecondQuadScale,
-    // SecondQuadScaleRotate,
+    SecondQuadScale,
+    SecondQuadScaleRotate,
+}
+
+impl RenderMode {
+    fn next(self) -> Self {
+        match self {
+            RenderMode::Normal => RenderMode::TransformRotate,
+            RenderMode::TransformRotate => RenderMode::RotateTransform,
+            RenderMode::RotateTransform => RenderMode::SecondQuad,
+            RenderMode::SecondQuad => RenderMode::SecondQuadScale,
+            RenderMode::SecondQuadScale => RenderMode::SecondQuadScaleRotate,
+            RenderMode::SecondQuadScaleRotate => RenderMode::Normal,
+        }
+    }
 }
 
 impl Display for RenderMode {
@@ -194,6 +230,8 @@ impl Display for RenderMode {
             RenderMode::TransformRotate => write!(f, "TransformRotate"),
             RenderMode::RotateTransform => write!(f, "RotateTransform"),
             RenderMode::SecondQuad => write!(f, "SecondQuad"),
+            RenderMode::SecondQuadScale => write!(f, "SecondQuadScale"),
+            RenderMode::SecondQuadScaleRotate => write!(f, "SecondQuadScaleRotate"),
         }
     }
 }
