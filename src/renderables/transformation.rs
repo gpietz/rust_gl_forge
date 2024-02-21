@@ -3,6 +3,7 @@ use std::time::Instant;
 
 use anyhow::Result;
 use cgmath::{vec3, Deg, Matrix4, Rad, SquareMatrix};
+use sdl2::keyboard::Keycode;
 use shared_lib::{
     gl_buffer::BufferObject,
     gl_draw,
@@ -16,6 +17,9 @@ use shared_lib::{
 use crate::texture_utils::create_texture;
 
 use super::Renderable;
+
+const MAX_ROTATION_SPEED: i32 = 512;
+const ROTATION_SPEED_CHANGE: i32 = 16;
 
 //////////////////////////////////////////////////////////////////////////////
 // - Transformation  -
@@ -31,6 +35,7 @@ pub struct Transformation {
     start_time: Instant,
     rotation_angle: f32,
     render_mode: RenderMode,
+    rotation_speed: i32,
 }
 
 impl Transformation {
@@ -64,6 +69,7 @@ impl Transformation {
             start_time: Instant::now(),
             rotation_angle: 0.0,
             render_mode: RenderMode::Normal,
+            rotation_speed: 16,
         })
     }
 
@@ -91,8 +97,7 @@ impl Renderable for Transformation {
         self.shader.set_uniform("texture2", 1)?;
 
         // create transformation
-        let rotation_speed_degrees_per_sec = 16.0;
-        self.rotation_angle += rotation_speed_degrees_per_sec * delta_time;
+        self.rotation_angle += self.rotation_speed as f32 * delta_time;
         self.rotation_angle %= 360.0;
 
         let mut transform: Matrix4<f32> = Matrix4::identity();
@@ -146,6 +151,26 @@ impl Renderable for Transformation {
         };
         println!("Render mode: {}", self.render_mode);
     }
+
+    fn key_pressed(&mut self, key: &Keycode) -> bool {
+        match key {
+            Keycode::Plus => {
+                self.rotation_speed =
+                    (self.rotation_speed + ROTATION_SPEED_CHANGE).min(MAX_ROTATION_SPEED);
+            }
+            Keycode::Minus => {
+                self.rotation_speed =
+                    (self.rotation_speed - ROTATION_SPEED_CHANGE).max(-MAX_ROTATION_SPEED);
+            }
+            Keycode::R => {
+                self.rotation_speed = 16; // Assuming 16 is a default or reset value
+            }
+            _ => return false, // Directly return false if none of the keys match
+        }
+
+        println!("Rotation speed: {}", self.rotation_speed);
+        true // Return true if any of the keys match
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -158,6 +183,8 @@ enum RenderMode {
     TransformRotate,
     RotateTransform,
     SecondQuad,
+    // SecondQuadScale,
+    // SecondQuadScaleRotate,
 }
 
 impl Display for RenderMode {

@@ -1,4 +1,5 @@
 use anyhow::Result;
+use sdl2::keyboard::Keycode;
 
 pub mod first_triangle;
 pub mod indexed_quad;
@@ -139,4 +140,8 @@ pub trait Renderable {
 
     /// Switches between different shapes.
     fn toggle_shape(&mut self) {}
+
+    fn key_pressed(&mut self, _key: &Keycode) -> bool {
+        false
+    }
 }

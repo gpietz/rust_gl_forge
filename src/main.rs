@@ -59,56 +59,34 @@ fn main() -> Result<()> {
         for event in window.event_pump.poll_iter() {
             match event {
                 Event::Quit { .. } => break 'main_loop,
-                Event::KeyDown {
-                    keycode: Some(keycode),
-                    ..
-                } => match keycode {
-                    Keycode::Escape => break 'main_loop,
-                    Keycode::F1 => {
-                        // Logic for F1 key
-                        if current_index > 0 {
-                            current_index -= 1;
-                        } else {
-                            current_index = 0;
+                #[rustfmt::skip]
+                Event::KeyDown { keycode: Some(keycode), .. } => {
+                    if renderables.get_mut(current_index).map_or(true, |drawable| !drawable.key_pressed(&keycode)) {
+                        match keycode {
+                            Keycode::Escape => break 'main_loop,
+                            Keycode::F1 => current_index = current_index.saturating_sub(1),
+                            Keycode::F2 => current_index = (current_index + 1).min(renderables.len().saturating_sub(1)),
+                            Keycode::F3 | Keycode::F4 => {
+                                if let Some(drawable) = renderables.get_mut(current_index) {
+                                    if keycode == Keycode::F3 {
+                                        drawable.toggle_mode();
+                                    } else {
+                                        drawable.toggle_shape();
+                                    }
+                                }
+                            },
+                            Keycode::F12 => {
+                                show_fps = !show_fps;
+                                println!("FPS tracking {}", if show_fps { "activated" } else { "disabled" });
+                                if !show_fps {
+                                    window_title_reset_required = true;
+                                }
+                            }
+                            _ => {}
                         }
                     }
-                    Keycode::F2 => {
-                        // Logic for F2 key
-                        if current_index < renderables.len() - 1 {
-                            current_index += 1;
-                        } else {
-                            current_index = renderables.len() - 1;
-                        }
-                    }
-                    Keycode::F3 => {
-                        // Logic for F3 key
-                        if let Some(drawable) = renderables.get_mut(current_index) {
-                            drawable.toggle_mode();
-                        }
-                    }
-                    Keycode::F4 => {
-                        // Logic for F3 key
-                        if let Some(drawable) = renderables.get_mut(current_index) {
-                            drawable.toggle_shape();
-                        }
-                    }
-                    Keycode::F12 => {
-                        show_fps = !show_fps;
-                        println!(
-                            "FPS tracking {}",
-                            if show_fps { "activated" } else { "deactivated" }
-                        );
-                        if !show_fps {
-                            window_title_reset_required = true;
-                        }
-                    }
-                    _ => {}
                 },
                 _ => {}
-            }
-
-            if let Event::Quit { .. } = event {
-                break 'main_loop;
             }
         }
 
