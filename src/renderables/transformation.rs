@@ -151,16 +151,14 @@ impl Renderable for Transformation {
                         transform = transform * Matrix4::from_angle_z(-rotation_angle_radians);
                     }
                     #[rustfmt::skip]
-                    RenderMode::SecondQuadScale => {
+                    RenderMode::SecondQuadScale | RenderMode::SecondQuadScaleRotate => {
                         let scale_factor = (MAX_SCALE - MIN_SCALE) * 0.5 * (1.0 + (self.scale_time.cos())) + MIN_SCALE;
                         let scaling_matrix = Matrix4::from_scale(scale_factor);
-                        transform = transform * scaling_matrix;
-                    }
-                    #[rustfmt::skip]
-                    RenderMode::SecondQuadScaleRotate => {
-                        let scale_factor = (MAX_SCALE - MIN_SCALE) * 0.5 * (1.0 + (self.scale_time.cos())) + MIN_SCALE;
-                        let scaling_matrix = Matrix4::from_scale(scale_factor);
-                        transform = transform * scaling_matrix * Matrix4::from_angle_z(-rotation_angle_radians);
+                        transform = if self.render_mode == RenderMode::SecondQuadScale {
+                            transform * scaling_matrix
+                        } else {
+                            transform * scaling_matrix * Matrix4::from_angle_z(-rotation_angle_radians)
+                        };
                     }
                     _ => {}
                 }
