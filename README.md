@@ -8,7 +8,7 @@ a method I've realized is not optimal. However, the provided screenshots serve a
 
 ![screenshot_20240213](https://github.com/gpietz/rust_sdl_2024/assets/77841571/8f88484a-2a95-46db-8147-59f7022f50b0)
 
-## Project status 11.02.2024
+## Update 11.02.2024
 Today, I successfully completed the multitexturing topic and can now focus on transformations. To simplify multitexturing in the future, I need to come up with a solution. The way it's solved now requires considering too much.
 
 ![screenshot_20240211](https://github.com/gpietz/rust_sdl_2024/assets/77841571/ce659fec-04eb-42e4-9cec-cab2f6ee5656)
