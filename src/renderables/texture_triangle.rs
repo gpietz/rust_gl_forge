@@ -1,13 +1,16 @@
-use crate::renderables::Renderable;
-use crate::texture_utils::*;
+use crate::{renderables::Renderable, texture_utils::create_texture};
 use anyhow::Result;
-use shared_lib::gl_buffer::BufferObject;
-use shared_lib::gl_draw;
-use shared_lib::gl_shader::{ShaderFactory, ShaderProgram};
-use shared_lib::gl_texture::Texture;
-use shared_lib::gl_traits::{Bindable, Deletable};
-use shared_lib::gl_types::{IndicesValueType, PrimitiveType};
-use shared_lib::gl_vertex::{TexturedVertex, VertexArrayObject};
+use shared_lib::gl_prelude::IndicesValueType;
+use shared_lib::vertices::TexturedVertex2D::TexturedVertex2D;
+use shared_lib::{
+    gl_draw,
+    gl_prelude::{
+        Bindable, BufferObject, PrimitiveType, ShaderFactory, ShaderProgram, VertexArrayObject,
+        VertexLayoutManager,
+    },
+    gl_texture::Texture,
+    gl_traits::Deletable,
+};
 
 //////////////////////////////////////////////////////////////////////////////
 // - TextureTriangle -
@@ -15,10 +18,11 @@ use shared_lib::gl_vertex::{TexturedVertex, VertexArrayObject};
 
 pub struct TextureTriangle {
     vao: Option<VertexArrayObject>,
-    vbo: Option<BufferObject<TexturedVertex>>,
+    vbo: Option<BufferObject<TexturedVertex2D>>,
     ibo: Option<BufferObject<u32>>,
     textures: [Texture; 3],
     shader: Option<ShaderProgram>,
+    vlm: Option<VertexLayoutManager>,
     use_color: bool,
     use_color_location: i32,
     draw_quad: bool,
@@ -36,10 +40,11 @@ impl TextureTriangle {
             ibo: None,
             textures: [
                 create_texture("assets/textures/m-016-018-bg.jpg", false, false)?,
-                create_texture("assets/textures/container.jpg", false, false)?,
+                create_texture("assets/textures/crate8-512.jpg", false, false)?,
                 create_texture("assets/textures/awesomeface2.png", true, true)?,
             ],
             shader: None,
+            vlm: None,
             use_color: true,
             use_color_location: 0,
             draw_quad: false,
@@ -90,16 +95,19 @@ impl Renderable for TextureTriangle {
         };
 
         self.vertex_count = vertex_data.indices.len() as u32;
-        self.vao = Some(VertexArrayObject::new_and_bind()?);
+        self.vao = Some(VertexArrayObject::new(true)?);
         self.vbo = Some(vertex_data.create_vbo());
         self.ibo = Some(vertex_data.create_ibo());
-        vertex_data.set_vertex_attributes();
 
         // Create shader program
         let mut shader = ShaderFactory::from_files(
-            "assets/shaders/texture_triangle/vertexShader.glsl",
-            "assets/shaders/texture_triangle/fragmentShader.glsl",
+            "assets/shaders/simple/textured_triangle.vert",
+            "assets/shaders/simple/textured_triangle.frag",
         )?;
+
+        // Setup vertex layout
+        let vlm = VertexLayoutManager::new_and_setup::<TexturedVertex2D>(&shader)?;
+        self.vlm = Some(vlm);
 
         self.use_color_location = shader.get_uniform_location("useColor")?;
         self.use_awesomeface_location = shader.get_uniform_location("useTexture2")?;
@@ -135,7 +143,7 @@ impl Renderable for TextureTriangle {
         }
 
         if let Some(shader) = self.shader.as_mut() {
-            shader.bind();
+            shader.activate();
             shader.set_uniform("texture1", 0)?;
             shader.set_uniform("texture2", 1)?;
 
@@ -146,7 +154,7 @@ impl Renderable for TextureTriangle {
                 .set_uniform_value(self.use_awesomeface_location, self.use_awesomeface)
                 .unwrap(); // TODO draw() function should return a Result<()> instead of unwrapping!
         } else {
-            panic!("Shader progam is not available!");
+            panic!("Shader program is not available!");
         }
 
         gl_draw::draw_elements(
@@ -154,6 +162,7 @@ impl Renderable for TextureTriangle {
             self.vertex_count,
             IndicesValueType::Int,
         );
+
         Ok(())
     }
 

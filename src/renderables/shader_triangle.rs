@@ -1,22 +1,28 @@
+use super::RenderContext;
 use crate::renderables::Renderable;
 use anyhow::Result;
 use gl::types::GLfloat;
-use shared_lib::gl_buffer::BufferObject;
-use shared_lib::gl_draw;
-use shared_lib::gl_shader::{ShaderFactory, ShaderProgram};
-use shared_lib::gl_traits::Bindable;
-use shared_lib::gl_types::{BufferType, BufferUsage, PrimitiveType};
-use shared_lib::gl_vertex::{RgbVertex, Vertex, VertexArrayObject};
+use shared_lib::{
+    gl_draw,
+    gl_prelude::{
+        Bindable, BufferObject, BufferType, BufferUsage, PrimitiveType, ShaderFactory,
+        ShaderProgram, VertexArrayObject, VertexAttribute, VertexAttributeSpecs,
+        VertexAttributeType, VertexLayoutManager,
+    },
+    gl_types::VertexDataType,
+    gl_vertex::Vertex,
+};
 use std::time::Instant;
 
 //////////////////////////////////////////////////////////////////////////////
-// - IndexedQuad -
+// - ShaderTriangle -
 //////////////////////////////////////////////////////////////////////////////
 
 pub struct ShaderTriangle {
     vao: VertexArrayObject,
-    vbo: BufferObject<RgbVertex>,
+    vbo: BufferObject<ColorPointVertex>,
     shader: ShaderProgram,
+    vlm: VertexLayoutManager,
     use_uniform: bool,
     start_time: Instant,
 }
@@ -26,38 +32,37 @@ impl ShaderTriangle {
         let start_time = Instant::now();
 
         let vertices = vec![
-            RgbVertex {
+            ColorPointVertex {
                 position: [0.5, -0.5, 0.0],
                 color: [1.0, 0.0, 0.0],
             },
-            RgbVertex {
+            ColorPointVertex {
                 position: [-0.5, -0.5, 0.0],
                 color: [0.0, 1.0, 0.0],
             },
-            RgbVertex {
+            ColorPointVertex {
                 position: [0.0, 0.5, 0.0],
                 color: [0.0, 0.0, 1.0],
             },
         ];
 
-        let vao = VertexArrayObject::new_and_bind()?;
-        let vbo =
-            BufferObject::new_and_bind(BufferType::ArrayBuffer, BufferUsage::StaticDraw, vertices);
-        for attribute in RgbVertex::attributes() {
-            attribute.setup()?;
-            attribute.enable()?;
-        }
+        let vao = VertexArrayObject::new(true)?;
+        let vbo = BufferObject::new(BufferType::ArrayBuffer, BufferUsage::StaticDraw, vertices);
 
         // Create the shader program
         let shader = ShaderFactory::from_files(
-            "assets/shaders/simple/vertex_shader.glsl",
-            "assets/shaders/simple/fragment_shader.glsl",
+            "assets/shaders/simple/shader_triangle.vert",
+            "assets/shaders/simple/shader_triangle.frag",
         )?;
+
+        // Setup the vertex layout
+        let vlm = VertexLayoutManager::new_and_setup::<ColorPointVertex>(&shader)?;
 
         Ok(ShaderTriangle {
             vao,
             vbo,
             shader,
+            vlm,
             use_uniform,
             start_time,
         })
@@ -72,7 +77,7 @@ impl Renderable for ShaderTriangle {
     fn draw(&mut self, _: f32) -> Result<()> {
         self.vao.bind()?;
         self.vbo.bind()?;
-        self.shader.bind();
+        self.shader.activate();
 
         let mut current_time = -1f64;
         if self.use_uniform {
@@ -86,5 +91,26 @@ impl Renderable for ShaderTriangle {
 
         gl_draw::draw_primitive(PrimitiveType::Triangles, 3);
         Ok(())
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// - ColorPointVertex -
+//////////////////////////////////////////////////////////////////////////////
+
+struct ColorPointVertex {
+    pub position: [f32; 3],
+    pub color: [f32; 3],
+}
+
+impl Vertex for ColorPointVertex {
+    // The color must be specified with 3 components here because normally the color includes
+    // a fourth value, which indicates the alpha channel (transparency).
+    fn attributes() -> Vec<VertexAttribute> {
+        vec![
+            VertexAttribute::new(VertexAttributeType::Position),
+            VertexAttribute::new(VertexAttributeType::Color)
+                .with_attribute_specs(VertexAttributeSpecs::new(3, VertexDataType::Float, false)),
+        ]
     }
 }

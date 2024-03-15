@@ -1,22 +1,20 @@
-use std::fmt::{Display, Formatter};
-use std::time::Instant;
-
+use crate::{renderables::Renderable, texture_utils::create_texture};
 use anyhow::Result;
 use cgmath::{vec3, Deg, Matrix4, Rad, SquareMatrix};
 use sdl2::keyboard::Keycode;
+use shared_lib::gl_prelude::{IndicesValueType, Shader};
+use shared_lib::vertices::TexturedVertex2D::TexturedVertex2D;
 use shared_lib::{
-    gl_buffer::BufferObject,
     gl_draw,
-    gl_shader::{ShaderFactory, ShaderProgram},
+    gl_prelude::{
+        Bindable, BufferObject, PrimitiveType, ShaderFactory, ShaderProgram, VertexArrayObject,
+        VertexLayoutManager,
+    },
     gl_texture::Texture,
-    gl_traits::Bindable,
-    gl_types::{IndicesValueType, PrimitiveType},
-    gl_vertex::{TexturedVertex, VertexArrayObject},
+    gl_traits::Deletable,
 };
-
-use crate::texture_utils::create_texture;
-
-use super::Renderable;
+use std::fmt::{Display, Formatter};
+use std::time::Instant;
 
 const MAX_ROTATION_SPEED: i32 = 512;
 const ROTATION_SPEED_CHANGE: i32 = 16;
@@ -29,10 +27,11 @@ const MAX_SCALE: f32 = 1.5;
 
 pub struct Transformation {
     vao: VertexArrayObject,
-    vbo: BufferObject<TexturedVertex>,
+    vbo: BufferObject<TexturedVertex2D>,
     ibo: BufferObject<u32>,
     textures: [Texture; 2],
     shader: ShaderProgram,
+    vlm: VertexLayoutManager,
     vertex_count: u32,
     start_time: Instant,
     rotation_angle: f32,
@@ -45,22 +44,24 @@ impl Transformation {
     pub fn new() -> Result<Transformation> {
         // ** create vertex data ***
         let vertex_data = crate::vertex_data::create_quad();
-        let vao = VertexArrayObject::new_and_bind()?;
+        let vao = VertexArrayObject::new(true)?;
         let vbo = vertex_data.create_vbo();
         let ibo = vertex_data.create_ibo();
-        vertex_data.set_vertex_attributes();
 
         // *** load textures ***
         let textures = [
-            create_texture("assets/textures/container.jpg", false, false)?,
+            create_texture("assets/textures/crate8.jpg", false, false)?,
             create_texture("assets/textures/awesomeface2.png", true, true)?,
         ];
 
         // *** create shader program ***
-        let shader = ShaderFactory::from_files(
-            "assets/shaders/transformation/transform.vs.glsl",
-            "assets/shaders/transformation/transform.fs.glsl",
-        )?;
+        let shader = ShaderProgram::from_files(&[
+            "assets/shaders/simple/transform.vert", 
+            "assets/shaders/simple/transform.frag"
+        ])?;
+
+        // Create vertex layout
+        let vlm = VertexLayoutManager::new_and_setup::<TexturedVertex2D>(&shader)?;
 
         Ok(Transformation {
             vao,
@@ -68,6 +69,7 @@ impl Transformation {
             ibo,
             textures,
             shader,
+            vlm,
             vertex_count: vertex_data.indices.len() as u32,
             start_time: Instant::now(),
             rotation_angle: 0.0,
@@ -96,7 +98,7 @@ impl Renderable for Transformation {
         self.textures[1].bind_as_unit(1);
 
         // Activate shaders and bind to texture units
-        self.shader.bind();
+        self.shader.activate();
         self.shader.set_uniform("texture1", 0)?;
         self.shader.set_uniform("texture2", 1)?;
 
@@ -133,7 +135,7 @@ impl Renderable for Transformation {
 
         for render_cycle in 0..required_render_cycles {
             // Get matrix uniform location an set matrix
-            self.shader.bind();
+            self.shader.activate();
             self.shader
                 .set_uniform_matrix("transform", false, &transform)?;
 

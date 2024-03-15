@@ -5,7 +5,8 @@ use sdl2::{
 };
 
 use crate::color::Color;
-use crate::gl_types::BufferBit;
+use crate::gl_traits::ToOpenGL;
+use crate::gl_types::RenderMask;
 use crate::gl_utils::check_gl_error;
 
 //////////////////////////////////////////////////////////////////////////////
@@ -137,7 +138,7 @@ impl SdlWindow {
     ///
     /// * `buffer_bits` - An optional `BufferBit` flag or combination of flags indicating which buffers to clear.
     ///   If `None`, all buffers (color, depth, and stencil) are cleared.
-    pub fn clear_buffer(&self, buffer_bits: Option<BufferBit>) {
+    pub fn clear_buffer(&self, buffer_bits: Option<RenderMask>) {
         unsafe {
             gl::ClearColor(
                 self.clear_color.r,
@@ -147,10 +148,10 @@ impl SdlWindow {
             );
 
             match buffer_bits {
-                Some(bits) => {
+                Some(render_mask) => {
                     // If specific bits are provided, clear using those.
                     // This assumes `to_gl()` translates `BufferBit` to the appropriate OpenGL flags.
-                    gl::Clear(bits.to_gl())
+                    gl::Clear(render_mask.to_opengl());
                 }
                 None => {
                     // Use a default mask if no bits are specified.

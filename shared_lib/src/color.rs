@@ -3,29 +3,25 @@ use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 
 macro_rules! color_from_rgba {
-    ($r:expr, $g:expr, $b:expr, $a:expr) => {
-        {
-            Color {
-                r: $r as f32 / 255.0,
-                g: $g as f32 / 255.0,
-                b: $b as f32 / 255.0,
-                a: $a as f32 / 255.0,
-            }
+    ($r:expr, $g:expr, $b:expr, $a:expr) => {{
+        Color {
+            r: $r as f32 / 255.0,
+            g: $g as f32 / 255.0,
+            b: $b as f32 / 255.0,
+            a: $a as f32 / 255.0,
         }
-    };
+    }};
 }
 
 macro_rules! color_from_rgb {
-    ($r:expr, $g:expr, $b:expr) => {
-        {
-            Color {
-                r: $r as f32 / 255.0,
-                g: $g as f32 / 255.0,
-                b: $b as f32 / 255.0,
-                a: 1.0,
-            }
+    ($r:expr, $g:expr, $b:expr) => {{
+        Color {
+            r: $r as f32 / 255.0,
+            g: $g as f32 / 255.0,
+            b: $b as f32 / 255.0,
+            a: 1.0,
         }
-    };
+    }};
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -46,7 +42,7 @@ impl Color {
         r: 0.0,
         g: 0.0,
         b: 0.0,
-        a: 0.0,
+        a: 1.0,
     };
     pub const WHITE: Color = Color {
         r: 1.0,
@@ -62,9 +58,9 @@ impl Color {
     pub const GRAY: Color = color_from_rgb!(128, 128, 128);
     pub const DIM_GRAY: Color = color_from_rgb!(105, 105, 105);
     pub const LIGHT_SLATE_GRAY: Color = color_from_rgb!(119, 136, 153);
-    pub const SLATE_GRAY: Color = color_from_rgb!(112,128,144);
+    pub const SLATE_GRAY: Color = color_from_rgb!(112, 128, 144);
     pub const DARK_SLATE_GRAY: Color = color_from_rgb!(47, 79, 79);
-    
+
     pub const PLYMOUTH_BLUE: Color = color_from_rgb!(25, 49, 61);
     pub const DAREDEVIL: Color = color_from_rgb!(138, 6, 22);
     pub const INDIAN_RED: Color = color_from_rgb!(205, 92, 92);
@@ -109,7 +105,7 @@ impl Color {
     pub const DARK_BLUE: Color = color_from_rgb!(0, 0, 139);
     pub const NAVY: Color = color_from_rgb!(0, 0, 128);
     pub const MIDNIGHT_BLUE: Color = color_from_rgb!(25, 25, 112);
-    
+
     // Constructor for RGBA values
     pub fn new(r: f32, g: f32, b: f32, a: f32) -> Self {
         Color { r, g, b, a }
@@ -148,7 +144,7 @@ impl Color {
         Ok(Color { r, g, b, a })
     }
 
-    fn to_hex(&self) -> String {
+    pub fn to_hex(&self) -> String {
         let r = (self.r * 255.0).round() as u8;
         let g = (self.g * 255.0).round() as u8;
         let b = (self.b * 255.0).round() as u8;
@@ -161,6 +157,20 @@ impl Color {
         } else {
             format!("#{:02X}{:02X}{:02X}{:02X}", r, g, b, a)
         }
+    }
+
+    pub fn to_rgba(&self) -> [u8; 4] {
+        let r = (self.r * 255.0).round() as u8;
+        let g = (self.g * 255.0).round() as u8;
+        let b = (self.b * 255.0).round() as u8;
+        let a = (self.a * 255.0).round() as u8;
+        [r, g, b, a]
+    }
+
+    pub fn with_alpha(&self, alpha: f32) -> Self {
+        let mut color = self.clone();
+        color.a = f32::max(alpha, 1.0).min(0.0);
+        color
     }
 }
 

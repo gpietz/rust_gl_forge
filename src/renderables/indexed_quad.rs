@@ -1,17 +1,16 @@
+use super::RenderContext;
 use crate::renderables::Renderable;
 use anyhow::Result;
 use cgmath::Vector3;
-use gl::types::GLfloat;
-use shared_lib::gl_buffer::BufferObject;
-use shared_lib::gl_draw;
-use shared_lib::gl_shader::{ShaderFactory, ShaderProgram};
-use shared_lib::gl_traits::Bindable;
-use shared_lib::gl_types::{
-    BufferType, BufferUsage, IndicesValueType, PrimitiveType, VertexAttributeType,
+use shared_lib::{
+    gl_draw,
+    gl_prelude::{
+        Bindable, BufferObject, BufferType, BufferUsage, PrimitiveType, ShaderFactory,
+        ShaderProgram, VertexArrayObject, VertexAttribute, VertexAttributeType,
+        VertexLayoutManager,
+    },
+    gl_types::IndicesValueType,
 };
-use shared_lib::gl_vertex::VertexArrayObject;
-use shared_lib::gl_vertex_attribute::VertexAttribute;
-use std::mem::size_of;
 
 //////////////////////////////////////////////////////////////////////////////
 // - IndexedQuad -
@@ -21,8 +20,8 @@ pub struct IndexedQuad {
     vao: VertexArrayObject,
     vbo: BufferObject<Vector3<f32>>,
     ibo: BufferObject<u32>,
-    position_attribute: VertexAttribute,
     shader: ShaderProgram,
+    vlm: VertexLayoutManager,
 }
 
 impl IndexedQuad {
@@ -35,38 +34,30 @@ impl IndexedQuad {
         ];
         let indices = vec![0, 1, 3, 1, 2, 3];
 
-        let vao = VertexArrayObject::new_and_bind()?;
-        let vbo =
-            BufferObject::new_and_bind(BufferType::ArrayBuffer, BufferUsage::StaticDraw, vertices);
-        let ibo = BufferObject::new_and_bind(
+        let vao = VertexArrayObject::new(true)?;
+        let vbo = BufferObject::new(BufferType::ArrayBuffer, BufferUsage::StaticDraw, vertices);
+        let ibo = BufferObject::new(
             BufferType::ElementArrayBuffer,
             BufferUsage::StaticDraw,
             indices,
         );
 
-        let position_attribute = VertexAttribute::new(
-            0,
-            3,
-            VertexAttributeType::Position,
-            false,
-            3 * size_of::<GLfloat>(),
-            0,
-        );
-        position_attribute.setup()?;
-        position_attribute.enable()?;
-
         // Create shader program
         let shader = ShaderFactory::from_files(
-            "assets/shaders/simple_color/vertex_shader.glsl",
-            "assets/shaders/simple_color/fragment_shader.glsl",
+            "assets/shaders/simple/simple_red_shader.vert",
+            "assets/shaders/simple/simple_red_shader.frag",
         )?;
+
+        let mut vlm = VertexLayoutManager::new();
+        vlm.add_attribute(VertexAttribute::new(VertexAttributeType::Position))
+            .setup_attributes_for_shader(shader.program_id())?;
 
         Ok(IndexedQuad {
             vao,
             vbo,
             ibo,
-            position_attribute,
             shader,
+            vlm,
         })
     }
 }
@@ -76,7 +67,7 @@ impl Renderable for IndexedQuad {
         self.vao.bind()?;
         self.vbo.bind()?;
         self.ibo.bind()?;
-        self.shader.bind();
+        self.shader.activate();
         gl_draw::draw_elements(PrimitiveType::Triangles, 6, IndicesValueType::Int);
         Ok(())
     }

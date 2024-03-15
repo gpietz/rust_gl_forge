@@ -1,9 +1,12 @@
+use crate::gl_traits::ToOpenGL;
 use crate::gl_utils;
 use anyhow::{Context, Result};
 use bitflags::*;
 use gl::types::GLbitfield;
 use gl::types::{GLboolean, GLenum, GLsizei, GLuint};
 use gl_utils::*;
+use std::fmt;
+use std::fmt::Display;
 use std::os::raw::c_void;
 
 //////////////////////////////////////////////////////////////////////////////
@@ -138,14 +141,106 @@ impl BufferUsage {
 }
 
 //////////////////////////////////////////////////////////////////////////////
+// - VertexDataType -
+//////////////////////////////////////////////////////////////////////////////
+
+#[derive(Debug, Clone, Copy)]
+pub enum VertexDataType {
+    Byte,
+    UnsignedByte,
+    Short,
+    UnsignedShort,
+    Int,
+    UnsignedInt,
+    HalfFloat,
+    Float,
+    Double,
+    Fixed,
+    #[allow(non_camel_case_types)]
+    Int_2_10_10_10_Rev,
+    #[allow(non_camel_case_types)]
+    UnsignedInt_2_10_10_10_Rev,
+    #[allow(non_camel_case_types)]
+    UnsignedInt_10F_11F_11F_Rev,
+}
+
+impl VertexDataType {
+    pub fn to_gl_enum(&self) -> GLenum {
+        match self {
+            VertexDataType::Byte => gl::BYTE,
+            VertexDataType::UnsignedByte => gl::UNSIGNED_BYTE,
+            VertexDataType::Short => gl::SHORT,
+            VertexDataType::UnsignedShort => gl::UNSIGNED_SHORT,
+            VertexDataType::Int => gl::INT,
+            VertexDataType::UnsignedInt => gl::UNSIGNED_INT,
+            VertexDataType::HalfFloat => gl::HALF_FLOAT,
+            VertexDataType::Float => gl::FLOAT,
+            VertexDataType::Double => gl::DOUBLE,
+            VertexDataType::Fixed => gl::FIXED,
+            VertexDataType::Int_2_10_10_10_Rev => gl::INT_2_10_10_10_REV,
+            VertexDataType::UnsignedInt_2_10_10_10_Rev => gl::UNSIGNED_INT_2_10_10_10_REV,
+            VertexDataType::UnsignedInt_10F_11F_11F_Rev => gl::UNSIGNED_INT_10F_11F_11F_REV,
+        }
+    }
+
+    pub fn size(&self) -> usize {
+        match self {
+            VertexDataType::Byte => std::mem::size_of::<i8>(),
+            VertexDataType::UnsignedByte => std::mem::size_of::<u8>(),
+            VertexDataType::Short => std::mem::size_of::<i16>(),
+            VertexDataType::UnsignedShort => std::mem::size_of::<u16>(),
+            VertexDataType::Int => std::mem::size_of::<i32>(),
+            VertexDataType::UnsignedInt => std::mem::size_of::<u32>(),
+            // No direct Rust equivalent, but known to be 2 bytes
+            VertexDataType::HalfFloat => 2,
+            VertexDataType::Float => std::mem::size_of::<f32>(),
+            VertexDataType::Double => std::mem::size_of::<f64>(),
+            // Typically represented as a 32-bit quantity, no direct Rust equivalent
+            VertexDataType::Fixed => 4,
+            // Packed into a 32-bit integer
+            VertexDataType::Int_2_10_10_10_Rev => 4,
+            // Packed into a 32-bit integer
+            VertexDataType::UnsignedInt_2_10_10_10_Rev => 4,
+            VertexDataType::UnsignedInt_10F_11F_11F_Rev => 4,
+        }
+    }
+}
+
+impl Display for VertexDataType {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            VertexDataType::Byte => write!(f, "Byte"),
+            VertexDataType::UnsignedByte => write!(f, "UnsignedByte"),
+            VertexDataType::Short => write!(f, "Short"),
+            VertexDataType::UnsignedShort => write!(f, "UnsignedShort"),
+            VertexDataType::Int => write!(f, "Int"),
+            VertexDataType::UnsignedInt => write!(f, "UnsignedInt"),
+            VertexDataType::HalfFloat => write!(f, "HalfFloat"),
+            VertexDataType::Float => write!(f, "Float"),
+            VertexDataType::Double => write!(f, "Double"),
+            VertexDataType::Fixed => write!(f, "Fixed"),
+            VertexDataType::Int_2_10_10_10_Rev => write!(f, "Int_2_10_10_10_Rev"),
+            VertexDataType::UnsignedInt_2_10_10_10_Rev => write!(f, "UnsignedInt_2_10_10_10_Rev"),
+            VertexDataType::UnsignedInt_10F_11F_11F_Rev => write!(f, "UnsignedInt_10F_11F_11F_Rev"),
+        }
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////////
 // - VertexAttributeType -
 //////////////////////////////////////////////////////////////////////////////
 
 #[derive(Clone, Copy)]
 pub enum VertexAttributeType {
+    /// **3 components per position, float, not normalized**
     Position,
+    /// **2 components per position, float, not normalized**
+    Position2D,
+    /// **4 components per color, float, not normalized**
     Color,
+    /// **2 components per texture coordinate, float, not normalized**
     TexCoord,
+    /// **3 components per normal, float, not normalized**
     Normal,
 }
 
@@ -191,10 +286,40 @@ impl VertexAttributeType {
         Ok(())
     }
 
+    /// Converts the `VertexAttributeType` to OpenGL data format.
+    ///
+    /// This function maps each variant of `VertexAttributeType` to a tuple
+    /// representing the format of the corresponding vertex attribute in OpenGL.
+    /// Specifically, it returns a tuple containing the number of components per
+    /// vertex attribute, the data type of each component, and a flag indicating
+    /// whether the data should be normalized.
+    ///
+    /// # Returns
+    /// A tuple consisting of:
+    /// - An `i32` representing the number of components per vertex attribute.
+    /// - A `GLenum` specifying the data type of each component in the attribute.
+    /// - A `GLboolean` indicating whether the attribute data should be normalized (`gl::TRUE`)
+    ///   or not (`gl::FALSE`).
+    ///
+    /// # Variants
+    /// - `VertexAttributeType::Position`: Represents a vertex position with 3 components per position,
+    ///   using floating-point values, and not normalized.
+    /// - `VertexAttributeType::Color`: Represents a vertex color with 4 components per color,
+    ///   using floating-point values, and not normalized.
+    /// - `VertexAttributeType::TexCoord`: Represents a texture coordinate with 2 components per coordinate,
+    ///   using floating-point values, and not normalized.
+    /// - `VertexAttributeType::Normal`: Represents a vertex normal with 3 components per normal,
+    ///   using floating-point values, and not normalized.
+    ///
+    /// # Note
+    /// This function is specifically designed to be used in conjunction with the `glVertexAttribPointer`
+    /// function, enabling easy setup of vertex attribute pointers in OpenGL.
     pub fn to_gl_data(&self) -> (i32, GLenum, GLboolean) {
         match self {
             // 3 components per position, float, not normalized
             VertexAttributeType::Position => (3, gl::FLOAT, gl::FALSE),
+            // 2 components per position, float, not normalized
+            VertexAttributeType::Position2D => (2, gl::FLOAT, gl::FALSE),
             // 4 components per color, float, not normalized
             VertexAttributeType::Color => (4, gl::FLOAT, gl::FALSE),
             // 2 components per texture coordinate, float, not normalized
@@ -212,6 +337,8 @@ impl VertexAttributeType {
 pub enum ShaderType {
     Vertex,
     Fragment,
+    Geometry,
+    Compute,
 }
 
 impl ShaderType {
@@ -219,6 +346,8 @@ impl ShaderType {
         match self {
             ShaderType::Vertex => gl::VERTEX_SHADER,
             ShaderType::Fragment => gl::FRAGMENT_SHADER,
+            ShaderType::Geometry => gl::GEOMETRY_SHADER,
+            ShaderType::Compute => gl::COMPUTE_SHADER,
         }
     }
 }
@@ -287,60 +416,85 @@ impl IndicesValueType {
 }
 
 //////////////////////////////////////////////////////////////////////////////
-// - BufferBit -
+// - RenderMask -
 //////////////////////////////////////////////////////////////////////////////
 
-bitflags! {
-    /// A set of bitflags used to specify the buffers to be cleared in OpenGL rendering operations.
-    ///
-    /// This struct wraps OpenGL's buffer bit constants to be used with functions like `glClear`
-    /// to clear specific buffers. Each flag can be combined using bitwise OR (`|`) to clear multiple buffers
-    /// with a single call.
-    ///
-    /// # Examples
-    ///
-    /// Clearing both the color and depth buffers:
-    ///
-    /// ```
-    /// # extern crate gl;
-    /// # use gl::types::*;
-    /// # bitflags::bitflags! {
-    /// #     pub struct BufferBit : GLbitfield {
-    /// #         pub const GL_COLOR_BUFFER_BIT = gl::COLOR_BUFFER_BIT;
-    /// #         pub const GL_DEPTH_BUFFER_BIT = gl::DEPTH_BUFFER_BIT;
-    /// #         pub const GL_STENCIL_BUFFER_BIT = gl::STENCIL_BUFFER_BIT;
-    /// #     }
-    /// # }
-    /// # fn main() {
-    /// let flags = BufferBit::GL_COLOR_BUFFER_BIT | BufferBit::GL_DEPTH_BUFFER_BIT;
-    /// unsafe { gl::Clear(flags.bits()); }
-    /// # }
-    /// ```
-    ///
-    /// This struct provides a safer, Rust-friendly way of specifying buffer bits for operations
-    /// like clearing the framebuffer, while ensuring type safety and better integration with Rust's
-    /// features.
-    pub struct BufferBit : GLbitfield {
-        /// Indicates the buffers currently enabled for color writing.
-        /// Use this flag to clear the color buffer and reset the color values
-        /// of the framebuffer to the predefined clear values.
-        const COLOR_BUFFER_BIT = gl::COLOR_BUFFER_BIT;
-        /// Indicates the depth buffer.
-        /// Use this flag to clear the depth buffer and reset the depth information
-        /// of the framebuffer, typically used to prepare for a new round of depth testing
-        /// for rendering a new frame.
-        const DEPTH_BUFFER_BIT = gl::DEPTH_BUFFER_BIT;
-        /// Indicates the stencil buffer.
-        /// Use this flag to clear the stencil buffer and reset the stencil information
-        /// of the framebuffer, which is often used in complex rendering techniques
-        /// such as stencil testing for masking parts of the scene.
-        const STENCIL_BUFFER_BIT = gl::STENCIL_BUFFER_BIT;
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub struct RenderMask {
+    pub color: bool,
+    pub depth: bool,
+    pub stencil: bool,
+}
+
+impl RenderMask {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn color(mut self) -> Self {
+        self.color = true;
+        self
+    }
+
+    pub fn depth(mut self) -> Self {
+        self.depth = true;
+        self
+    }
+
+    pub fn stencil(mut self) -> Self {
+        self.stencil = true;
+        self
+    }
+
+    pub fn color_and_depth(mut self) -> Self {
+        self.color = true;
+        self.depth = true;
+        self
+    }
+
+    pub fn color_and_stencil(mut self) -> Self {
+        self.color = true;
+        self.depth = true;
+        self
+    }
+
+    pub fn depth_and_stencil(mut self) -> Self {
+        self.depth = true;
+        self.stencil = true;
+        self
+    }
+
+    pub fn all(mut self) -> Self {
+        self.color = true;
+        self.depth = true;
+        self.stencil = true;
+        self
     }
 }
 
-impl BufferBit {
-    pub fn to_gl(&self) -> GLbitfield {
-        self.bits()
+impl ToOpenGL for RenderMask {
+    fn to_opengl(&self) -> u32 {
+        let mut mask = 0;
+        if self.color {
+            mask |= gl::COLOR_BUFFER_BIT;
+        }
+        if self.depth {
+            mask |= gl::DEPTH_BUFFER_BIT;
+        }
+        if self.stencil {
+            mask |= gl::STENCIL_BUFFER_BIT;
+        }
+        mask
+    }
+}
+
+impl From<(bool, bool, bool)> for RenderMask {
+    fn from(value: (bool, bool, bool)) -> Self {
+        RenderMask {
+            color: value.0,
+            depth: value.1,
+            stencil: value.2,
+        }
     }
 }
 
@@ -364,7 +518,7 @@ pub enum TextureTarget {
 }
 
 impl TextureTarget {
-    pub fn to_gl_enum(&self) -> gl::types::GLenum {
+    pub fn to_gl_enum(&self) -> GLenum {
         match self {
             Self::Texture1D => gl::TEXTURE_1D,
             Self::Texture2D => gl::TEXTURE_2D,
@@ -377,6 +531,26 @@ impl TextureTarget {
             Self::TextureBuffer => gl::TEXTURE_BUFFER,
             Self::Texture2DMultisample => gl::TEXTURE_2D_MULTISAMPLE,
             Self::Texture2DMultisampleArray => gl::TEXTURE_2D_MULTISAMPLE_ARRAY,
+        }
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// - MatrixMode -
+//////////////////////////////////////////////////////////////////////////////
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum MatrixMode {
+    ModelView,
+    Projection,
+    Texture,
+    Color,
+}
+
+impl ToOpenGLenum for MatrixMode {
+    fn to_opengl(&self) -> GLenum {
+        match self {
+            Self::ModelView => 
         }
     }
 }

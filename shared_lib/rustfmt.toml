@@ -1,0 +1,7 @@
+max_width = 100
+hard_tabs = false
+brace_style = "SameLineWhere"
+reorder_imports = true
+chain_width = 80
+format_code_in_doc_comments = true
+format_doc_comments = true

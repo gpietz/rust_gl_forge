@@ -9,7 +9,3 @@ cgmath = "0.18.0"
 gl = "0.14.0"
 image = { version = "0.24.8", features = ["default"] }
 shared_lib = { path = "../../shared_lib" }
-
-[dependencies.sdl2]
-version = "0.36.0"
-features = ["bundled", "static-link"]

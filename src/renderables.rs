@@ -1,6 +1,8 @@
 use anyhow::Result;
 use sdl2::keyboard::Keycode;
+use shared_lib::{gl_font::Font, gl_prelude::ShaderManager};
 
+pub mod first_text;
 pub mod first_triangle;
 pub mod indexed_quad;
 pub mod shader_triangle;
@@ -143,5 +145,19 @@ pub trait Renderable {
 
     fn key_pressed(&mut self, _key: &Keycode) -> bool {
         false
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// - RenderContext -
+//////////////////////////////////////////////////////////////////////////////
+
+pub struct RenderContext {
+    pub shader_manager: ShaderManager,
+}
+
+impl RenderContext {
+    pub fn new(shader_manager: ShaderManager) -> Self {
+        Self { shader_manager }
     }
 }

@@ -97,11 +97,9 @@ impl Shader {
 
         // Load content from file
         let mut shader_content = String::new();
-        shader_file
-            .read_to_string(&mut shader_content)
-            .with_context(|| {
-                format!("Failed to read shader: {}", shader_path.as_ref().display())
-            })?;
+        shader_file.read_to_string(&mut shader_content).with_context(|| {
+            format!("Failed to read shader: {}", shader_path.as_ref().display())
+        })?;
 
         // Assuming `from_source` creates the shader and returns its id
         let shader = Self::from_source(&shader_content, shader_type)
@@ -208,6 +206,77 @@ pub struct ShaderProgram {
 }
 
 impl ShaderProgram {
+    //pub fn from_sources(shader_sources: &[ShaderSource]) -> Result<ShaderProgram>
+    
+    pub fn from_files(shader_files: &[&str]) -> Result<ShaderProgram> {
+        let program_id = unsafe { gl::CreateProgram() };
+
+        // Attach shaders
+        let mut shaders = Vec::new();
+        for filename in shader_files {
+            let extension = filename.rsplit_once('.').map(|(_, ext)| ext);
+            let shadertype = match extension {
+                Some("vert") => ShaderType::Vertex,
+                Some("frag") => ShaderType::Fragment,
+                Some("geom") => ShaderType::Geometry,
+                Some("comp") => ShaderType::Compute,
+                _ => {
+                    return Err(anyhow::anyhow!(format!(
+                        "Unknown shader type: {}",
+                        filename
+                    )))
+                }
+            };
+
+            let shader = Shader::from_file(filename, shadertype)
+                .with_context(|| format!("Failed loading shader: {}", filename))?;
+
+            unsafe {
+                gl::AttachShader(program_id, shader.get_shader_id());
+                check_gl_error()?;
+            }
+
+            shaders.push(shader);
+        }
+
+        // Link program
+        unsafe {
+            gl::LinkProgram(program_id);
+            check_gl_error()?;
+
+            // Check for linking errors
+            let mut success = gl::FALSE as GLint;
+            gl::GetProgramiv(program_id, gl::LINK_STATUS, &mut success);
+            if success != gl::TRUE as GLint {
+                let mut len = 0;
+                gl::GetProgramiv(program_id, gl::INFO_LOG_LENGTH, &mut len);
+                let error = create_whitespace_cstring_with_len(len as usize);
+                gl::GetProgramInfoLog(
+                    program_id,
+                    len,
+                    ptr::null_mut(),
+                    error.as_ptr() as *mut GLchar,
+                );
+                return Err(anyhow::anyhow!(error.to_string_lossy().into_owned()));
+            }
+        }
+
+        // Detach shaders after successful linking
+        unsafe {
+            for shader in shaders.iter_mut() {
+                gl::DetachShader(program_id, shader.get_shader_id());
+                shader.delete()?;
+            }
+        }
+
+        println!("Shader program created successfully (id: {})", program_id);
+
+        Ok(ShaderProgram {
+            id: program_id,
+            uniform_ids: HashMap::new(),
+        })
+    }
+
     pub fn new(vertex_shader: &mut Shader, fragment_shader: &mut Shader) -> Result<ShaderProgram> {
         let program_id = unsafe { gl::CreateProgram() };
         unsafe {
@@ -258,19 +327,27 @@ impl ShaderProgram {
         })
     }
 
-    pub fn get_program_id(&self) -> u32 {
+    pub fn program_id(&self) -> u32 {
         self.id
     }
 
-    pub fn bind(&self) {
+    pub fn activate(&self) {
         unsafe {
             gl::UseProgram(self.id);
         }
     }
 
-    pub fn unbind(&self) {
+    pub fn deactivate(&self) {
         unsafe {
             gl::UseProgram(0);
+        }
+    }
+
+    pub fn is_active(&self) -> bool {
+        unsafe {
+            let mut program_id: GLint = 0;
+            gl::GetIntegerv(gl::CURRENT_PROGRAM, &mut program_id);
+            program_id == self.id as i32
         }
     }
 
@@ -509,6 +586,12 @@ impl ShaderProgram {
 
     //Geometry Shader Support: If using geometry shaders, functions to handle them effectively.
     //pub fn set_geometry_shader(&mut self, shader: Shader) -> Result<()>
+
+    // let mut vertex_shader = Shader::from_file(vertex_shader, ShaderType::Vertex)?;
+    // let mut fragment_shader = Shader::from_file(fragment_shader, ShaderType::Fragment)?;
+    // let shader_program = ShaderProgram::new(&mut vertex_shader, &mut fragment_shader)?;
+    // vertex_shader.delete()?;
+    // fragment_shader.delete()?;
 }
 
 impl Deletable for ShaderProgram {
@@ -618,6 +701,7 @@ impl ShaderFactory {
         Ok(shader_program)
     }
 }
+
 //////////////////////////////////////////////////////////////////////////////
 // - ShaderSource -
 //////////////////////////////////////////////////////////////////////////////

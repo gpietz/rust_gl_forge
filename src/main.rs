@@ -1,26 +1,28 @@
 #![allow(dead_code)]
 extern crate gl;
 extern crate rusttype;
-extern crate sdl2;
 
 mod renderables;
 mod texture_utils;
 mod vertex_data;
 
+use crate::renderables::first_text::FirstText;
 use crate::renderables::first_triangle::FirstTriangle;
-use crate::renderables::indexed_quad::IndexedQuad;
-use crate::renderables::shader_triangle::ShaderTriangle;
-use crate::renderables::texture_triangle::TextureTriangle;
-use crate::renderables::transformation::Transformation;
 use crate::renderables::Renderable;
 use anyhow::Result;
+use renderables::indexed_quad::IndexedQuad;
+use renderables::shader_triangle::ShaderTriangle;
+use renderables::texture_triangle::TextureTriangle;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
-use shared_lib::color::Color;
 use shared_lib::sdl_window::SdlWindow;
+use shared_lib::color::Color;
 use std::time::{Duration, Instant};
+use crate::renderables::transformation::Transformation;
 
 const WINDOW_TITLE: &str = "RUST SDL 2024";
+
+pub const SHADER_SIMPLE_RED: &str = "shader_simple_red";
 
 fn main() -> Result<()> {
     let mut window = SdlWindow::new(800, 600, WINDOW_TITLE, true)?;
@@ -33,9 +35,21 @@ fn main() -> Result<()> {
     add_drawable(&mut renderables, || ShaderTriangle::new(true));
     add_drawable(&mut renderables, TextureTriangle::new);
     add_drawable(&mut renderables, Transformation::new);
+    // add_drawable(&mut renderables, FirstText::new);
 
     // Set the initial drawable to the last one
     let mut current_index = renderables.len().saturating_sub(1);
+
+    // Load shaders (experimental)
+    // let mut shader_manager = ShaderManager::new();
+    // shader_manager.load_shader(
+    //     SHADER_SIMPLE_RED,
+    //     "assets/shaders/simple/simple_red_shader.vert",
+    //     "assets/shaders/simple/simple_red_shader.frag",
+    // )?;
+
+    // Create the render context object
+    //let render_context = RenderContext::new(shader_manager);
 
     // Initializes tracking of the update interval;
     // essential for calculating delta time for smooth transformations.
@@ -47,6 +61,7 @@ fn main() -> Result<()> {
     let mut last_frame_rate: u32 = 0;
     let mut show_fps = false;
 
+    let mut render_information_text = true;
     'main_loop: loop {
         // Calculate the delta time
         let delta_time = get_delta_time(&mut last_update_time);
@@ -75,6 +90,10 @@ fn main() -> Result<()> {
                                     }
                                 }
                             },
+                            Keycode::F10 => {
+                                render_information_text = !render_information_text;
+                                println!("Render information text {}", if render_information_text { "on" } else { "off" });
+                            }
                             Keycode::F12 => {
                                 show_fps = !show_fps;
                                 println!("FPS tracking {}", if show_fps { "activated" } else { "disabled" });
@@ -100,6 +119,9 @@ fn main() -> Result<()> {
         // Draw the current active drawable
         if let Some(drawable) = renderables.get_mut(current_index) {
             drawable.draw(delta_time)?;
+            // if render_information_text {
+            //     drawable.draw_info_text(delta_time, &font)?;
+            //}
         }
 
         window.swap();
