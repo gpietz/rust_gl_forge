@@ -546,11 +546,3 @@ pub enum MatrixMode {
     Texture,
     Color,
 }
-
-impl ToOpenGLenum for MatrixMode {
-    fn to_opengl(&self) -> GLenum {
-        match self {
-            Self::ModelView => 
-        }
-    }
-}
