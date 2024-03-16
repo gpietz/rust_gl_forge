@@ -1,6 +1,7 @@
 # RustSdl2024
 
 In recent years, I've experimented with the SDL2 library in conjunction with Rust and OpenGL. This year, I aim to revisit and further develop the source codes I've accumulated on this topic.
+Additionally, I want to gain more experience with GitHub and explore what else this platform has to offer.
 
 ## Update 16.03.2024
 
