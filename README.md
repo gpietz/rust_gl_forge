@@ -1,4 +1,6 @@
-# RustSdl2024
+![rust_gl_forge_logo_small](https://github.com/gpietz/rust_gl_forge/assets/77841571/563647d2-7436-43c1-a059-928edccd8e3b)
+
+# Rust GL Forge
 
 In recent years, I've experimented with the SDL2 library in conjunction with Rust and OpenGL. This year, I aim to revisit and further develop the source codes I've accumulated on this topic.
 Additionally, I want to gain more experience with GitHub and explore what else this platform has to offer.
