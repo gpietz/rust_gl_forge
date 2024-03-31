@@ -1,37 +1,11 @@
-![rust_gl_forge_logo_small](https://github.com/gpietz/rust_gl_forge/assets/77841571/563647d2-7436-43c1-a059-928edccd8e3b)
-
+![rust_gl_forge_logo2](https://github.com/gpietz/rust_gl_forge/assets/77841571/2aff11a3-dcf5-439a-bfce-46772739d07a)
 # Rust GL Forge
 
-In recent years, I've experimented with the SDL2 library in conjunction with Rust and OpenGL. This year, I aim to revisit and further develop the source codes I've accumulated on this topic.
-Additionally, I want to gain more experience with GitHub and explore what else this platform has to offer.
+In recent years, I've experimented with the SDL2 library in conjunction with Rust and OpenGL. This year, I aim to revisit and further develop the source codes I've accumulated on this topic. 
+Additionally, I want to gain more experience with GitHub and explore what else this platform has to offer. Updates to this repository are infrequent, as my contributions are limited to my spare time.
 
-## Update 16.03.2024
-
-After a few weeks, here's a significant update. I haven't been inactive; I've made numerous improvements to the source code. I've spent some days delving into text rendering, but I think 
-I need a few more days of practice before I can integrate it properly. My initial experiments on can already be found in the source code.
-
-## Update 13.02.2024
-Today, I delved into basic transformations, with a significant focus on mastering cgmath, which was the most time-consuming part. The initial transformation test produced unexpected results, highlighting that basing rotation degrees solely on seconds leads to choppy animations - 
-a method I've realized is not optimal. However, the provided screenshots serve as evidence that, when executed correctly, colored vertices, multitexturing and transformations are indeed possible with OpenGL. It's all about getting the technique right. :)
-
-![screenshot_20240213](https://github.com/gpietz/rust_sdl_2024/assets/77841571/0519b515-ae63-44a8-8179-6fcbda49d8d5)
-
-## Update 11.02.2024
-Today, I successfully completed the multitexturing topic and can now focus on transformations. To simplify multitexturing in the future, I need to come up with a solution. The way it's solved now requires considering too much.
-
-![screenshot_20240211](https://github.com/gpietz/rust_sdl_2024/assets/77841571/cb34ecc1-b077-4e43-9c22-ecdc51d26261)
-
-## Update 01.02.2024
-Over the past few days, I've been wrestling with shaders, which initially led to a few unsightly bugs, but now everything 
-is smooth sailing, and I've also managed to implement uniforms pretty swiftly. Thanks to ChatGPT, I always have a buddy 
-to explain the connections, making it fun to bring ideas to life. 
-However, with each new insight, my awe for the necessary data wrangling grows. But hey, it's fun, so I'm sticking with it! 
-
-![screenshot_m2_20240201](https://github.com/gpietz/rust_sdl_2024/assets/77841571/8876fad5-2219-4db2-b7a1-61d7240fa2c6)  
- 
-
-## Update 28.01.2024
-I am currently very satisfied with and confident in the project's progress. The newly structured BufferObject is highly flexible, capable of managing various data formats. 
-I have successfully ported two drawables from the old project to this new structure. These can be toggled using the F1 and F2 keys. I plan to continue developing the project further.
-
-![screenshot_m1_20240205](https://github.com/gpietz/rust_sdl_2024/assets/77841571/69ede581-c57f-492c-a663-180d265f6d08)
+Some screenshots: \
+![screenshot_20240301a](https://github.com/gpietz/rust_gl_forge/assets/77841571/ed1ba71d-8337-4e36-9ec1-29b096e90fb7)
+![screenshot_20240401b](https://github.com/gpietz/rust_gl_forge/assets/77841571/5a182726-87c4-422d-99c0-53e90ac83692)
+![screenshot_20240401c](https://github.com/gpietz/rust_gl_forge/assets/77841571/eb396acb-69db-4506-89d6-bc7bd22c185d)
+![screenshot_20240401d](https://github.com/gpietz/rust_gl_forge/assets/77841571/9b1174e1-c785-47b0-a6b8-594e50294b8a)
