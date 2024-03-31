@@ -20,6 +20,7 @@ pub mod meshes;
 pub mod sdl_window;
 pub mod string_utils;
 pub mod vertices;
+pub mod traits;
 
 pub mod prelude {
     pub use crate::color::*;
