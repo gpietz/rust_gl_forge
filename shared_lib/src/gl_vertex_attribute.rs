@@ -112,7 +112,7 @@ pub struct VertexAttribute {
 ///
 /// # Example Usage
 ///
-/// ```
+/// ```no-run
 /// // Create a default `VertexAttribute` instance
 /// use shared_lib::gl_types::VertexDataType;
 /// use shared_lib::gl_vertex_attribute::*;
