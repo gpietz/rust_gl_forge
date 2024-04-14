@@ -4,28 +4,33 @@ extern crate rusttype;
 
 mod renderables;
 mod texture_utils;
+mod traits;
 mod vertex_data;
+mod vertex_data_2d;
+mod vertex_data_3d;
 
-use crate::renderables::first_text::FirstText;
-use crate::renderables::first_triangle::FirstTriangle;
-use crate::renderables::Renderable;
 use anyhow::Result;
+use renderables::first_triangle::FirstTriangle;
 use renderables::indexed_quad::IndexedQuad;
+use renderables::projection::Projection;
 use renderables::shader_triangle::ShaderTriangle;
 use renderables::texture_triangle::TextureTriangle;
+use renderables::transformation::Transformation;
+use renderables::Renderable;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
-use shared_lib::sdl_window::SdlWindow;
 use shared_lib::color::Color;
+use shared_lib::sdl_window::SdlWindow;
 use std::time::{Duration, Instant};
-use crate::renderables::transformation::Transformation;
 
-const WINDOW_TITLE: &str = "RUST SDL 2024";
+const WINDOW_TITLE: &str = "RUST OPENGL 2024";
+pub(crate) const SCREEN_WIDTH: usize = 800;
+pub(crate) const SCREEN_HEIGHT: usize = 600;
 
-pub const SHADER_SIMPLE_RED: &str = "shader_simple_red";
+pub(crate) const SHADER_SIMPLE_RED: &str = "shader_simple_red";
 
 fn main() -> Result<()> {
-    let mut window = SdlWindow::new(800, 600, WINDOW_TITLE, true)?;
+    let mut window = SdlWindow::new(SCREEN_WIDTH, SCREEN_HEIGHT, WINDOW_TITLE, true)?;
     window.clear_color = Color::new(0.10, 0.10, 0.25, 1.0);
 
     let mut renderables: Vec<Box<dyn Renderable>> = Vec::new();
@@ -35,6 +40,7 @@ fn main() -> Result<()> {
     add_drawable(&mut renderables, || ShaderTriangle::new(true));
     add_drawable(&mut renderables, TextureTriangle::new);
     add_drawable(&mut renderables, Transformation::new);
+    add_drawable(&mut renderables, Projection::new);
     // add_drawable(&mut renderables, FirstText::new);
 
     // Set the initial drawable to the last one

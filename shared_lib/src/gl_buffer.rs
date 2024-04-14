@@ -40,7 +40,7 @@ impl<T> BufferObject<T> {
     /// initialized per parameters but without data, ready for later use.
     ///
     /// Example:
-    /// ```
+    /// ```no-run
     /// let empty_vertex_buffer = BufferObject::empty(
     ///     BufferType::ArrayBuffer,
     ///     BufferUsage::StaticDraw,
@@ -99,7 +99,7 @@ impl<T> BufferObject<T> {
             );
         }
 
-        let mut buffer_object = BufferObject {
+        let buffer_object = BufferObject {
             id,
             buffer_type: r#type,
             buffer_usage: usage,

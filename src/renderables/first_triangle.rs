@@ -1,6 +1,6 @@
-use crate::renderables::Renderable;
 use anyhow::Result;
 use cgmath::Vector3;
+
 use shared_lib::{
     gl_draw::draw_primitive,
     gl_prelude::{
@@ -10,7 +10,7 @@ use shared_lib::{
     },
 };
 
-use super::RenderContext;
+use crate::renderables::Renderable;
 
 //////////////////////////////////////////////////////////////////////////////
 // - FirstTriangle -

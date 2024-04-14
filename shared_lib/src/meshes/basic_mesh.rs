@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use gl::types::{GLsizeiptr, GLvoid};
 use gl::{
     BindBuffer, BindVertexArray, BufferData, DrawElements, GenBuffers, GenVertexArrays,

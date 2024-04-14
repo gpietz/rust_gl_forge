@@ -1,10 +1,12 @@
 use anyhow::Result;
 use sdl2::keyboard::Keycode;
-use shared_lib::{gl_font::Font, gl_prelude::ShaderManager};
+
+use shared_lib::gl_prelude::ShaderManager;
 
 pub mod first_text;
 pub mod first_triangle;
 pub mod indexed_quad;
+pub mod projection;
 pub mod shader_triangle;
 pub mod texture_triangle;
 pub mod transformation;

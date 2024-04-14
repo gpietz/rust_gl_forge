@@ -207,7 +207,7 @@ pub struct ShaderProgram {
 
 impl ShaderProgram {
     //pub fn from_sources(shader_sources: &[ShaderSource]) -> Result<ShaderProgram>
-    
+
     pub fn from_files(shader_files: &[&str]) -> Result<ShaderProgram> {
         let program_id = unsafe { gl::CreateProgram() };
 

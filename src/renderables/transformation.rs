@@ -1,20 +1,23 @@
-use crate::{renderables::Renderable, texture_utils::create_texture};
+use std::fmt::{Display, Formatter};
+use std::time::Instant;
+
 use anyhow::Result;
-use cgmath::{vec3, Deg, Matrix4, Rad, SquareMatrix};
+use cgmath::{Deg, Matrix4, Rad, SquareMatrix, vec3};
 use sdl2::keyboard::Keycode;
-use shared_lib::gl_prelude::{IndicesValueType, Shader};
-use shared_lib::vertices::TexturedVertex2D::TexturedVertex2D;
+
 use shared_lib::{
     gl_draw,
     gl_prelude::{
-        Bindable, BufferObject, PrimitiveType, ShaderFactory, ShaderProgram, VertexArrayObject,
+        Bindable, BufferObject, PrimitiveType, ShaderProgram, VertexArrayObject,
         VertexLayoutManager,
     },
-    gl_texture::Texture,
-    gl_traits::Deletable,
+    gl_texture::Texture
+    ,
 };
-use std::fmt::{Display, Formatter};
-use std::time::Instant;
+use shared_lib::gl_prelude::IndicesValueType;
+use shared_lib::vertices::textured_vertex::TexturedVertex2D;
+
+use crate::{renderables::Renderable, texture_utils::create_texture};
 
 const MAX_ROTATION_SPEED: i32 = 512;
 const ROTATION_SPEED_CHANGE: i32 = 16;
@@ -43,7 +46,7 @@ pub struct Transformation {
 impl Transformation {
     pub fn new() -> Result<Transformation> {
         // ** create vertex data ***
-        let vertex_data = crate::vertex_data::create_quad();
+        let vertex_data = crate::vertex_data_2d::create_quad();
         let vao = VertexArrayObject::new(true)?;
         let vbo = vertex_data.create_vbo();
         let ibo = vertex_data.create_ibo();
@@ -56,8 +59,8 @@ impl Transformation {
 
         // *** create shader program ***
         let shader = ShaderProgram::from_files(&[
-            "assets/shaders/simple/transform.vert", 
-            "assets/shaders/simple/transform.frag"
+            "assets/shaders/simple/transform.vert",
+            "assets/shaders/simple/transform.frag",
         ])?;
 
         // Create vertex layout

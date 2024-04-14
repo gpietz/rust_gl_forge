@@ -1,7 +1,6 @@
 use crate::{renderables::Renderable, texture_utils::create_texture};
 use anyhow::Result;
 use shared_lib::gl_prelude::IndicesValueType;
-use shared_lib::vertices::TexturedVertex2D::TexturedVertex2D;
 use shared_lib::{
     gl_draw,
     gl_prelude::{
@@ -11,6 +10,7 @@ use shared_lib::{
     gl_texture::Texture,
     gl_traits::Deletable,
 };
+use shared_lib::vertices::textured_vertex::TexturedVertex2D;
 
 //////////////////////////////////////////////////////////////////////////////
 // - TextureTriangle -
@@ -89,9 +89,9 @@ impl TextureTriangle {
 impl Renderable for TextureTriangle {
     fn setup(&mut self) -> Result<()> {
         let vertex_data = if self.draw_quad {
-            crate::vertex_data::create_quad()
+            crate::vertex_data_2d::create_quad()
         } else {
-            crate::vertex_data::create_triangle()
+            crate::vertex_data_2d::create_triangle()
         };
 
         self.vertex_count = vertex_data.indices.len() as u32;

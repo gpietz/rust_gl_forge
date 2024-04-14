@@ -1,7 +1,8 @@
-use super::RenderContext;
-use crate::renderables::Renderable;
+use std::time::Instant;
+
 use anyhow::Result;
 use gl::types::GLfloat;
+
 use shared_lib::{
     gl_draw,
     gl_prelude::{
@@ -12,7 +13,8 @@ use shared_lib::{
     gl_types::VertexDataType,
     gl_vertex::Vertex,
 };
-use std::time::Instant;
+
+use crate::renderables::Renderable;
 
 //////////////////////////////////////////////////////////////////////////////
 // - ShaderTriangle -

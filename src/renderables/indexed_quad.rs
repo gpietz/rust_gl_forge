@@ -1,7 +1,6 @@
-use super::RenderContext;
-use crate::renderables::Renderable;
 use anyhow::Result;
 use cgmath::Vector3;
+
 use shared_lib::{
     gl_draw,
     gl_prelude::{
@@ -11,6 +10,8 @@ use shared_lib::{
     },
     gl_types::IndicesValueType,
 };
+
+use crate::renderables::Renderable;
 
 //////////////////////////////////////////////////////////////////////////////
 // - IndexedQuad -

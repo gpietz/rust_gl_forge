@@ -1,10 +1,10 @@
-use crate::renderables::Renderable;
 use anyhow::Result;
 use cgmath::Vector2;
+
 use shared_lib::color::Color;
 use shared_lib::gl_font::{FastFontRenderer, Font};
 
-use super::RenderContext;
+use crate::renderables::Renderable;
 
 //////////////////////////////////////////////////////////////////////////////
 // - FirstText -
@@ -27,7 +27,7 @@ impl FirstText {
 }
 
 impl Renderable for FirstText {
-    fn draw(&mut self, delta_time: f32) -> Result<()> {
+    fn draw(&mut self, _delta_time: f32) -> Result<()> {
         let text_position = Vector2::new(4.0, -2.5);
         self.text_renderer
             .draw_text("Hallo Text", &text_position, 4.0)?;

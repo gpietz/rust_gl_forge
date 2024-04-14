@@ -286,7 +286,7 @@ impl VertexAttribute {
 }
 
 impl Debug for VertexAttribute {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, _: &mut Formatter<'_>) -> std::fmt::Result {
         todo!()
     }
 }
@@ -295,8 +295,8 @@ impl Clone for VertexAttribute {
     fn clone(&self) -> Self {
         VertexAttribute {
             name: self.name.clone(),
-            attribute_type: self.attribute_type.clone(),
-            attribute_specs: self.attribute_specs.clone(),
+            attribute_type: self.attribute_type,
+            attribute_specs: self.attribute_specs,
             layout_specs: self.layout_specs.clone(),
         }
     }

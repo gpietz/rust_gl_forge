@@ -1,23 +1,26 @@
+#![allow(dead_code)]
+
+use std::collections::HashMap;
+use std::fs::{read, File};
+use std::io::Write;
+use std::path::Path;
+use std::str;
+
+use anyhow::{Context, Result};
+use cgmath::Vector2;
+use gl::types::{GLsizei, GLuint};
+use image::{DynamicImage, Rgba, RgbaImage};
+use rusttype::{point, Scale};
+
 use crate::gl_buffer::BufferObject;
 use crate::gl_draw::draw_primitive;
 use crate::gl_shader::{Shader, ShaderProgram};
 use crate::gl_traits::{Bindable, Deletable};
 use crate::gl_types::{BufferType, BufferUsage, PrimitiveType};
 use crate::gl_vertex::Vertex;
-//use crate::gl_vertex::{TexturedVertex, Vertex, VertexArrayObject};
 use crate::gl_vertex_array::VertexArrayObject;
 use crate::prelude::Color;
-use crate::vertices::TexturedVertex2D::TexturedVertex2D;
-use anyhow::{Context, Result};
-use cgmath::Vector2;
-use gl::types::{GLsizei, GLuint};
-use image::{DynamicImage, Rgba, RgbaImage};
-use rusttype::{point, Scale};
-use std::collections::HashMap;
-use std::fs::{read, File};
-use std::io::Write;
-use std::path::Path;
-use std::str;
+use crate::vertices::textured_vertex::TexturedVertex2D;
 
 //////////////////////////////////////////////////////////////////////////////
 // - FontScale -
@@ -311,15 +314,15 @@ impl FastFontRenderer {
         let texture_dimension = texture_atlas.dimension;
 
         // create vertex array object
-        let mut vao = VertexArrayObject::new(true)?;
+        let vao = VertexArrayObject::new(true)?;
 
         // create vertex buffer object
-        let mut vbo = BufferObject::<TexturedVertex2D>::empty(
+        let vbo = BufferObject::<TexturedVertex2D>::empty(
             BufferType::ArrayBuffer,
             BufferUsage::StaticDraw,
         );
 
-        for attribute in TexturedVertex2D::attributes() {
+        for _attribute in TexturedVertex2D::attributes() {
             // TODO! Fixme
             //attribute.setup().expect("Failed to set vertex attributes");
         }

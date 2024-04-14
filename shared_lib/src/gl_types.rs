@@ -1,13 +1,14 @@
-use crate::gl_traits::ToOpenGL;
-use crate::gl_utils;
-use anyhow::{Context, Result};
-use bitflags::*;
-use gl::types::GLbitfield;
-use gl::types::{GLboolean, GLenum, GLsizei, GLuint};
-use gl_utils::*;
 use std::fmt;
 use std::fmt::Display;
 use std::os::raw::c_void;
+
+use anyhow::{Context, Result};
+use gl::types::{GLboolean, GLenum, GLsizei, GLuint};
+
+use gl_utils::*;
+
+use crate::gl_traits::ToOpenGL;
+use crate::gl_utils;
 
 //////////////////////////////////////////////////////////////////////////////
 // - BufferType -
