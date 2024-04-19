@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.79"
+thiserror = "1.0.58"
 cgmath = "0.18.0"
 gl = "0.14.0"
 image = { version = "0.24.8", features = ["default"] }
