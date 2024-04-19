@@ -2,20 +2,19 @@ use std::fmt::{Display, Formatter};
 use std::time::Instant;
 
 use anyhow::Result;
-use cgmath::{Deg, Matrix4, Rad, SquareMatrix, vec3};
+use cgmath::{vec3, Deg, Matrix4, Rad, SquareMatrix};
 use sdl2::keyboard::Keycode;
 
+use shared_lib::gl_prelude::IndicesValueType;
+use shared_lib::vertices::textured_vertex::TexturedVertex;
 use shared_lib::{
     gl_draw,
     gl_prelude::{
         Bindable, BufferObject, PrimitiveType, ShaderProgram, VertexArrayObject,
         VertexLayoutManager,
     },
-    gl_texture::Texture
-    ,
+    gl_texture::Texture,
 };
-use shared_lib::gl_prelude::IndicesValueType;
-use shared_lib::vertices::textured_vertex::TexturedVertex2D;
 
 use crate::{renderables::Renderable, texture_utils::create_texture};
 
@@ -30,7 +29,7 @@ const MAX_SCALE: f32 = 1.5;
 
 pub struct Transformation {
     vao: VertexArrayObject,
-    vbo: BufferObject<TexturedVertex2D>,
+    vbo: BufferObject<TexturedVertex>,
     ibo: BufferObject<u32>,
     textures: [Texture; 2],
     shader: ShaderProgram,
@@ -64,7 +63,7 @@ impl Transformation {
         ])?;
 
         // Create vertex layout
-        let vlm = VertexLayoutManager::new_and_setup::<TexturedVertex2D>(&shader)?;
+        let vlm =  VertexLayoutManager::new_and_setup::<TexturedVertex>(&shader)?;
 
         Ok(Transformation {
             vao,
@@ -91,10 +90,7 @@ impl Transformation {
 
 impl Renderable for Transformation {
     fn draw(&mut self, delta_time: f32) -> Result<()> {
-        // Activate buffers
-        self.vao.bind()?;
-        self.vbo.bind()?;
-        self.ibo.bind()?;
+        
 
         // Activate textures
         self.textures[0].bind_as_unit(0);
@@ -142,6 +138,9 @@ impl Renderable for Transformation {
             self.shader
                 .set_uniform_matrix("transform", false, &transform)?;
 
+            // Activate VAO buffer
+            self.vao.bind()?;
+            
             gl_draw::draw_elements(
                 PrimitiveType::Triangles,
                 self.vertex_count,

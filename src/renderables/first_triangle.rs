@@ -40,7 +40,7 @@ impl FirstTriangle {
             "assets/shaders/simple/simple_red_shader.frag",
         )?;
 
-        let mut vlm = VertexLayoutManager::new();
+        let mut vlm = VertexLayoutManager::empty();
         vlm.add_attribute(VertexAttribute::new(VertexAttributeType::Position))
             .setup_attributes_for_shader(shader.program_id())?;
 

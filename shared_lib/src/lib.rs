@@ -18,8 +18,10 @@ pub mod gl_vertex_array;
 pub mod gl_vertex_attribute;
 pub mod meshes;
 pub mod sdl_window;
+pub mod serialization;
 pub mod string_utils;
 pub mod vertices;
+
 pub mod prelude {
     pub use crate::color::*;
     pub use crate::sdl_window::SdlWindow;

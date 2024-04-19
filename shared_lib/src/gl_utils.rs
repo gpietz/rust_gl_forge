@@ -48,7 +48,7 @@ pub fn as_c_void(offset: usize) -> *const c_void {
 }
 
 #[inline]
-pub fn check_gl_error() -> Result<()> {
+pub(crate) fn check_gl_error() -> Result<()> {
     let mut errors = Vec::new();
 
     loop {

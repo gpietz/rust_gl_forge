@@ -10,7 +10,7 @@ use shared_lib::{
     gl_texture::Texture,
     gl_traits::Deletable,
 };
-use shared_lib::vertices::textured_vertex::TexturedVertex2D;
+use shared_lib::vertices::textured_vertex::TexturedVertex;
 
 //////////////////////////////////////////////////////////////////////////////
 // - TextureTriangle -
@@ -18,7 +18,7 @@ use shared_lib::vertices::textured_vertex::TexturedVertex2D;
 
 pub struct TextureTriangle {
     vao: Option<VertexArrayObject>,
-    vbo: Option<BufferObject<TexturedVertex2D>>,
+    vbo: Option<BufferObject<TexturedVertex>>,
     ibo: Option<BufferObject<u32>>,
     textures: [Texture; 3],
     shader: Option<ShaderProgram>,
@@ -106,7 +106,7 @@ impl Renderable for TextureTriangle {
         )?;
 
         // Setup vertex layout
-        let vlm = VertexLayoutManager::new_and_setup::<TexturedVertex2D>(&shader)?;
+        let vlm = VertexLayoutManager::new_and_setup::<TexturedVertex>(&shader)?;
         self.vlm = Some(vlm);
 
         self.use_color_location = shader.get_uniform_location("useColor")?;

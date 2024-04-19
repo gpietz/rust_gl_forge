@@ -20,7 +20,7 @@ use crate::gl_types::{BufferType, BufferUsage, PrimitiveType};
 use crate::gl_vertex::Vertex;
 use crate::gl_vertex_array::VertexArrayObject;
 use crate::prelude::Color;
-use crate::vertices::textured_vertex::TexturedVertex2D;
+use crate::vertices::textured_vertex::TexturedVertex;
 
 //////////////////////////////////////////////////////////////////////////////
 // - FontScale -
@@ -297,13 +297,13 @@ fn save_mapping_to_xml(glyph_data_map: &HashMap<char, GlyphData>, file_path: &st
 #[macro_export]
 macro_rules! vertex {
     ($x:expr, $y:expr, $u:expr, $v:expr) => {
-        TexturedVertex2D::new($x, $y, $u, $v)
+        TexturedVertex::new_xyz_uv($x, $y, 0.0, $u, $v)
     };
 }
 
 pub struct FastFontRenderer {
     vao: VertexArrayObject,
-    vbo: BufferObject<TexturedVertex2D>,
+    vbo: BufferObject<TexturedVertex>,
     texture_atlas: FontTextureAtlas,
     texture_id: u32,
     shader: ShaderProgram,
@@ -317,12 +317,10 @@ impl FastFontRenderer {
         let vao = VertexArrayObject::new(true)?;
 
         // create vertex buffer object
-        let vbo = BufferObject::<TexturedVertex2D>::empty(
-            BufferType::ArrayBuffer,
-            BufferUsage::StaticDraw,
-        );
+        let vbo =
+            BufferObject::<TexturedVertex>::empty(BufferType::ArrayBuffer, BufferUsage::StaticDraw);
 
-        for _attribute in TexturedVertex2D::attributes() {
+        for _attribute in TexturedVertex::attributes() {
             // TODO! Fixme
             //attribute.setup().expect("Failed to set vertex attributes");
         }

@@ -1,24 +1,14 @@
 #![allow(dead_code)]
-
-use gl::types::{GLsizeiptr, GLvoid};
+use crate::meshes::DynamicVertex;
+use anyhow::Result;
+use gl::types::{GLint, GLsizeiptr, GLvoid};
 use gl::{
-    BindBuffer, BindVertexArray, BufferData, DrawElements, GenBuffers, GenVertexArrays,
-    ARRAY_BUFFER, ELEMENT_ARRAY_BUFFER, STATIC_DRAW, TRIANGLES, UNSIGNED_INT,
+    BindBuffer, BindVertexArray, BufferData, DeleteBuffers, DeleteVertexArrays, DrawArrays,
+    DrawElements, GenBuffers, GenVertexArrays, ARRAY_BUFFER, ELEMENT_ARRAY_BUFFER, STATIC_DRAW,
+    TRIANGLES, UNSIGNED_INT,
 };
 use std::mem::size_of;
 use std::ptr::null;
-
-//////////////////////////////////////////////////////////////////////////////
-// - Vertex -
-//////////////////////////////////////////////////////////////////////////////
-
-#[derive(Debug, Clone)]
-#[repr(C)]
-pub struct Vertex {
-    position: [f32; 3],
-    normal: [f32; 3],
-    tex_color: [f32; 2],
-}
 
 //////////////////////////////////////////////////////////////////////////////
 // - BasicMesh  -
@@ -30,60 +20,104 @@ pub struct BasicMesh {
     ebo: u32,
 
     // Vertex and index data
-    vertices: Vec<Vertex>,
-    indices: Vec<Vertex>,
+    vertices: usize,
+    indices: Vec<u32>,
 }
 
 impl BasicMesh {
-    pub fn new(vertices: Vec<Vertex>, indices: Vec<Vertex>) -> Self {
-        let mut mesh = BasicMesh {
-            vao: 0,
-            vbo: 0,
+    pub fn new(vertices: Vec<Box<dyn DynamicVertex>>) -> Result<Self> {
+        let vertices_len = vertices.len();
+
+        // Collect all vertex data into a single buffer
+        let mut vertex_data: Vec<u8> = Vec::new();
+        for vertex in vertices.into_iter() {
+            let data = vertex.as_bytes();
+            vertex_data.extend_from_slice(data);
+        }
+
+        let mut vao: u32 = 0;
+        let mut vbo: u32 = 0;
+
+        unsafe {
+            // Create the vertex array object
+            GenVertexArrays(1, &mut vao);
+            BindVertexArray(vao);
+
+            // Create the vertex buffer object
+            GenBuffers(1, &mut vbo);
+            BindBuffer(ARRAY_BUFFER, vbo);
+            let data = vertex_data.as_ptr() as *const GLvoid;
+            let size = vertex_data.len() as GLsizeiptr;
+
+            BufferData(ARRAY_BUFFER, size, data, STATIC_DRAW);
+        }
+
+        Ok(BasicMesh {
+            vao,
+            vbo,
             ebo: 0,
-            vertices,
-            indices,
-        };
-
-        // Initialize OpenGL objects
-        mesh.setup_mesh();
-
-        mesh
+            vertices: vertices_len,
+            indices: vec![],
+        })
     }
 
-    fn setup_mesh(&mut self) {
+    pub fn add_indices(&mut self, indices: impl IntoIterator<Item = u32>) -> Result<()> {
         unsafe {
-            // VAO setup
-            GenVertexArrays(1, &mut self.vao);
             BindVertexArray(self.vao);
 
-            // VBO setup
-            GenBuffers(1, &mut self.vbo);
-            BindBuffer(ARRAY_BUFFER, self.vbo);
-            let size = (self.vertices.len() * size_of::<Vertex>()) as GLsizeiptr;
-            let data = self.vertices.as_ptr() as *const GLvoid;
-            BufferData(ARRAY_BUFFER, size, data, STATIC_DRAW);
-
-            // EBO setup
-            GenBuffers(1, &mut self.ebo);
+            if self.ebo == 0 {
+                GenBuffers(1, &mut self.ebo);
+            }
             BindBuffer(ELEMENT_ARRAY_BUFFER, self.ebo);
+
+            self.indices = indices.into_iter().collect();
             let size = (self.indices.len() * size_of::<u32>()) as GLsizeiptr;
             let data = self.indices.as_ptr() as *const GLvoid;
+
             BufferData(ELEMENT_ARRAY_BUFFER, size, data, STATIC_DRAW);
-
-            // Vertex attribute pointer setup
-            // This will depend on your vertex layout and shader attributes
-
-            // Unbind the VAO to prevent accidental modificaton
-            BindVertexArray(0);
         }
+
+        Ok(())
+    }
+
+    pub fn clear_indices(&mut self) {
+        unsafe {
+            BindVertexArray(self.vao);
+            BindBuffer(ELEMENT_ARRAY_BUFFER, self.ebo);
+            BufferData(ELEMENT_ARRAY_BUFFER, 0, null(), STATIC_DRAW);
+        }
+        self.indices.clear();
+    }
+
+    pub fn has_indices(&self) -> bool {
+        self.indices.len() > 0
     }
 
     pub fn draw(&self) {
-        //TODO  Bind required shaders and any textures
-
         unsafe {
             BindVertexArray(self.vao);
-            DrawElements(TRIANGLES, self.indices.len() as i32, UNSIGNED_INT, null());
+
+            if self.has_indices() {
+                DrawElements(TRIANGLES, self.indices.len() as i32, UNSIGNED_INT, null());
+            } else {
+                DrawArrays(TRIANGLES, 0, self.vertices as GLint);
+            }
+        }
+    }
+}
+
+impl Drop for BasicMesh {
+    fn drop(&mut self) {
+        unsafe {
+            if self.vbo != 0 {
+                DeleteBuffers(1, &self.vbo);
+            }
+            if self.ebo != 0 {
+                DeleteBuffers(1, &self.ebo);
+            }
+            if self.vao != 0 {
+                DeleteVertexArrays(1, &self.vao);
+            }
         }
     }
 }
