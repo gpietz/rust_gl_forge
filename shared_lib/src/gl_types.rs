@@ -573,3 +573,53 @@ impl TextureTarget {
         }
     }
 }
+
+//////////////////////////////////////////////////////////////////////////////
+// - Capability -
+//////////////////////////////////////////////////////////////////////////////
+
+/// Represents OpenGL capabilities that can be enabled or disabled.
+pub enum Capability {
+    /// Capability to perform alpha testing.
+    //AlphaTest = gl::ALPHA_TEST as isize,
+    /// Capability to blend pixels.
+    Blend = gl::BLEND as isize,
+    /// Capability to perform depth comparisons and update the depth buffer.
+    DepthTest = gl::DEPTH_TEST as isize,
+    /// Capability to cull polygons based on their winding in window coordinates.
+    CullFace = gl::CULL_FACE as isize,
+    /// Capability to perform scissor test, that is to discard fragments that are outside of the scissor rectangle.
+    ScissorTest = gl::SCISSOR_TEST as isize,
+    /// Capability to simulate fog.
+    //Fog = gl::FOG as isize,
+    /// Capability to use dithering when merging fragment colors and depth values.
+    Dither = gl::DITHER as isize,
+    /// Capability for line smoothing.
+    LineSmooth = gl::LINE_SMOOTH as isize,
+    /// Capability for polygon smoothing.
+    PolygonSmooth = gl::POLYGON_SMOOTH as isize,
+    /// Capability to update stencil buffer.
+    StencilTest = gl::STENCIL_TEST as isize,
+}
+
+impl Capability {
+    /// Converts the capability to its corresponding OpenGL enum value.
+    pub fn to_gl_enum(self) -> GLenum {
+        self as GLenum
+    }
+
+    /// Enables this OpenGL capability.
+    pub fn enable(self) {
+        unsafe { gl::Enable(self.to_gl_enum()) }
+    }
+
+    /// Disables this OpenGL capability.
+    pub fn disable(self) {
+        unsafe { gl::Disable(self.to_gl_enum()) }
+    }
+    
+    /// Returns true if the OpenGL capability is currently enabled.
+    pub fn is_enabled(self) -> bool {
+        unsafe { gl::IsEnabled(self.to_gl_enum()) > 0 }
+    }
+}

@@ -1,10 +1,11 @@
 use std::fmt::{Display, Formatter};
 
 use anyhow::Result;
-use cgmath::{perspective, vec3, Deg, Matrix4};
+use cgmath::{perspective, vec3, Deg, InnerSpace, Matrix4, Rad, Vector3};
 use sdl2::keyboard::Keycode;
 
-use shared_lib::gl_prelude::{IndicesValueType};
+use shared_lib::gl_prelude::IndicesValueType;
+use shared_lib::gl_types::Capability;
 use shared_lib::vertices::textured_vertex::TexturedVertex;
 use shared_lib::{
     gl_draw,
@@ -37,6 +38,7 @@ pub struct Projection {
     model_distance: f32,
     render_mode: RenderMode,
     vlm: VertexLayoutManager,
+    cube_positions: Vec<[f32; 3]>,
 }
 
 impl Projection {
@@ -58,8 +60,22 @@ impl Projection {
             "assets/shaders/simple/projection.frag",
         ])?;
 
-        // AAARGH
+        // Setup the vertex layout
         let vlm = VertexLayoutManager::new_and_setup::<TexturedVertex>()?;
+
+        // Created vector with positions for cubes
+        let cube_positions = vec![
+            [0.0, 0.0, 0.0],
+            [2.0, 5.0, -15.0],
+            [-1.5, -2.2, -2.5],
+            [-3.8, -2.0, -12.3],
+            [2.4, -0.4, -3.5],
+            [-1.7, 3.0, -7.5],
+            [1.3, -2.0, -2.5],
+            [1.5, 2.0, -2.5],
+            [1.5, 0.2, -1.5],
+            [-1.3, 1.0, -1.5],
+        ];
 
         // Setup vertex layout
         Ok(Projection {
@@ -73,6 +89,7 @@ impl Projection {
             model_distance: -3.0,
             render_mode: RenderMode::TiltedPlane,
             vlm,
+            cube_positions,
         })
     }
 }
@@ -102,7 +119,9 @@ impl Renderable for Projection {
         let view = Matrix4::from_translation(vec3(0.0, 0.0, self.model_distance));
         let projection = perspective(Deg(45.0), screen_aspect, 0.1, 100.0);
 
-        self.shader.set_uniform_matrix("model", false, &model)?;
+        if self.render_mode != RenderMode::MultipleCubes {
+            self.shader.set_uniform_matrix("model", false, &model)?;
+        }
         self.shader.set_uniform_matrix("view", false, &view)?;
         self.shader
             .set_uniform_matrix("projection", false, &projection)?;
@@ -116,6 +135,23 @@ impl Renderable for Projection {
                     self.vbo_plane.ibo.data_len() as u32,
                     IndicesValueType::Int,
                 );
+            }
+            RenderMode::MultipleCubes => {
+                self.vbo_cube.vbo.bind()?;
+                for (i, pos) in self.cube_positions.iter().enumerate() {
+                    let pos_vector3 = Vector3::new(pos[0], pos[1], pos[2]);
+                    let translation = Matrix4::from_translation(pos_vector3);
+                    let angle = Rad::from(Deg(20.0 * i as f32));
+                    let axis = Vector3::new(1.0, 0.3, 0.5).normalize();
+                    let rotation = Matrix4::from_axis_angle(axis, angle);
+                    let model = translation * rotation;
+                    self.shader.set_uniform_matrix("model", false, &model)?;
+                    self.vbo_cube.vbo.bind()?;
+                    gl_draw::draw_primitive(
+                        PrimitiveType::Triangles,
+                        self.vbo_cube.vbo.data_len() as u32,
+                    );
+                }
             }
             _ => {
                 self.vbo_cube.vbo.bind()?;
@@ -133,8 +169,12 @@ impl Renderable for Projection {
         self.render_mode = self.render_mode.next();
         let (vao, vbo, name) = match self.render_mode {
             RenderMode::TiltedPlane => (&mut self.vbo_plane.vao, &mut self.vbo_plane.vbo, "plane"),
-            RenderMode::CubeNoDepth => (&mut self.vbo_cube.vao, &mut self.vbo_cube.vbo, "cube"),
+            _ => (&mut self.vbo_cube.vao, &mut self.vbo_cube.vbo, "cube"),
         };
+        match self.render_mode {
+            RenderMode::CubeNoDepth => Capability::DepthTest.disable(),
+            _ => Capability::DepthTest.enable(),
+        }
         update_vertex_layout_for_vao(&mut self.vlm, vao, vbo, name);
         println!("Render mode: {}", self.render_mode);
 
@@ -198,14 +238,17 @@ impl Renderable for Projection {
 enum RenderMode {
     TiltedPlane,
     CubeNoDepth,
-    //Cube,
+    CubeDepth,
+    MultipleCubes,
 }
 
 impl RenderMode {
     fn next(self) -> Self {
         match self {
             RenderMode::TiltedPlane => RenderMode::CubeNoDepth,
-            RenderMode::CubeNoDepth => RenderMode::TiltedPlane,
+            RenderMode::CubeNoDepth => RenderMode::CubeDepth,
+            RenderMode::CubeDepth => RenderMode::MultipleCubes,
+            RenderMode::MultipleCubes => RenderMode::TiltedPlane,
         }
     }
 }
@@ -215,7 +258,8 @@ impl Display for RenderMode {
         match self {
             RenderMode::TiltedPlane => write!(f, "Tilted Plane"),
             RenderMode::CubeNoDepth => write!(f, "Cube No Depth"),
-            //RenderMode::Cube => write!(f, "Cube"),
+            RenderMode::CubeDepth => write!(f, "Cube"),
+            RenderMode::MultipleCubes => write!(f, "Multiple Cubes"),
         }
     }
 }
