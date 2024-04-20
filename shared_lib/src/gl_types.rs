@@ -359,7 +359,7 @@ impl Into<VertexAttribute> for VertexAttributeType {
                 normalized: Some(false),
                 ..Default::default()
             },
-            VertexAttributeType::Normal => VertexAttribute { 
+            VertexAttributeType::Normal => VertexAttribute {
                 components: 3,
                 data_type: VertexDataType::Float,
                 normalized: Some(false),

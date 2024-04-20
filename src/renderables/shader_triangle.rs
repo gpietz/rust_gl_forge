@@ -7,10 +7,9 @@ use shared_lib::{
     gl_draw,
     gl_prelude::{
         Bindable, BufferObject, BufferType, BufferUsage, PrimitiveType, ShaderFactory,
-        ShaderProgram, VertexArrayObject, VertexAttribute,
-        VertexAttributeType, VertexLayoutManager,
-    }
-    ,
+        ShaderProgram, VertexArrayObject, VertexAttribute, VertexAttributeType,
+        VertexLayoutManager,
+    },
     gl_vertex::Vertex,
 };
 
