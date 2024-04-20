@@ -28,8 +28,7 @@ const MODEL_DISTANCE_SPEED: f32 = 0.05;
 //////////////////////////////////////////////////////////////////////////////
 
 pub struct Projection {
-    vbo_plane: Plane,
-    vbo_cube: Cube,
+    render_models: [RenderModel; 2],
     textures: [Texture; 2],
     shader: ShaderProgram,
     rotation_angle: f32,
@@ -43,10 +42,8 @@ pub struct Projection {
 
 impl Projection {
     pub fn new() -> Result<Projection> {
-        // Create vertex buffer objects (2x)
-
-        let vbo_cube = Cube::new()?;
-        let vbo_plane = Plane::new()?;
+        // Create 3D models to render (2x)
+        let mut render_models = [RenderModel::create_plane()?, RenderModel::create_cube()?];
 
         // Load textures
         let textures = [
@@ -61,7 +58,8 @@ impl Projection {
         ])?;
 
         // Setup the vertex layout
-        let vlm = VertexLayoutManager::new_and_setup::<TexturedVertex>()?;
+        let mut vlm = VertexLayoutManager::new_and_setup::<TexturedVertex>()?;
+        render_models[0].update_vertex_layout(&mut vlm)?;
 
         // Created vector with positions for cubes
         let cube_positions = vec![
@@ -79,8 +77,7 @@ impl Projection {
 
         // Setup vertex layout
         Ok(Projection {
-            vbo_plane,
-            vbo_cube,
+            render_models,
             textures,
             shader,
             rotation_angle: 0.0,
@@ -129,15 +126,9 @@ impl Renderable for Projection {
         // Activate and render bases on the current mode
         match self.render_mode {
             RenderMode::TiltedPlane => {
-                self.vbo_plane.vao.bind()?;
-                gl_draw::draw_elements(
-                    PrimitiveType::Triangles,
-                    self.vbo_plane.ibo.data_len() as u32,
-                    IndicesValueType::Int,
-                );
+                self.render_models[0].render()?;
             }
             RenderMode::MultipleCubes => {
-                self.vbo_cube.vbo.bind()?;
                 for (i, pos) in self.cube_positions.iter().enumerate() {
                     let pos_vector3 = Vector3::new(pos[0], pos[1], pos[2]);
                     let translation = Matrix4::from_translation(pos_vector3);
@@ -146,19 +137,11 @@ impl Renderable for Projection {
                     let rotation = Matrix4::from_axis_angle(axis, angle);
                     let model = translation * rotation;
                     self.shader.set_uniform_matrix("model", false, &model)?;
-                    self.vbo_cube.vbo.bind()?;
-                    gl_draw::draw_primitive(
-                        PrimitiveType::Triangles,
-                        self.vbo_cube.vbo.data_len() as u32,
-                    );
+                    self.render_models[1].render()?;
                 }
             }
             _ => {
-                self.vbo_cube.vbo.bind()?;
-                gl_draw::draw_primitive(
-                    PrimitiveType::Triangles,
-                    self.vbo_cube.vbo.data_len() as u32,
-                );
+                self.render_models[1].render()?;
             }
         }
 
@@ -167,34 +150,21 @@ impl Renderable for Projection {
 
     fn toggle_mode(&mut self) {
         self.render_mode = self.render_mode.next();
-        let (vao, vbo, name) = match self.render_mode {
-            RenderMode::TiltedPlane => (&mut self.vbo_plane.vao, &mut self.vbo_plane.vbo, "plane"),
-            _ => (&mut self.vbo_cube.vao, &mut self.vbo_cube.vbo, "cube"),
-        };
+
+        // Enable/Disable the depth testing capability
         match self.render_mode {
             RenderMode::CubeNoDepth => Capability::DepthTest.disable(),
             _ => Capability::DepthTest.enable(),
         }
-        update_vertex_layout_for_vao(&mut self.vlm, vao, vbo, name);
-        println!("Render mode: {}", self.render_mode);
 
-        fn update_vertex_layout_for_vao(
-            vlm: &mut VertexLayoutManager,
-            vao: &mut VertexArrayObject,
-            vbo: &mut BufferObject<TexturedVertex>,
-            name: &str,
-        ) {
-            if let Err(e) = vao.bind() {
-                panic!("Failed to bind VAO: {}", e)
-            }
-            if let Err(e) = vbo.bind() {
-                panic!("Failed to bind VBO: {}", e)
-            }
-            if let Err(e) = vlm.setup_attributes() {
-                panic!("Failed to update vertex layout: {}", e);
-            }
-            println!("Updated vertex layout: {}", name);
-        }
+        // Update vertex layout attributes (very important!)
+        let model = match self.render_mode {
+            RenderMode::TiltedPlane => &mut self.render_models[0],
+            _ => &mut self.render_models[1],
+        };
+        model
+            .update_vertex_layout(&mut self.vlm)
+            .unwrap_or_else(|e| panic!("Couldn't update vertex layout: {}", e));
     }
 
     fn key_pressed(&mut self, key: &Keycode) -> bool {
@@ -265,39 +235,67 @@ impl Display for RenderMode {
 }
 
 //////////////////////////////////////////////////////////////////////////////
-// - Plane -
+// - RenderModel -
 //////////////////////////////////////////////////////////////////////////////
 
-struct Plane {
-    pub vao: VertexArrayObject,
-    pub vbo: BufferObject<TexturedVertex>,
-    pub ibo: BufferObject<u32>,
+struct RenderModel {
+    vao: VertexArrayObject,
+    vbo: BufferObject<TexturedVertex>,
+    ibo: Option<BufferObject<u32>>,
 }
 
-impl Plane {
-    pub fn new() -> Result<Plane> {
+impl RenderModel {
+    pub fn new(
+        vao: VertexArrayObject,
+        vbo: BufferObject<TexturedVertex>,
+        ibo: Option<BufferObject<u32>>,
+    ) -> Self {
+        Self { vao, vbo, ibo }
+    }
+
+    pub fn create_plane() -> Result<RenderModel> {
         let vertex_data = crate::vertex_data_2d::create_quad();
         let vao = VertexArrayObject::new(true)?;
         let vbo = vertex_data.create_vbo();
         let ibo = vertex_data.create_ibo();
-        Ok(Plane { vao, vbo, ibo })
+        Ok(RenderModel::new(vao, vbo, Some(ibo)))
     }
-}
 
-//////////////////////////////////////////////////////////////////////////////
-// - Cube -
-//////////////////////////////////////////////////////////////////////////////
-
-struct Cube {
-    pub vao: VertexArrayObject,
-    pub vbo: BufferObject<TexturedVertex>,
-}
-
-impl Cube {
-    pub fn new() -> Result<Cube> {
+    pub fn create_cube() -> Result<RenderModel> {
         let vertex_data = crate::vertex_data_3d::create_cube();
         let vao = VertexArrayObject::new(true)?;
         let vbo = create_vbo(vertex_data);
-        Ok(Cube { vao, vbo })
+        Ok(RenderModel::new(vao, vbo, None))
+    }
+
+    pub fn bind(&mut self) -> Result<()> {
+        self.vao.bind()?;
+        self.vbo.bind()?;
+        Ok(())
+    }
+
+    pub fn update_vertex_layout(&mut self, vlm: &mut VertexLayoutManager) -> Result<()> {
+        self.bind()?;
+        vlm.setup_attributes()?;
+        Ok(())
+    }
+
+    pub fn render(&mut self) -> Result<()> {
+        // Attempt to bind the VAO
+        self.vao.bind()?;
+        match &self.ibo {
+            Some(ibo) => {
+                gl_draw::draw_elements(
+                    PrimitiveType::Triangles,
+                    ibo.data_len() as u32,
+                    IndicesValueType::Int,
+                );
+            }
+            _ => {
+                gl_draw::draw_primitive(PrimitiveType::Triangles, self.vbo.data_len() as u32);
+            }
+        }
+
+        Ok(())
     }
 }
