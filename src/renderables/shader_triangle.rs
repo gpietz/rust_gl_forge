@@ -12,6 +12,7 @@ use shared_lib::{
     },
     gl_vertex::Vertex,
 };
+use shared_lib::gl_prelude::VertexDataType;
 
 use crate::renderables::Renderable;
 
@@ -110,7 +111,7 @@ impl Vertex for ColorPointVertex {
     fn attributes() -> Vec<VertexAttribute> {
         vec![
             VertexAttributeType::Position.into(),
-            VertexAttributeType::Color.into(),
+            VertexAttribute::new(3, VertexDataType::Float),
         ]
     }
 }
