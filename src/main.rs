@@ -24,8 +24,8 @@ use shared_lib::sdl_window::SdlWindow;
 use std::time::{Duration, Instant};
 
 const WINDOW_TITLE: &str = "RUST OPENGL 2024";
-pub(crate) const SCREEN_WIDTH: usize = 800;
-pub(crate) const SCREEN_HEIGHT: usize = 600;
+pub(crate) const SCREEN_WIDTH: usize = 1024;
+pub(crate) const SCREEN_HEIGHT: usize = 768;
 
 pub(crate) const SHADER_SIMPLE_RED: &str = "shader_simple_red";
 

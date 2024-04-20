@@ -1,7 +1,9 @@
 use std::fmt::{Display, Formatter};
+use std::time::{Duration, Instant};
 
 use anyhow::Result;
 use cgmath::{perspective, vec3, Deg, InnerSpace, Matrix4, Rad, Vector3};
+use chrono::{Local, Timelike};
 use sdl2::keyboard::Keycode;
 
 use shared_lib::gl_prelude::IndicesValueType;
@@ -38,6 +40,8 @@ pub struct Projection {
     render_mode: RenderMode,
     vlm: VertexLayoutManager,
     cube_positions: Vec<[f32; 3]>,
+    cube_rotations: Vec<CubeRotation>,
+    last_update: Instant,
 }
 
 impl Projection {
@@ -75,6 +79,12 @@ impl Projection {
             [-1.3, 1.0, -1.5],
         ];
 
+        // Create vector for cube rotations
+        let mut cube_rotations = Vec::new();
+        for _ in 0..10 {
+            cube_rotations.push(CubeRotation::new());
+        }
+
         // Setup vertex layout
         Ok(Projection {
             render_models,
@@ -87,7 +97,31 @@ impl Projection {
             render_mode: RenderMode::TiltedPlane,
             vlm,
             cube_positions,
+            cube_rotations,
+            last_update: Instant::now(),
         })
+    }
+
+    fn update_rotations(&mut self, delta_time: f32) {
+        let now = Instant::now();
+        if now.duration_since(self.last_update) > Duration::from_secs(3) {
+            for rotation in &mut self.cube_rotations {
+                rotation.update();
+            }
+            self.last_update = now;
+
+            let time_now = Local::now();
+            println!(
+                "Cube rotation updated: {:02}:{:02}:{:02}",
+                time_now.hour(),
+                time_now.minute(),
+                time_now.second()
+            );
+        }
+
+        for rotation in &mut self.cube_rotations {
+            rotation.angle += rotation.speed * delta_time;
+        }
     }
 }
 
@@ -123,21 +157,38 @@ impl Renderable for Projection {
         self.shader
             .set_uniform_matrix("projection", false, &projection)?;
 
-        // Activate and render bases on the current mode
+        // Render models based on the active rendering mode
         match self.render_mode {
             RenderMode::TiltedPlane => {
                 self.render_models[0].render()?;
             }
-            RenderMode::MultipleCubes => {
+            RenderMode::MultipleCubes | RenderMode::MultipleCubesRotating => {
                 for (i, pos) in self.cube_positions.iter().enumerate() {
                     let pos_vector3 = Vector3::new(pos[0], pos[1], pos[2]);
                     let translation = Matrix4::from_translation(pos_vector3);
-                    let angle = Rad::from(Deg(20.0 * i as f32));
-                    let axis = Vector3::new(1.0, 0.3, 0.5).normalize();
-                    let rotation = Matrix4::from_axis_angle(axis, angle);
+                    let rotation: Matrix4<f32>;
+
+                    if self.render_mode != RenderMode::MultipleCubesRotating {
+                        let angle = Rad::from(Deg(20.0 * i as f32));
+                        let axis = Vector3::new(1.0, 0.3, 0.5).normalize();
+                        rotation = Matrix4::from_axis_angle(axis, angle);
+                    } else {
+                        let cube_rotation = &self.cube_rotations[i];
+                        let rotation_x = Matrix4::from_angle_x(Deg(cube_rotation.angle.x));
+                        let rotation_y = Matrix4::from_angle_y(Deg(cube_rotation.angle.y));
+                        let rotation_z = Matrix4::from_angle_z(Deg(cube_rotation.angle.z));
+
+                        // Combine rotations: Note the order of multiplication matters
+                        rotation = rotation_x * rotation_y * rotation_z;
+                    }
+
                     let model = translation * rotation;
                     self.shader.set_uniform_matrix("model", false, &model)?;
                     self.render_models[1].render()?;
+                }
+
+                if self.render_mode == RenderMode::MultipleCubesRotating {
+                    self.update_rotations(delta_time);
                 }
             }
             _ => {
@@ -195,6 +246,16 @@ impl Renderable for Projection {
                 self.model_distance = -3.0;
                 true
             }
+            Keycode::F4 => {
+                Capability::DepthTest.disable();
+                println!("Depth-Test disabled");
+                true
+            }
+            Keycode::F5 => {
+                Capability::DepthTest.enable();
+                println!("Depth-Test enabled");
+                true
+            }
             _ => false,
         }
     }
@@ -210,6 +271,7 @@ enum RenderMode {
     CubeNoDepth,
     CubeDepth,
     MultipleCubes,
+    MultipleCubesRotating,
 }
 
 impl RenderMode {
@@ -218,7 +280,8 @@ impl RenderMode {
             RenderMode::TiltedPlane => RenderMode::CubeNoDepth,
             RenderMode::CubeNoDepth => RenderMode::CubeDepth,
             RenderMode::CubeDepth => RenderMode::MultipleCubes,
-            RenderMode::MultipleCubes => RenderMode::TiltedPlane,
+            RenderMode::MultipleCubes => RenderMode::MultipleCubesRotating,
+            RenderMode::MultipleCubesRotating => RenderMode::TiltedPlane,
         }
     }
 }
@@ -230,6 +293,7 @@ impl Display for RenderMode {
             RenderMode::CubeNoDepth => write!(f, "Cube No Depth"),
             RenderMode::CubeDepth => write!(f, "Cube"),
             RenderMode::MultipleCubes => write!(f, "Multiple Cubes"),
+            RenderMode::MultipleCubesRotating => write!(f, "Multiple Cubes Rotating"),
         }
     }
 }
@@ -297,5 +361,36 @@ impl RenderModel {
         }
 
         Ok(())
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// - CubeRotation -
+//////////////////////////////////////////////////////////////////////////////
+
+struct CubeRotation {
+    angle: Vector3<f32>,
+    speed: Vector3<f32>,
+}
+
+impl CubeRotation {
+    fn new() -> Self {
+        Self {
+            angle: Vector3::new(0.0, 0.0, 0.0),
+            speed: Self::random_speed(),
+        }
+    }
+
+    fn random_speed() -> Vector3<f32> {
+        let mut rng = rand::thread_rng();
+        Vector3::new(
+            rand::Rng::gen_range(&mut rng, -90.0..90.0),
+            rand::Rng::gen_range(&mut rng, -90.0..90.0),
+            rand::Rng::gen_range(&mut rng, -90.0..90.0),
+        )
+    }
+
+    fn update(&mut self) {
+        self.speed = Self::random_speed();
     }
 }
