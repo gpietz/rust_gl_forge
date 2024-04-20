@@ -9,8 +9,8 @@ use shared_lib::{
         Bindable, BufferObject, BufferType, BufferUsage, PrimitiveType, ShaderFactory,
         ShaderProgram, VertexArrayObject, VertexAttribute,
         VertexAttributeType, VertexLayoutManager,
-    },
-    gl_types::VertexDataType,
+    }
+    ,
     gl_vertex::Vertex,
 };
 

@@ -5,7 +5,7 @@ use shared_lib::{
     gl_draw::draw_primitive,
     gl_prelude::{
         Bindable, BufferObject, BufferType, BufferUsage, PrimitiveType, ShaderFactory,
-        ShaderProgram, VertexArrayObject, VertexAttribute, VertexAttributeType,
+        ShaderProgram, VertexArrayObject, VertexAttributeType,
         VertexLayoutManager,
     },
 };

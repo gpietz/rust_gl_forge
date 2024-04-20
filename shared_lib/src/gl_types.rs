@@ -1,6 +1,6 @@
+use std::fmt;
 use std::fmt::Display;
 use std::os::raw::c_void;
-use std::{default, fmt};
 
 use anyhow::{Context, Result};
 use gl::types::{GLboolean, GLenum, GLsizei, GLuint};
