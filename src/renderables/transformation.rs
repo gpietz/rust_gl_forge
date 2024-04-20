@@ -63,7 +63,7 @@ impl Transformation {
         ])?;
 
         // Create vertex layout
-        let vlm =  VertexLayoutManager::new_and_setup::<TexturedVertex>(&shader)?;
+        let vlm =  VertexLayoutManager::new_and_setup_with_shader::<TexturedVertex>(&shader)?;
 
         Ok(Transformation {
             vao,

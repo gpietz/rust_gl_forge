@@ -1,6 +1,7 @@
 use crate::{renderables::Renderable, texture_utils::create_texture};
 use anyhow::Result;
 use shared_lib::gl_prelude::IndicesValueType;
+use shared_lib::vertices::textured_vertex::TexturedVertex;
 use shared_lib::{
     gl_draw,
     gl_prelude::{
@@ -10,7 +11,6 @@ use shared_lib::{
     gl_texture::Texture,
     gl_traits::Deletable,
 };
-use shared_lib::vertices::textured_vertex::TexturedVertex;
 
 //////////////////////////////////////////////////////////////////////////////
 // - TextureTriangle -
@@ -106,7 +106,7 @@ impl Renderable for TextureTriangle {
         )?;
 
         // Setup vertex layout
-        let vlm = VertexLayoutManager::new_and_setup::<TexturedVertex>(&shader)?;
+        let vlm = VertexLayoutManager::new_and_setup_with_shader::<TexturedVertex>(&shader)?;
         self.vlm = Some(vlm);
 
         self.use_color_location = shader.get_uniform_location("useColor")?;

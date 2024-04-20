@@ -4,7 +4,7 @@ use anyhow::Result;
 use cgmath::{perspective, vec3, Deg, Matrix4};
 use sdl2::keyboard::Keycode;
 
-use shared_lib::gl_prelude::IndicesValueType;
+use shared_lib::gl_prelude::{IndicesValueType, VertexAttribute};
 use shared_lib::vertices::textured_vertex::TexturedVertex;
 use shared_lib::{
     gl_draw,
@@ -59,8 +59,7 @@ impl Projection {
         ])?;
 
         // AAARGH
-        //let vlm =  VertexLayoutManager::new::<TexturedVertex>();
-        let vlm = VertexLayoutManager::new_and_setup::<TexturedVertex>(&shader)?;
+        let vlm = VertexLayoutManager::new_and_setup::<TexturedVertex>()?;
 
         // Setup vertex layout
         Ok(Projection {
@@ -131,20 +130,31 @@ impl Renderable for Projection {
     }
 
     fn toggle_mode(&mut self) {
-        //TODO Fix this function!!!!
         self.render_mode = self.render_mode.next();
-        // Important: Since data structure changes we need to update vertex attributes
-        match self.render_mode {
-            RenderMode::TiltedPlane => {
-                VertexLayoutManager::new_and_setup::<TexturedVertex>(&self.shader)
-                    .expect("Failed to update vertex layout for 2D mode!");
-            }
-            _ => {
-                VertexLayoutManager::new_and_setup::<TexturedVertex>(&self.shader)
-                    .expect("Failed to update vertex layout for 3D mode!");
-            }
-        }
+        let (vao, vbo, name) = match self.render_mode {
+            RenderMode::TiltedPlane => (&mut self.vbo_plane.vao, &mut self.vbo_plane.vbo, "plane"),
+            RenderMode::CubeNoDepth => (&mut self.vbo_cube.vao, &mut self.vbo_cube.vbo, "cube"),
+        };
+        update_vertex_layout_for_vao(&mut self.vlm, vao, vbo, name);
         println!("Render mode: {}", self.render_mode);
+
+        fn update_vertex_layout_for_vao(
+            vlm: &mut VertexLayoutManager,
+            vao: &mut VertexArrayObject,
+            vbo: &mut BufferObject<TexturedVertex>,
+            name: &str,
+        ) {
+            if let Err(e) = vao.bind() {
+                panic!("Failed to bind VAO: {}", e)
+            }
+            if let Err(e) = vbo.bind() {
+                panic!("Failed to bind VBO: {}", e)
+            }
+            if let Err(e) = vlm.setup_attributes() {
+                panic!("Failed to update vertex layout: {}", e);
+            }
+            println!("Updated vertex layout: {}", name);
+        }
     }
 
     fn key_pressed(&mut self, key: &Keycode) -> bool {
@@ -210,10 +220,6 @@ impl Display for RenderMode {
     }
 }
 
-trait Render {
-    fn render(&self);
-}
-
 //////////////////////////////////////////////////////////////////////////////
 // - Plane -
 //////////////////////////////////////////////////////////////////////////////
@@ -227,10 +233,9 @@ struct Plane {
 impl Plane {
     pub fn new() -> Result<Plane> {
         let vertex_data = crate::vertex_data_2d::create_quad();
-        let mut vao = VertexArrayObject::new(true)?;
+        let vao = VertexArrayObject::new(true)?;
         let vbo = vertex_data.create_vbo();
         let ibo = vertex_data.create_ibo();
-        //vao.unbind()?;
         Ok(Plane { vao, vbo, ibo })
     }
 }
@@ -247,7 +252,7 @@ struct Cube {
 impl Cube {
     pub fn new() -> Result<Cube> {
         let vertex_data = crate::vertex_data_3d::create_cube();
-        let mut vao = VertexArrayObject::new(true)?;
+        let vao = VertexArrayObject::new(true)?;
         let vbo = create_vbo(vertex_data);
         Ok(Cube { vao, vbo })
     }

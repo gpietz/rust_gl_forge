@@ -120,8 +120,14 @@ impl VertexLayoutManager {
         manager
     }
 
+    pub fn new_and_setup<T: Vertex>() -> Result<Self> {
+        let mut manager = Self::new::<T>();
+        manager.setup_attributes().with_context(|| "Failed to set up vertex attributes".to_string())?;
+        Ok(manager)
+    }
+
     /// Creates a new instance and sets up vertex attributes for a given shader, handling errors.
-    pub fn new_and_setup<T: Vertex>(shader: &ShaderProgram) -> Result<Self> {
+    pub fn new_and_setup_with_shader<T: Vertex>(shader: &ShaderProgram) -> Result<Self> {
         let mut manager = Self::new::<T>();
         let program_id = shader.program_id();
         manager.setup_attributes_for_shader(program_id).with_context(|| {
@@ -261,6 +267,44 @@ impl VertexLayoutManager {
                 return Err(VertexLayoutError::InvalidNumberOfComponents);
             }
         }
+
+        Ok(())
+    }
+
+    pub fn setup_attributes(&mut self) -> Result<(), VertexLayoutError> {
+        self.finalize_layout()?;
+
+        for (index, attribute) in self.attributes.iter().enumerate() {
+            println!("Processing attribute {}", index);
+
+            // Determine the attribute properties from VertexAttributeType
+            let (components, data_type, normalized): (u8, GLenum, bool) = (
+                attribute.components,
+                attribute.data_type.to_gl_enum(),
+                attribute.normalized.unwrap_or_default(),
+            );
+
+            // Fetch stride and offset from layout_specs or use the calculated layout info
+            let (stride, offset) = self.get_stride_and_offset(index, attribute);
+
+            unsafe {
+                // Setup the vertex attribute pointer
+                let gl_index = index as GLuint;
+                gl::EnableVertexAttribArray(gl_index);
+                gl::VertexAttribPointer(
+                    gl_index as GLuint,
+                    components as GLint,
+                    data_type,
+                    normalized as GLboolean,
+                    stride as GLsizei,
+                    offset as *const GLvoid,
+                );
+            }
+
+            // Check for GL errors after setting up the vertex attribute
+            check_and_map_gl_error()?;
+        }
+
         Ok(())
     }
 
@@ -291,54 +335,43 @@ impl VertexLayoutManager {
 
         self.finalize_layout()?;
 
-        unsafe {
-            // Iterate over each attribute
-            for (index, attribute) in self.attributes.iter().enumerate() {
-                println!(
-                    "Processing attribute {} for shader {}",
-                    index, shader_program_id
-                );
+        // Iterate over each attribute
+        for (index, attribute) in self.attributes.iter().enumerate() {
+            println!(
+                "Processing attribute {} for shader {}",
+                index, shader_program_id
+            );
 
-                // Determine the attribute properties from VertexAttributeType
-                let (components, data_type, normalized): (u8, GLenum, bool) = (
-                    attribute.components,
-                    attribute.data_type.to_gl_enum(),
+            // Determine the attribute properties from VertexAttributeType
+            let (components, data_type, normalized): (u8, GLenum, bool) = (
+                attribute.components,
+                attribute.data_type.to_gl_enum(),
+                attribute.normalized.unwrap_or_default(),
+            );
 
-                    attribute.normalized.unwrap_or_default(),
-                );
+            // Fetch stride and offset from layout_specs or use the calculated layout info
+            let (stride, offset) = self.get_stride_and_offset(index, attribute);
 
-                // Fetch stride and offset from layout_specs or use the calculated layout info
-                let (stride, offset) = match (attribute.stride, attribute.offset) {
-                    (Some(stride), Some(offset)) => (stride, offset),
-                    _ => {
-                        // Fallback to calculated layout info if custom specs are not provided
-                        let layout_info = self
-                            .layout_info
-                            .get(&index)
-                            .expect("Layout info should be calculated for all attributes.");
-                        (layout_info[0], layout_info[1])
-                    }
-                };
+            // Retrieve the attribute location by name if available, or use the index from this iteration
+            let attr_location = if let Some(name) = &attribute.name {
+                let c_str = std::ffi::CString::new(name.as_str()).unwrap();
+                unsafe { gl::GetAttribLocation(shader_program_id, c_str.as_ptr()) }
+            } else {
+                index as i32
+            };
 
-                // Retrieve the attribute location by name if available, or use the index from this iteration
-                let attr_location = if let Some(name) = &attribute.name {
-                    let c_str = std::ffi::CString::new(name.as_str()).unwrap();
-                    gl::GetAttribLocation(shader_program_id, c_str.as_ptr())
+            // Check if the attribute location is valid
+            if attr_location < 0 {
+                return if let Some(attribute_name) = &attribute.name {
+                    Err(VertexLayoutError::InvalidAttributeName(
+                        attribute_name.to_string(),
+                    ))
                 } else {
-                    index as i32
+                    Err(VertexLayoutError::InvalidAttributeLocation(index))
                 };
+            }
 
-                // Check if the attribute location is valid
-                if attr_location < 0 {
-                    return if let Some(attribute_name) = &attribute.name {
-                        Err(VertexLayoutError::InvalidAttributeName(
-                            attribute_name.to_string(),
-                        ))
-                    } else {
-                        Err(VertexLayoutError::InvalidAttributeLocation(index))
-                    };
-                }
-
+            unsafe {
                 // Setup the vertex attribute pointer
                 gl::EnableVertexAttribArray(attr_location as u32);
                 gl::VertexAttribPointer(
@@ -349,12 +382,40 @@ impl VertexLayoutManager {
                     stride as GLsizei,
                     offset as *const GLvoid,
                 );
-
-                // Check for GL errors after setting up the vertex attribute
-                check_and_map_gl_error()?;
             }
+
+            // Check for GL errors after setting up the vertex attribute
+            check_and_map_gl_error()?;
         }
         Ok(())
+    }
+
+    /// Retrieves the stride and offset for a vertex attribute.
+    ///
+    /// This function returns the stride and offset either directly from the attribute if specified,
+    /// or falls back to the pre-calculated layout information based on the attribute index.
+    ///
+    /// # Parameters
+    /// - `index`: The index of the vertex attribute in the layout.
+    /// - `attribute`: A reference to the `VertexAttribute` instance.
+    ///
+    /// # Returns
+    /// A tuple containing the stride and offset as `u32`.
+    ///
+    /// # Panics
+    /// Panics if the layout information is not pre-calculated for the given index.
+    fn get_stride_and_offset(&self, index: usize, attribute: &VertexAttribute) -> (u32, u32) {
+        match (attribute.stride, attribute.offset) {
+            (Some(stride), Some(offset)) => (stride, offset),
+            _ => {
+                // Fallback to calculated layout info if custom specs are not provided
+                let layout_info = self
+                    .layout_info
+                    .get(&index)
+                    .expect("Layout info should be calculated for all attributes.");
+                (layout_info[0], layout_info[1])
+            }
+        }
     }
 
     pub fn save_layout(&self) -> Result<()> {

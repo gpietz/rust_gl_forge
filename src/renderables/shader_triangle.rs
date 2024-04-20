@@ -58,7 +58,7 @@ impl ShaderTriangle {
         )?;
 
         // Setup the vertex layout
-        let vlm = VertexLayoutManager::new_and_setup::<ColorPointVertex>(&shader)?;
+        let vlm = VertexLayoutManager::new_and_setup_with_shader::<ColorPointVertex>(&shader)?;
 
         Ok(ShaderTriangle {
             vao,
