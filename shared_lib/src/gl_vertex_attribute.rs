@@ -6,7 +6,7 @@ use std::fmt::Debug;
 
 use anyhow::Context;
 use anyhow::Result;
-use gl::types::{GLboolean, GLint, GLsizei, GLuint, GLvoid};
+use gl::types::{GLboolean, GLenum, GLint, GLsizei, GLuint, GLvoid};
 use thiserror::Error;
 
 use crate::gl_prelude::Vertex;
@@ -300,10 +300,10 @@ impl VertexLayoutManager {
                 );
 
                 // Determine the attribute properties from VertexAttributeType
-                let (mut components, data_type, data_size, normalized) = (
+                let (components, data_type, normalized): (u8, GLenum, bool) = (
                     attribute.components,
                     attribute.data_type.to_gl_enum(),
-                    attribute.data_type.size(),
+
                     attribute.normalized.unwrap_or_default(),
                 );
 
