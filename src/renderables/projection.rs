@@ -4,7 +4,7 @@ use anyhow::Result;
 use cgmath::{perspective, vec3, Deg, Matrix4};
 use sdl2::keyboard::Keycode;
 
-use shared_lib::gl_prelude::{IndicesValueType, VertexAttribute};
+use shared_lib::gl_prelude::{IndicesValueType};
 use shared_lib::vertices::textured_vertex::TexturedVertex;
 use shared_lib::{
     gl_draw,

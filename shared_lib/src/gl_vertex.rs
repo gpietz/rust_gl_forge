@@ -1,5 +1,4 @@
 use crate::gl_vertex_attribute::VertexAttribute;
-use crate::vertices::textured_vertex::TexturedVertex;
 
 //////////////////////////////////////////////////////////////////////////////
 // - Vertex -

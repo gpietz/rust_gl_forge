@@ -22,8 +22,8 @@ pub(crate) struct VertexLayout {
 }
 
 pub fn write_vertex_layout<N: AsRef<str>>(
-    layout_manager: &VertexLayoutManager,
-    file_name: N,
+    _layout_manager: &VertexLayoutManager,
+    _file_name: N,
 ) -> Result<()> {
     Ok(())
 }

@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use anyhow::Result;
 use std::os::raw::c_void;
 use std::ptr;
