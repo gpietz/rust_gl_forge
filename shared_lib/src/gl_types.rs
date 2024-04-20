@@ -1,6 +1,6 @@
-use std::fmt;
 use std::fmt::Display;
 use std::os::raw::c_void;
+use std::{default, fmt};
 
 use anyhow::{Context, Result};
 use gl::types::{GLboolean, GLenum, GLsizei, GLuint};
@@ -9,6 +9,7 @@ use gl_utils::*;
 
 use crate::gl_traits::ToOpenGL;
 use crate::gl_utils;
+use crate::gl_vertex_attribute::VertexAttribute;
 
 //////////////////////////////////////////////////////////////////////////////
 // - BufferType -
@@ -327,6 +328,43 @@ impl VertexAttributeType {
             VertexAttributeType::TexCoord => (2, gl::FLOAT, gl::FALSE),
             // 3 components per normal, float, not normalized
             VertexAttributeType::Normal => (3, gl::FLOAT, gl::FALSE),
+        }
+    }
+}
+
+impl Into<VertexAttribute> for VertexAttributeType {
+    fn into(self) -> VertexAttribute {
+        match self {
+            VertexAttributeType::Position => VertexAttribute {
+                components: 3,
+                data_type: VertexDataType::Float,
+                normalized: Some(false),
+                ..Default::default()
+            },
+            VertexAttributeType::Position2D => VertexAttribute {
+                components: 2,
+                data_type: VertexDataType::Float,
+                normalized: Some(false),
+                ..Default::default()
+            },
+            VertexAttributeType::Color => VertexAttribute {
+                components: 4,
+                data_type: VertexDataType::Float,
+                normalized: Some(false),
+                ..Default::default()
+            },
+            VertexAttributeType::TexCoord => VertexAttribute {
+                components: 2,
+                data_type: VertexDataType::Float,
+                normalized: Some(false),
+                ..Default::default()
+            },
+            VertexAttributeType::Normal => VertexAttribute { 
+                components: 3,
+                data_type: VertexDataType::Float,
+                normalized: Some(false),
+                ..Default::default()
+            },
         }
     }
 }

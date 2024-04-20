@@ -37,9 +37,9 @@ impl Default for TexturedVertex {
 impl Vertex for TexturedVertex {
     fn attributes() -> Vec<VertexAttribute> {
         vec![
-            VertexAttribute::new(VertexAttributeType::Position),
-            VertexAttribute::new(VertexAttributeType::TexCoord),
-            VertexAttribute::new(VertexAttributeType::Color),
+            VertexAttributeType::Position.into(),
+            VertexAttributeType::TexCoord.into(),
+            VertexAttributeType::Color.into(),
         ]
     }
 }

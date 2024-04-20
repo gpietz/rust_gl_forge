@@ -7,7 +7,7 @@ use shared_lib::{
     gl_draw,
     gl_prelude::{
         Bindable, BufferObject, BufferType, BufferUsage, PrimitiveType, ShaderFactory,
-        ShaderProgram, VertexArrayObject, VertexAttribute, VertexAttributeSpecs,
+        ShaderProgram, VertexArrayObject, VertexAttribute,
         VertexAttributeType, VertexLayoutManager,
     },
     gl_types::VertexDataType,
@@ -110,9 +110,8 @@ impl Vertex for ColorPointVertex {
     // a fourth value, which indicates the alpha channel (transparency).
     fn attributes() -> Vec<VertexAttribute> {
         vec![
-            VertexAttribute::new(VertexAttributeType::Position),
-            VertexAttribute::new(VertexAttributeType::Color)
-                .with_attribute_specs(VertexAttributeSpecs::new(3, VertexDataType::Float, false)),
+            VertexAttributeType::Position.into(),
+            VertexAttributeType::Color.into(),
         ]
     }
 }

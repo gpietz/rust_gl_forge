@@ -30,10 +30,10 @@ pub struct VertexAttribute {
 }
 
 impl VertexAttribute {
-    pub fn new(components: u8, data_type: impl Into<VertexDataType>) -> Self {
+    pub fn new(components: u8, data_type: VertexDataType) -> Self {
         Self {
             components,
-            data_type: data_type.into(),
+            data_type,
             ..Self::default()
         }
     }
@@ -80,7 +80,14 @@ impl VertexAttribute {
 
 impl Default for VertexAttribute {
     fn default() -> Self {
-        todo!()
+        VertexAttribute {
+            name: None,
+            components: 3,
+            data_type: VertexDataType::Float,
+            normalized: None,
+            stride: None,
+            offset: None,
+        }
     }
 }
 

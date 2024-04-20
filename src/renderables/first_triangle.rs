@@ -41,7 +41,7 @@ impl FirstTriangle {
         )?;
 
         let mut vlm = VertexLayoutManager::empty();
-        vlm.add_attribute(VertexAttribute::new(VertexAttributeType::Position))
+        vlm.add_attribute(VertexAttributeType::Position.into())
             .setup_attributes_for_shader(shader.program_id())?;
 
         Ok(FirstTriangle {
