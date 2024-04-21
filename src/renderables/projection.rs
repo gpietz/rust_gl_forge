@@ -42,6 +42,8 @@ pub struct Projection {
     cube_positions: Vec<[f32; 3]>,
     cube_rotations: Vec<CubeRotation>,
     last_update: Instant,
+    paused: bool,
+    first_only: bool,
 }
 
 impl Projection {
@@ -99,6 +101,8 @@ impl Projection {
             cube_positions,
             cube_rotations,
             last_update: Instant::now(),
+            paused: false,
+            first_only: false,
         })
     }
 
@@ -184,10 +188,12 @@ impl Renderable for Projection {
 
                     let model = translation * rotation;
                     self.shader.set_uniform_matrix("model", false, &model)?;
-                    self.render_models[1].render()?;
+                    if i == 0 || !self.first_only {
+                        self.render_models[1].render()?;
+                    }
                 }
 
-                if self.render_mode == RenderMode::MultipleCubesRotating {
+                if self.render_mode == RenderMode::MultipleCubesRotating && !self.paused {
                     self.update_rotations(delta_time);
                 }
             }
@@ -254,6 +260,14 @@ impl Renderable for Projection {
             Keycode::F5 => {
                 Capability::DepthTest.enable();
                 println!("Depth-Test enabled");
+                true
+            }
+            Keycode::Space => {
+                self.paused = !self.paused;
+                true
+            }
+            Keycode::F => {
+                self.first_only = !self.first_only;
                 true
             }
             _ => false,
