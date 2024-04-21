@@ -22,6 +22,91 @@ impl TexturedVertex {
             ..Default::default()
         }
     }
+
+    fn is_similar(&self, other: &Self, tolerance: f32) -> bool {
+        self.position
+            .iter()
+            .zip(other.position.iter())
+            .all(|(a, b)| (a - b).abs() <= tolerance)
+            && self
+                .tex_coords
+                .iter()
+                .zip(other.tex_coords.iter())
+                .all(|(a, b)| (a - b).abs() <= tolerance)
+            && self
+                .color
+                .iter()
+                .zip(other.color.iter())
+                .all(|(a, b)| (a - b).abs() <= tolerance)
+    }
+
+    /// Deduplicates a slice of vertices based on a specified similarity tolerance
+    /// and generates a vector of indices corresponding to the unique vertices.
+    ///
+    /// This method iterates over each vertex in the input slice. It compares each
+    /// vertex against a list of already found unique vertices using a custom
+    /// similarity function that accepts a tolerance value for comparison. If a
+    /// vertex is deemed similar to an existing one, the index of that existing
+    /// vertex is added to the indices list. If no similar vertex is found, the
+    /// vertex is added to the list of unique vertices, and its new index is
+    /// recorded.
+    ///
+    /// # Parameters
+    /// - `vertices`: A slice of vertices (`&[Self]`) that will be checked for
+    ///   duplicates. This slice is not modified.
+    /// - `tolerance`: A floating-point number (`f32`) representing the maximum
+    ///   allowable difference between vertices for them to be considered the same.
+    ///   This is used in the `is_similar` method for comparing vertex properties.
+    ///
+    /// # Returns
+    /// - `Option<(Vec<Self>, Vec<u32>)>`: Returns `Some((unique_vertices, indices))`
+    ///   if the number of unique vertices is less than the total number of vertices
+    ///   passed in, indicating that some vertices were deduplicated. Returns `None`
+    ///   if all vertices are unique, meaning no deduplication occurred.
+    ///
+    /// # Example
+    /// ```
+    /// use shared_lib::vertices::textured_vertex::TexturedVertex;
+    ///
+    /// let vertices = vec![
+    ///     TexturedVertex { position: [0.0, 0.0, 0.0], tex_coords: [0.0, 0.0],
+    ///       color: [1.0, 1.0, 1.0, 1.0] },
+    ///     TexturedVertex { position: [0.0, 0.0, 0.0], tex_coords: [0.0, 0.0],
+    ///       color: [1.0, 1.0, 1.0, 1.0] },
+    ///     TexturedVertex { position: [1.0, 1.0, 1.0], tex_coords: [1.0, 1.0],
+    ///       color: [0.5, 0.5, 0.5, 1.0] },
+    /// ];
+    /// let tolerance = 0.01;
+    /// let result = TexturedVertex::dedupe_vertices(&vertices, tolerance);
+    /// if let Some((unique, indices)) = result {
+    ///     println!("Unique vertices: {:?}", unique);
+    ///     println!("Indices: {:?}", indices);
+    /// }
+    /// ```
+    ///
+    /// This method is useful for reducing data redundancy before rendering
+    /// operations where vertex data can be specified once and reused multiple times.
+    pub fn dedupe_vertices(vertices: &[Self], tolerance: f32) -> Option<(Vec<Self>, Vec<u32>)> {
+        let mut unique_vertices = Vec::new();
+        let mut indices = Vec::new();
+
+        'outer: for vertex in vertices {
+            for (index, unique_vertex) in unique_vertices.iter().enumerate() {
+                if vertex.is_similar(unique_vertex, tolerance) {
+                    indices.push(index as u32);
+                    continue 'outer;
+                }
+            }
+            unique_vertices.push(*vertex);
+            indices.push(unique_vertices.len() as u32 - 1);
+        }
+
+        if vertices.len() - indices.len() > 0 {
+            Some((unique_vertices, indices))
+        } else {
+            None
+        }
+    }
 }
 
 impl Default for TexturedVertex {
