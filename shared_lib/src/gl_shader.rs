@@ -200,6 +200,7 @@ impl Drop for Shader {
 // - ShaderProgram -
 //////////////////////////////////////////////////////////////////////////////
 
+#[derive(Debug)]
 pub struct ShaderProgram {
     id: u32,
     uniform_ids: HashMap<String, i32>,
@@ -349,6 +350,10 @@ impl ShaderProgram {
             gl::GetIntegerv(gl::CURRENT_PROGRAM, &mut program_id);
             program_id == self.id as i32
         }
+    }
+
+    pub fn clear_uniform_locations(&mut self) {
+        self.uniform_ids.clear();
     }
 
     /// Retrieves the location of a uniform variable within the shader program.

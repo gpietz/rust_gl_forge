@@ -314,7 +314,7 @@ impl FastFontRenderer {
         let texture_dimension = texture_atlas.dimension;
 
         // create vertex array object
-        let vao = VertexArrayObject::new(true)?;
+        let vao = VertexArrayObject::new()?;
 
         // create vertex buffer object
         let vbo =

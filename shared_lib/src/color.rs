@@ -1,3 +1,4 @@
+#![allow(unused)]
 use anyhow::Result;
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};

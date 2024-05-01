@@ -1,27 +1,33 @@
 #![allow(dead_code)]
 extern crate gl;
-extern crate rusttype;
 
-mod renderables;
+use anyhow::Result;
+use sdl2::event::Event;
+use sdl2::keyboard::Keycode;
+
+use scenes::first_triangle::FirstTriangle;
+use scenes::indexed_quad::IndexedQuad;
+use scenes::shader_triangle::ShaderTriangle;
+use shared_lib::color::Color;
+use shared_lib::sdl_window::SdlWindow;
+
+use crate::render_context::RenderContext;
+use crate::resources::{shaders, textures};
+use crate::scene::{RenderScene};
+use crate::scenes::projection::Projection;
+use crate::scenes::texture_triangle::TextureTriangle;
+use crate::scenes::transformation::Transformation;
+
+mod render_context;
+mod resources;
+mod scene;
+mod scene_utils;
+mod scenes;
 mod texture_utils;
 mod traits;
 mod vertex_data;
 mod vertex_data_2d;
 mod vertex_data_3d;
-
-use anyhow::Result;
-use renderables::first_triangle::FirstTriangle;
-use renderables::indexed_quad::IndexedQuad;
-use renderables::projection::Projection;
-use renderables::shader_triangle::ShaderTriangle;
-use renderables::texture_triangle::TextureTriangle;
-use renderables::transformation::Transformation;
-use renderables::Renderable;
-use sdl2::event::Event;
-use sdl2::keyboard::Keycode;
-use shared_lib::color::Color;
-use shared_lib::sdl_window::SdlWindow;
-use std::time::{Duration, Instant};
 
 const WINDOW_TITLE: &str = "RUST OPENGL 2024";
 pub(crate) const SCREEN_WIDTH: usize = 1024;
@@ -33,149 +39,123 @@ fn main() -> Result<()> {
     let mut window = SdlWindow::new(SCREEN_WIDTH, SCREEN_HEIGHT, WINDOW_TITLE, true)?;
     window.clear_color = Color::new(0.10, 0.10, 0.25, 1.0);
 
-    let mut renderables: Vec<Box<dyn Renderable>> = Vec::new();
-    add_drawable(&mut renderables, FirstTriangle::new);
-    add_drawable(&mut renderables, IndexedQuad::new);
-    add_drawable(&mut renderables, || ShaderTriangle::new(false));
-    add_drawable(&mut renderables, || ShaderTriangle::new(true));
-    add_drawable(&mut renderables, TextureTriangle::new);
-    add_drawable(&mut renderables, Transformation::new);
-    add_drawable(&mut renderables, Projection::new);
-    // add_drawable(&mut renderables, FirstText::new);
+    //// add_drawable(&mut renderables, FirstText::new);
+
+    // Create scenes
+    let mut scenes: Vec<Box<RenderScene>> = vec![
+        Box::<FirstTriangle>::default(),
+        Box::<IndexedQuad>::default(),
+        Box::<ShaderTriangle>::new(ShaderTriangle::new(false)),
+        Box::<ShaderTriangle>::new(ShaderTriangle::new(true)),
+        Box::<TextureTriangle>::default(),
+        Box::<Transformation>::default(),
+        Box::<Projection>::default(),
+    ];
 
     // Set the initial drawable to the last one
-    let mut current_index = renderables.len().saturating_sub(1);
+    let mut current_index = scenes.len().saturating_sub(1);
 
-    // Load shaders (experimental)
-    // let mut shader_manager = ShaderManager::new();
-    // shader_manager.load_shader(
-    //     SHADER_SIMPLE_RED,
-    //     "assets/shaders/simple/simple_red_shader.vert",
-    //     "assets/shaders/simple/simple_red_shader.frag",
-    // )?;
+    // Update window title with the scene index
+    let window_title = format!("{} [{}/{}]", WINDOW_TITLE, current_index + 1, scenes.len());
+    window.set_window_title(&window_title)?;
 
     // Create the render context object
-    //let render_context = RenderContext::new(shader_manager);
-
-    // Initializes tracking of the update interval;
-    // essential for calculating delta time for smooth transformations.
-    let mut last_update_time = Instant::now();
+    let mut render_context = RenderContext::new();
+    textures::add_textures(render_context.texture_manager());
+    shaders::add_shaders(render_context.shader_manager());
 
     // Required variables for frame rate tracking
-    let mut last_fps_time = Instant::now();
-    let mut frame_count: u32 = 0;
-    let mut last_frame_rate: u32 = 0;
     let mut show_fps = false;
-
-    let mut render_information_text = true;
+    let mut last_active_scene = usize::MAX;
     'main_loop: loop {
-        // Calculate the delta time
-        let delta_time = get_delta_time(&mut last_update_time);
-
-        // Calculate the frame rate value
-        let frame_rate = get_frame_rate(&mut last_fps_time, &mut frame_count, &mut last_frame_rate);
-
-        // Process key events
-        let mut window_title_reset_required = false;
         for event in window.event_pump.poll_iter() {
             match event {
                 Event::Quit { .. } => break 'main_loop,
-                #[rustfmt::skip]
-                Event::KeyDown { keycode: Some(keycode), .. } => {
-                    if renderables.get_mut(current_index).map_or(true, |drawable| !drawable.key_pressed(&keycode)) {
-                        match keycode {
-                            Keycode::Escape => break 'main_loop,
-                            Keycode::F1 => current_index = current_index.saturating_sub(1),
-                            Keycode::F2 => current_index = (current_index + 1).min(renderables.len().saturating_sub(1)),
-                            Keycode::F3 | Keycode::F4 => {
-                                if let Some(drawable) = renderables.get_mut(current_index) {
-                                    if keycode == Keycode::F3 {
-                                        drawable.toggle_mode();
-                                    } else {
-                                        drawable.toggle_shape();
-                                    }
-                                }
-                            },
-                            Keycode::F10 => {
-                                render_information_text = !render_information_text;
-                                println!("Render information text {}", if render_information_text { "on" } else { "off" });
-                            }
-                            Keycode::F12 => {
-                                show_fps = !show_fps;
-                                println!("FPS tracking {}", if show_fps { "activated" } else { "disabled" });
-                                if !show_fps {
-                                    window_title_reset_required = true;
-                                }
-                            }
-                            _ => {}
-                        }
+                Event::KeyDown {
+                    keycode: Some(keycode),
+                    ..
+                } => match keycode {
+                    Keycode::Escape => break 'main_loop,
+                    Keycode::F1 => current_index = current_index.saturating_sub(1),
+                    Keycode::F2 => {
+                        current_index = current_index.saturating_add(1).min(scenes.len() - 1)
                     }
+                    Keycode::F12 => {
+                        show_fps = !show_fps;
+                        println!(
+                            "FPS tracking {}",
+                            if show_fps { "activated" } else { "disabled" }
+                        );
+                    }
+                    _ => {}
                 },
                 _ => {}
             }
         }
 
-        // Rest the window title, if required
-        if window_title_reset_required {
-            window.set_window_title(WINDOW_TITLE)?;
-        }
+        // Update render context
+        render_context.update(&window);
 
         window.clear();
 
-        // Draw the current active drawable
-        if let Some(drawable) = renderables.get_mut(current_index) {
-            drawable.draw(delta_time)?;
-            // if render_information_text {
-            //     drawable.draw_info_text(delta_time, &font)?;
-            //}
+        // Activating or deactivating scenes
+        if last_active_scene != current_index {
+            // Deactivate last scene
+            if last_active_scene != usize::MAX {
+                if let Some(scene) = scenes.get_mut(last_active_scene) {
+                    scene.deactivate(&mut render_context, false)?;
+                }
+            }
+            // Activate new scene
+            if let Some(scene) = scenes.get_mut(current_index) {
+                scene.activate(&mut render_context)?;
+            }
+            last_active_scene = current_index;
         }
 
+        // Iterates over all scenes to update each one with the current render context
+        // and delta time. `update_tick` is called for all scenes, and `update` is
+        // called only for the active scene identified by `current_index`.
+        let delta_time = render_context.delta_time();
+        for scene_index in 0..scenes.len() {
+            if let Some(scene) = scenes.get_mut(scene_index) {
+                // Calls update_tick on each scene, passing the context, time since last
+                // frame, and whether this scene is currently active.
+                scene.update_tick(
+                    &mut render_context,
+                    delta_time,
+                    scene_index == current_index,
+                )?;
+
+                // Calls the main update method only on the active scene.
+                if scene_index == current_index {
+                    scene.update(&mut render_context)?;
+                }
+            }
+        }
+
+        // Render active scene
+        if let Some(scene) = scenes.get_mut(current_index) {
+            // Render scene
+            scene.draw(&mut render_context)?;
+        }
+
+        // Swap display buffers
         window.swap();
 
-        if frame_rate > 0 && show_fps {
-            let window_title = format!("{} (FPS: {})", WINDOW_TITLE, frame_rate);
-            window.set_window_title(&window_title)?;
-        }
-    }
-
+        // Update window title with scene number and fps tracking
+        let window_title = if show_fps {
+            format!(
+                "{} [{}/{}] (FPS: {})",
+                WINDOW_TITLE,
+                current_index + 1,
+                scenes.len(),
+                render_context.frame_rate()
+            )
+        } else {
+            format!("{} [{}/{}]", WINDOW_TITLE, current_index + 1, scenes.len())
+        };
+        window.set_window_title(&window_title)?;
+    } // loop end
     Ok(())
-}
-
-fn add_drawable<F, R, E>(renderables: &mut Vec<Box<dyn Renderable>>, creator: F)
-where
-    F: FnOnce() -> Result<R, E>,
-    R: Renderable + 'static, // Ensure R implements Renderable and has a static lifetime
-    E: std::fmt::Debug,      // E can be any type that implements Debug (for error handling)
-{
-    match creator() {
-        Ok(drawable) => renderables.push(Box::new(drawable)),
-        Err(e) => eprintln!("Failed to create drawable: {:?}", e),
-    }
-}
-
-/// Calculates and returns the delta time in seconds since the last update,
-/// and updates the last update time.
-fn get_delta_time(last_update_time: &mut Instant) -> f32 {
-    let now = Instant::now();
-    let delta = now.duration_since(*last_update_time);
-    *last_update_time = Instant::now();
-    delta.as_secs_f32()
-}
-
-/// Calculates and updates the frame rate every second.
-fn get_frame_rate(
-    last_fps_time: &mut Instant,
-    frame_count: &mut u32,
-    last_frame_rate: &mut u32,
-) -> u32 {
-    *frame_count += 1;
-
-    let now = Instant::now();
-    if now.duration_since(*last_fps_time) > Duration::from_secs(1) {
-        *last_frame_rate = *frame_count;
-        *frame_count = 0;
-        *last_fps_time = Instant::now();
-    }
-
-    *last_frame_rate
 }

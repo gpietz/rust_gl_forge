@@ -4,6 +4,7 @@ use std::os::raw::c_void;
 
 use anyhow::{Context, Result};
 use gl::types::{GLboolean, GLenum, GLsizei, GLuint};
+use sdl2::keyboard::Keycode::V;
 
 use gl_utils::*;
 
@@ -167,6 +168,25 @@ pub enum VertexDataType {
 }
 
 impl VertexDataType {
+    pub fn from_gl_enum(gl_enum: GLenum) -> Option<VertexDataType> {
+        match gl_enum {
+            gl::BYTE => Some(VertexDataType::Byte),
+            gl::UNSIGNED_BYTE => Some(VertexDataType::UnsignedByte),
+            gl::SHORT => Some(VertexDataType::Short),
+            gl::UNSIGNED_SHORT => Some(VertexDataType::UnsignedShort),
+            gl::INT => Some(VertexDataType::Int),
+            gl::UNSIGNED_INT => Some(VertexDataType::UnsignedInt),
+            gl::HALF_FLOAT => Some(VertexDataType::HalfFloat),
+            gl::FLOAT => Some(VertexDataType::Float),
+            gl::DOUBLE => Some(VertexDataType::Double),
+            gl::FIXED => Some(VertexDataType::Fixed),
+            gl::INT_2_10_10_10_REV => Some(VertexDataType::Int_2_10_10_10_Rev),
+            gl::UNSIGNED_INT_2_10_10_10_REV => Some(VertexDataType::UnsignedInt_2_10_10_10_Rev),
+            gl::UNSIGNED_INT_10F_11F_11F_REV => Some(VertexDataType::UnsignedInt_10F_11F_11F_Rev),
+            _ => None,
+        }
+    }
+
     pub fn to_gl_enum(&self) -> GLenum {
         match self {
             VertexDataType::Byte => gl::BYTE,
@@ -328,6 +348,26 @@ impl VertexAttributeType {
             VertexAttributeType::TexCoord => (2, gl::FLOAT, gl::FALSE),
             // 3 components per normal, float, not normalized
             VertexAttributeType::Normal => (3, gl::FLOAT, gl::FALSE),
+        }
+    }
+
+    pub fn to_vertex_attribute(&self) -> VertexAttribute {
+        match self {
+            VertexAttributeType::Position => {
+                VertexAttribute::new(3, VertexDataType::Float).name("position".to_string())
+            }
+            VertexAttributeType::Position2D => {
+                VertexAttribute::new(2, VertexDataType::Float).name("position".to_string())
+            }
+            VertexAttributeType::Color => {
+                VertexAttribute::new(4, VertexDataType::Float).name("color".to_string())
+            }
+            VertexAttributeType::TexCoord => {
+                VertexAttribute::new(2, VertexDataType::Float).name("tex_coord".to_string())
+            }
+            VertexAttributeType::Normal => {
+                VertexAttribute::new(3, VertexDataType::Float).name("normal".to_string())
+            }
         }
     }
 }
@@ -617,7 +657,7 @@ impl Capability {
     pub fn disable(self) {
         unsafe { gl::Disable(self.to_gl_enum()) }
     }
-    
+
     /// Returns true if the OpenGL capability is currently enabled.
     pub fn is_enabled(self) -> bool {
         unsafe { gl::IsEnabled(self.to_gl_enum()) > 0 }

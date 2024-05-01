@@ -1,6 +1,7 @@
-use crate::gl_traits::{Bindable, Deletable};
 use anyhow::{anyhow, Result};
 use gl::types::GLint;
+
+use crate::gl_traits::{Bindable, Deletable};
 
 //////////////////////////////////////////////////////////////////////////////
 // - Vertex Array Object (VAO) -
@@ -12,15 +13,24 @@ pub struct VertexArrayObject {
 
 impl VertexArrayObject {
     /// Create a new Vertex Array Object.
-    pub fn new(bind: bool) -> Result<VertexArrayObject> {
+    pub fn new() -> Result<VertexArrayObject> {
+        let vao = VertexArrayObject::create_vao()?;
+        unsafe {
+            gl::BindVertexArray(vao.id);
+        }
+        Ok(vao)
+    }
+    
+    pub fn new_without_bind() -> Result<VertexArrayObject> {
+        VertexArrayObject::create_vao()    
+    }
+
+    fn create_vao() -> Result<VertexArrayObject> {
         let mut id = 0;
         unsafe {
             gl::GenVertexArrays(1, &mut id);
             if id == 0 {
                 return Err(anyhow!("Failed to generate a vertex array object"));
-            }
-            if bind {
-                gl::BindVertexArray(id);
             }
         }
         Ok(VertexArrayObject { id })

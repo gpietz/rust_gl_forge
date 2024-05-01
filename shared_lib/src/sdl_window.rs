@@ -1,8 +1,10 @@
 use anyhow::{Context, Error, Result};
+use sdl2::keyboard::{Keycode, Mod};
 use sdl2::{
     video::{GLContext, SwapInterval, Window},
     EventPump, Sdl,
 };
+use std::collections::HashSet;
 
 use crate::color::Color;
 use crate::gl_traits::ToOpenGL;
@@ -198,5 +200,159 @@ impl SdlWindow {
     /// * `&str` - A string slice representing the window's current title.
     pub fn window_title(&self) -> &str {
         self.window.title()
+    }
+
+    /// Retrieves the list of currently pressed keys from the SDL event system.
+    ///
+    /// This function accesses the SDL event pump to obtain the current keyboard
+    /// state and then maps the pressed scancodes to their corresponding `Keycode`.
+    ///
+    /// # Errors
+    /// Returns an error if the SDL event pump cannot be initialized, wrapping the
+    /// error with a contextual message for better error handling.
+    ///
+    /// # Returns
+    /// A `Result` containing either:
+    /// - A `Vec<Keycode>` representing the list of pressed keys if successful, or
+    /// - An `anyhow::Error` detailing the issue if an error occurs during the
+    ///   event pump initialization or during the retrieval process.
+    ///
+    /// # Example
+    /// ```no_run
+    /// fn example(sdl_context: &sdl2::Sdl) -> anyhow::Result<()> {
+    ///     let sdl_window = sdl_context.video().unwrap().window("Example", 800, 600)
+    ///         .position_centered().opengl().build().unwrap();
+    ///
+    ///     let pressed_keys = sdl_window.get_pressed_keys()?;
+    ///     for key in pressed_keys {
+    ///         println!("Pressed: {:?}", key);
+    ///     }
+    ///     Ok(())
+    /// }
+    /// ```
+    pub fn get_pressed_keys(&self) -> Result<Vec<Keycode>> {
+        let pressed_keys: Vec<Keycode> = self
+            .event_pump
+            .keyboard_state()
+            .pressed_scancodes()
+            .filter_map(Keycode::from_scancode)
+            .collect();
+        Ok(pressed_keys)
+    }
+
+    /// Retrieves the current state of the keyboard, including pressed keys and
+    /// active modifiers.
+    ///
+    /// This function consolidates the list of currently pressed keys along with the
+    /// state of modifier keys such as Shift, Ctrl, and Alt. It utilizes the SDL
+    /// library's capabilities to fetch this data.
+    ///
+    /// # Errors
+    /// Returns an error if there is a failure in fetching the pressed keys. The
+    /// error is propagated from the `get_pressed_keys` function.
+    ///
+    /// # Returns
+    /// Returns a `Result` containing:
+    /// - `SdlKeyboardState`: A struct containing both the list of currently pressed
+    ///   keys and the current modifier state, or
+    /// - An error if any occurs during the retrieval of the keyboard state.
+    ///
+    /// # Example
+    /// ```no_run
+    /// fn example(sdl_context: &sdl2::Sdl) -> anyhow::Result<()> {
+    ///     let keyboard_state = sdl_context.get_keyboard_state()?;
+    ///     println!("Pressed keys: {:?}", keyboard_state.pressed_keys);
+    ///     println!("Modifiers: {:?}", keyboard_state.modifiers);
+    ///     Ok(())
+    /// }
+    /// ```
+    pub fn get_keyboard_state(&self) -> Result<SdlKeyboardState> {
+        let pressed_keys = self.get_pressed_keys()?;
+        let modifiers = self.sdl.keyboard().mod_state();
+        Ok(SdlKeyboardState::new(pressed_keys, modifiers))
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// - SdlKeyboardState -
+//////////////////////////////////////////////////////////////////////////////
+
+#[derive(Debug, Clone)]
+pub struct SdlKeyboardState {
+    prev_keys: HashSet<Keycode>,
+    pressed_keys: HashSet<Keycode>,
+    new_keys: HashSet<Keycode>,
+    old_keys: HashSet<Keycode>,
+    modifiers: Mod,
+}
+
+impl SdlKeyboardState {
+    pub(crate) fn new(pressed_keys: Vec<Keycode>, modifiers: Mod) -> SdlKeyboardState {
+        Self {
+            pressed_keys: HashSet::from_iter(pressed_keys),
+            modifiers,
+            ..Default::default()
+        }
+    }
+
+    pub fn update(&mut self, window: &SdlWindow) {
+        self.pressed_keys =
+            HashSet::from_iter(window.get_pressed_keys().expect("Failed to get pressed keys"));
+        self.new_keys = &self.pressed_keys - &self.prev_keys;
+        self.old_keys = &self.prev_keys - &self.pressed_keys;
+        self.prev_keys = self.pressed_keys.clone();
+    }
+
+    pub fn is_shift_pressed(&self) -> bool {
+        self.modifiers.intersects(Mod::LSHIFTMOD) || self.modifiers.intersects(Mod::RSHIFTMOD)
+    }
+
+    pub fn is_control_pressed(&self) -> bool {
+        self.modifiers.intersects(Mod::LCTRLMOD) || self.modifiers.intersects(Mod::RCTRLMOD)
+    }
+
+    pub fn is_alt_pressed(&self) -> bool {
+        self.modifiers.intersects(Mod::LALTMOD) || self.modifiers.intersects(Mod::RALTMOD)
+    }
+
+    /// Returns `true` if the specified `key` was pressed this frame and not in the
+    /// previous frame, indicating a new key press.
+    pub fn is_key_pressed(&self, key: Keycode) -> bool {
+        self.new_keys.contains(&key)
+    }
+
+    /// Returns `true` if the specified `key` is currently pressed, indicating it is
+    /// either being held down or was just pressed.
+    pub fn is_key_pressed_repeat(&self, key: Keycode) -> bool {
+        self.pressed_keys.contains(&key)
+    }
+
+    /// Returns `true` if the specified `key` is currently pressed, indicating it is
+    /// being held down.
+    pub fn is_key_down(&self, key: Keycode) -> bool {
+        self.pressed_keys.contains(&key)
+    }
+
+    /// Returns `true` if the specified `key` was released this frame after being
+    /// pressed in a previous frame.
+    pub fn is_key_released(&self, key: Keycode) -> bool {
+        self.old_keys.contains(&key)
+    }
+
+    /// Returns `true` if the specified `key` is not currently pressed.
+    pub fn is_key_up(&self, key: Keycode) -> bool {
+        !self.pressed_keys.contains(&key)
+    }
+}
+
+impl Default for SdlKeyboardState {
+    fn default() -> Self {
+        Self {
+            prev_keys: HashSet::new(),
+            pressed_keys: HashSet::new(),
+            new_keys: HashSet::new(),
+            old_keys: HashSet::new(),
+            modifiers: Mod::empty(),
+        }
     }
 }
