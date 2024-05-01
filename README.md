@@ -6,7 +6,7 @@ Additionally, I want to gain more experience with GitHub and explore what else t
 
 \
 Video of latest scene \
-[![Video](https://img.youtube.com/vi/RczXj-X1pns/maxresdefault.jpg)](https://www.youtube.com/watch?v=RczXj-X1pns)
+[![Video](https://img.youtube.com/vi/bx8bUBTgH-s/maxresdefault.jpg)](https://www.youtube.com/watch?v=bx8bUBTgH-s)
 
 \
 Some screenshots: \
