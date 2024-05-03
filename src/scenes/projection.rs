@@ -42,11 +42,11 @@ pub(crate) struct Projection {
     rotation_speed: i32,
     scale_time: f32,
     model_distance: f32,
+    model_strafe: f32,
     render_mode: RenderMode,
     cube_positions: Vec<[f32; 3]>,
     cube_rotations: Vec<CubeRotation>,
     last_update: Option<Instant>,
-    paused: bool,
     first_only: bool,
     camera_mode: CameraMode,
     start_time: Option<Instant>,
@@ -102,40 +102,105 @@ impl Projection {
             .get_shader_mut(shaders::SIMPLE_PROJECTION)
     }
 
-    fn process_keyboard_input(&mut self, keyboard_state: &SdlKeyboardState) -> SceneResult {
+    fn process_keyboard_input(
+        &mut self,
+        keyboard_state: &SdlKeyboardState,
+        delta_time: f32,
+    ) -> SceneResult {
         if keyboard_state.is_key_pressed(Keycode::F3) {
             self.toggle_mode();
         }
         if keyboard_state.is_key_pressed(Keycode::F4) {
             self.toggle_depth_test();
         }
+        if keyboard_state.is_key_pressed(Keycode::F5) {
+            self.toggle_camera_mode();
+        }
         if keyboard_state.is_key_pressed(Keycode::R) {
             self.model_distance = -3.0;
             self.print_distance();
         }
-        if (keyboard_state.is_key_down(Keycode::W) || keyboard_state.is_key_down(Keycode::Up))
-            && self.model_distance > MAX_MODEL_DISTANCE
-        {
-            self.model_distance -= MODEL_DISTANCE_SPEED * get_speed_factor(keyboard_state);
-            self.print_distance();
-        }
-        if (keyboard_state.is_key_down(Keycode::S) || keyboard_state.is_key_down(Keycode::Down))
-            && self.model_distance < MIN_MODEL_DISTANCE
-        {
-            self.model_distance += MODEL_DISTANCE_SPEED * get_speed_factor(keyboard_state);
-            self.print_distance();
-        }
         if keyboard_state.is_key_pressed(Keycode::Space) {
             self.rotation_paused = !self.rotation_paused;
+            println!(
+                "Rotation {}",
+                if self.rotation_paused {
+                    "paused"
+                } else {
+                    "active"
+                }
+            );
         }
 
-        return Ok(());
+        // Movement
+        self.process_movement_commands(keyboard_state, delta_time);
+
+        Ok(())
+    }
+
+    fn process_movement_commands(&mut self, keyboard_state: &SdlKeyboardState, delta_time: f32) {
+        let key_w =
+            keyboard_state.is_key_down(Keycode::W) || keyboard_state.is_key_down(Keycode::Up);
+        let key_s =
+            keyboard_state.is_key_down(Keycode::S) || keyboard_state.is_key_down(Keycode::Down);
+        let key_a =
+            keyboard_state.is_key_down(Keycode::A) || keyboard_state.is_key_down(Keycode::Left);
+        let key_d =
+            keyboard_state.is_key_down(Keycode::D) || keyboard_state.is_key_down(Keycode::Right);
+        let speed_factor = get_speed_factor(keyboard_state);
+
+        if key_w && self.model_distance < MIN_MODEL_DISTANCE {
+            self.handle_forward(delta_time, speed_factor);
+            println!("W");
+        }
+        if key_s && self.model_distance > MAX_MODEL_DISTANCE {
+            self.handle_backward(delta_time, speed_factor);
+            println!("S");
+        }
+        if key_a && self.model_distance < MIN_MODEL_DISTANCE {
+            self.handle_strafe(delta_time, speed_factor, -1.0);
+        }
+        if key_d && self.model_distance < MIN_MODEL_DISTANCE {
+            self.handle_strafe(delta_time, speed_factor, 1.0);
+        }
 
         fn get_speed_factor(keyboard_state: &SdlKeyboardState) -> f32 {
             if keyboard_state.is_shift_pressed() {
                 4.0
             } else {
                 1.0
+            }
+        }
+    }
+
+    fn handle_forward(&mut self, delta_time: f32, speed_factor: f32) {
+        match self.camera_mode {
+            CameraMode::Keyboard => self.camera.move_forward(delta_time),
+            _ => {
+                self.model_distance += MODEL_DISTANCE_SPEED * speed_factor;
+                self.print_distance();
+            }
+        }
+    }
+
+    fn handle_backward(&mut self, delta_time: f32, speed_factor: f32) {
+        match self.camera_mode {
+            CameraMode::Keyboard => self.camera.move_backward(delta_time),
+            _ => {
+                self.model_distance -= MODEL_DISTANCE_SPEED * speed_factor;
+                self.print_distance();
+            }
+        }
+    }
+
+    fn handle_strafe(&mut self, delta_time: f32, speed_factor: f32, direction: f32) {
+        match self.camera_mode {
+            CameraMode::None => {}
+            CameraMode::Keyboard => self.camera.strafe(delta_time, direction),
+            _ => {
+                let direction = if direction < 0.0 { -1.0 } else { 1.0 };
+                self.model_strafe += direction * MODEL_DISTANCE_SPEED * speed_factor * delta_time;
+                self.print_distance();
             }
         }
     }
@@ -177,6 +242,11 @@ impl Projection {
             Capability::DepthTest.disable();
             println!("Depth-Test disabled");
         }
+    }
+
+    fn toggle_camera_mode(&mut self) {
+        self.camera_mode = self.camera_mode.next();
+        println!("Camera mode: {}", self.camera_mode);
     }
 }
 
@@ -231,7 +301,7 @@ impl Scene<RenderContext> for Projection {
     }
 
     fn update(&mut self, context: &mut RenderContext) -> SceneResult {
-        self.process_keyboard_input(context.keyboard_state())
+        self.process_keyboard_input(context.keyboard_state(), context.delta_time())
     }
 
     fn update_tick(
@@ -267,13 +337,13 @@ impl Scene<RenderContext> for Projection {
         let screen_aspect = screen_width as f32 / screen_height as f32;
 
         let model = Matrix4::from_angle_x(Deg(-55.0));
-        let mut view = Matrix4::from_translation(vec3(0.0, 0.0, self.model_distance));
+        let mut view = Matrix4::from_translation(vec3(self.model_strafe, 0.0, self.model_distance));
         let projection = perspective(Deg(45.0), screen_aspect, 0.1, 100.0);
 
         // Calculations for camera
         if self.is_multiple_cubes() {
             match self.camera_mode {
-                CameraMode::Circle | CameraMode::Rotate => {
+                CameraMode::Circle => {
                     let time_elapsed = self
                         .start_time
                         .expect("Start time hasn't been set in projection scene!")
@@ -283,21 +353,10 @@ impl Scene<RenderContext> for Projection {
                     let cam_x = time_elapsed.sin() * RADIUS;
                     let cam_z = time_elapsed.cos() * RADIUS;
 
-                    match self.camera_mode {
-                        CameraMode::Circle => {
-                            view = Matrix4::look_at_rh(
-                                Point3::new(cam_x, 0.0, cam_z),
-                                Point3::new(0.0, 0.0, 0.0),
-                                vec3(0.0, 1.0, 0.0),
-                            );
-                        }
-                        _ => {
-                            let eye = Point3::new(cam_x, 0.0, cam_z);
-                            let target = Point3::new(0.0, 0.0, 0.0);
-                            let up = Vector3::new(0.0, 1.0, 0.0);
-                            view = Matrix4::look_at_rh(eye, target, up);
-                        }
-                    }
+                    let eye = Point3::new(cam_x, 0.0, cam_z);
+                    let target = Point3::new(0.0, 0.0, 0.0);
+                    let up = Vector3::new(0.0, 1.0, 0.0);
+                    view = Matrix4::look_at_rh(eye, target, up);
                 }
                 CameraMode::Keyboard => {
                     self.camera.update_view_mat4(&mut view);
@@ -345,7 +404,7 @@ impl Scene<RenderContext> for Projection {
                     }
                 }
 
-                if self.render_mode == RenderMode::MultipleCubesRotating && !self.paused {
+                if self.render_mode == RenderMode::MultipleCubesRotating && !self.rotation_paused {
                     self.update_rotations(context.delta_time());
                 }
             }
@@ -510,7 +569,6 @@ enum CameraMode {
     #[default]
     None,
     Circle,
-    Rotate,
     Keyboard,
 }
 
@@ -518,8 +576,7 @@ impl CameraMode {
     fn next(self) -> Self {
         match self {
             CameraMode::None => CameraMode::Circle,
-            CameraMode::Circle => CameraMode::Rotate,
-            CameraMode::Rotate => CameraMode::Keyboard,
+            CameraMode::Circle => CameraMode::Keyboard,
             CameraMode::Keyboard => CameraMode::None,
         }
     }
@@ -530,7 +587,6 @@ impl Display for CameraMode {
         match self {
             CameraMode::None => write!(f, "None"),
             CameraMode::Circle => write!(f, "Circle"),
-            CameraMode::Rotate => write!(f, "Rotate"),
             CameraMode::Keyboard => write!(f, "Keyboard"),
         }
     }
