@@ -117,6 +117,7 @@ impl Projection {
             self.toggle_camera_mode();
         }
         if keyboard_state.is_key_pressed(Keycode::R) {
+            self.camera.reset_position();
             self.model_distance = -3.0;
             self.print_distance();
         }
@@ -131,6 +132,7 @@ impl Projection {
                 }
             );
         }
+        if keyboard_state.is_key_pressed(Keycode::I) {}
 
         // Movement
         self.process_movement_commands(keyboard_state, delta_time);
@@ -149,13 +151,15 @@ impl Projection {
             keyboard_state.is_key_down(Keycode::D) || keyboard_state.is_key_down(Keycode::Right);
         let speed_factor = get_speed_factor(keyboard_state);
 
+        if self.camera_mode == CameraMode::Keyboard {
+            self.camera.speed = get_speed_factor(keyboard_state) * 3.0;
+        }
+
         if key_w && self.model_distance < MIN_MODEL_DISTANCE {
             self.handle_forward(delta_time, speed_factor);
-            println!("W");
         }
         if key_s && self.model_distance > MAX_MODEL_DISTANCE {
             self.handle_backward(delta_time, speed_factor);
-            println!("S");
         }
         if key_a && self.model_distance < MIN_MODEL_DISTANCE {
             self.handle_strafe(delta_time, speed_factor, -1.0);
@@ -165,11 +169,11 @@ impl Projection {
         }
 
         fn get_speed_factor(keyboard_state: &SdlKeyboardState) -> f32 {
-            if keyboard_state.is_shift_pressed() {
-                4.0
-            } else {
-                1.0
-            }
+            match (keyboard_state.is_shift_pressed(), keyboard_state.is_control_pressed())  {
+                (true, _) => 3.5,
+                (_, true) => 7.0,
+                _ => 1.5
+            }                   
         }
     }
 

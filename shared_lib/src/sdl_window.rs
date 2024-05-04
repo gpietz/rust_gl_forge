@@ -301,6 +301,9 @@ impl SdlKeyboardState {
         self.new_keys = &self.pressed_keys - &self.prev_keys;
         self.old_keys = &self.prev_keys - &self.pressed_keys;
         self.prev_keys = self.pressed_keys.clone();
+        
+        // Update key modifiers (shift, alt, ctrl)
+        self.modifiers = window.sdl.keyboard().mod_state();
     }
 
     pub fn is_shift_pressed(&self) -> bool {
