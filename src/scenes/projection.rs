@@ -53,9 +53,10 @@ pub(crate) struct Projection {
     camera: Camera,
     vlm: Option<VertexLayoutManager>,
     rotation_paused: bool,
+    mouse_capture: bool,
 }
 
-impl Projection {
+impl<'a> Projection {
     fn check_rotation_update_required(&mut self) -> bool {
         let now = Instant::now();
         match self.last_update {
@@ -96,7 +97,7 @@ impl Projection {
         )
     }
 
-    fn get_shader_mut(context: &mut RenderContext) -> Result<&mut ShaderProgram> {
+    fn get_shader_mut(context: &'a mut RenderContext) -> Result<&'a mut ShaderProgram> {
         context
             .shader_manager()
             .get_shader_mut(shaders::SIMPLE_PROJECTION)
@@ -120,6 +121,8 @@ impl Projection {
             self.camera.reset_position();
             self.model_distance = -3.0;
             self.print_distance();
+            println!("Camera position reset");
+            println!("Object distance reset");
         }
         if keyboard_state.is_key_pressed(Keycode::Space) {
             self.rotation_paused = !self.rotation_paused;
@@ -132,12 +135,29 @@ impl Projection {
                 }
             );
         }
-        if keyboard_state.is_key_pressed(Keycode::I) {}
+        if keyboard_state.is_key_pressed(Keycode::F) {
+            self.first_only = !self.first_only;
+            println!(
+                "Render first cube only: {}",
+                if self.first_only {
+                    "activated"
+                } else {
+                    "deactivated"
+                }
+            );
+        }
 
         // Movement
         self.process_movement_commands(keyboard_state, delta_time);
 
         Ok(())
+    }
+
+    fn is_keyboard_camera_mode(&self) -> bool {
+        matches!(
+            self.camera_mode,
+            CameraMode::Keyboard | CameraMode::KeyboardMouse
+        )
     }
 
     fn process_movement_commands(&mut self, keyboard_state: &SdlKeyboardState, delta_time: f32) {
@@ -151,7 +171,7 @@ impl Projection {
             keyboard_state.is_key_down(Keycode::D) || keyboard_state.is_key_down(Keycode::Right);
         let speed_factor = get_speed_factor(keyboard_state);
 
-        if self.camera_mode == CameraMode::Keyboard {
+        if self.is_keyboard_camera_mode() {
             self.camera.speed = get_speed_factor(keyboard_state) * 3.0;
         }
 
@@ -169,17 +189,22 @@ impl Projection {
         }
 
         fn get_speed_factor(keyboard_state: &SdlKeyboardState) -> f32 {
-            match (keyboard_state.is_shift_pressed(), keyboard_state.is_control_pressed())  {
+            match (
+                keyboard_state.is_shift_pressed(),
+                keyboard_state.is_control_pressed(),
+            ) {
                 (true, _) => 3.5,
                 (_, true) => 7.0,
-                _ => 1.5
-            }                   
+                _ => 1.5,
+            }
         }
     }
 
     fn handle_forward(&mut self, delta_time: f32, speed_factor: f32) {
         match self.camera_mode {
-            CameraMode::Keyboard => self.camera.move_forward(delta_time),
+            CameraMode::Keyboard | CameraMode::KeyboardMouse => {
+                self.camera.move_forward(delta_time)
+            }
             _ => {
                 self.model_distance += MODEL_DISTANCE_SPEED * speed_factor;
                 self.print_distance();
@@ -189,7 +214,9 @@ impl Projection {
 
     fn handle_backward(&mut self, delta_time: f32, speed_factor: f32) {
         match self.camera_mode {
-            CameraMode::Keyboard => self.camera.move_backward(delta_time),
+            CameraMode::Keyboard | CameraMode::KeyboardMouse => {
+                self.camera.move_backward(delta_time)
+            }
             _ => {
                 self.model_distance -= MODEL_DISTANCE_SPEED * speed_factor;
                 self.print_distance();
@@ -200,7 +227,9 @@ impl Projection {
     fn handle_strafe(&mut self, delta_time: f32, speed_factor: f32, direction: f32) {
         match self.camera_mode {
             CameraMode::None => {}
-            CameraMode::Keyboard => self.camera.strafe(delta_time, direction),
+            CameraMode::Keyboard | CameraMode::KeyboardMouse => {
+                self.camera.strafe(delta_time, direction)
+            }
             _ => {
                 let direction = if direction < 0.0 { -1.0 } else { 1.0 };
                 self.model_strafe += direction * MODEL_DISTANCE_SPEED * speed_factor * delta_time;
@@ -305,6 +334,11 @@ impl Scene<RenderContext> for Projection {
     }
 
     fn update(&mut self, context: &mut RenderContext) -> SceneResult {
+        if self.camera_mode == CameraMode::KeyboardMouse {
+            let window = context.window();
+            self.camera.update_direction(&*window);
+        }
+
         self.process_keyboard_input(context.keyboard_state(), context.delta_time())
     }
 
@@ -323,9 +357,13 @@ impl Scene<RenderContext> for Projection {
     }
 
     fn draw(&mut self, context: &mut RenderContext) -> SceneResult {
+        let shader;
+
         // Activate shader
-        let shader = Self::get_shader_mut(context)?;
-        shader.activate();
+        {
+            shader = Self::get_shader_mut(context)?;
+            shader.activate();
+        }
 
         // Bind textures
         self.textures[0].bind_as_unit(0);
@@ -362,7 +400,8 @@ impl Scene<RenderContext> for Projection {
                     let up = Vector3::new(0.0, 1.0, 0.0);
                     view = Matrix4::look_at_rh(eye, target, up);
                 }
-                CameraMode::Keyboard => {
+                CameraMode::Keyboard | CameraMode::KeyboardMouse => {
+                    // The code for the mouse view is in the update function.
                     self.camera.update_view_mat4(&mut view);
                 }
                 _ => {}
@@ -574,6 +613,7 @@ enum CameraMode {
     None,
     Circle,
     Keyboard,
+    KeyboardMouse,
 }
 
 impl CameraMode {
@@ -581,7 +621,8 @@ impl CameraMode {
         match self {
             CameraMode::None => CameraMode::Circle,
             CameraMode::Circle => CameraMode::Keyboard,
-            CameraMode::Keyboard => CameraMode::None,
+            CameraMode::Keyboard => CameraMode::KeyboardMouse,
+            CameraMode::KeyboardMouse => CameraMode::None,
         }
     }
 }
@@ -592,6 +633,7 @@ impl Display for CameraMode {
             CameraMode::None => write!(f, "None"),
             CameraMode::Circle => write!(f, "Circle"),
             CameraMode::Keyboard => write!(f, "Keyboard"),
+            CameraMode::KeyboardMouse => write!(f, "KeyboardMouse"),
         }
     }
 }

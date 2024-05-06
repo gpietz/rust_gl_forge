@@ -10,6 +10,7 @@ use crate::color::Color;
 use crate::gl_traits::ToOpenGL;
 use crate::gl_types::RenderMask;
 use crate::gl_utils::check_gl_error;
+use crate::input::mouse_adapter::{MouseAdapter, MouseButton};
 
 //////////////////////////////////////////////////////////////////////////////
 // - SdlWindow -
@@ -271,6 +272,86 @@ impl SdlWindow {
         let modifiers = self.sdl.keyboard().mod_state();
         Ok(SdlKeyboardState::new(pressed_keys, modifiers))
     }
+
+    /// Returns the unique identifier of the window.
+    ///
+    /// This method retrieves the unique ID associated with the window instance,
+    /// which is useful for distinguishing between multiple windows.
+    ///
+    /// # Returns
+    /// A `u32` that represents the unique identifier of the window.
+    ///
+    /// # Examples
+    /// ```no-run
+    /// let window_id = window.window_id();
+    /// println!("Window ID: {}", window_id);
+    /// ```
+    pub fn window_id(&self) -> u32 {
+        self.window.id()
+    }
+}
+
+impl MouseAdapter for SdlWindow {
+    fn focused_window_id(&self) -> Option<u32> {
+        self.sdl.mouse().focused_window_id()
+    }
+
+    fn is_mouse_in_window(&self) -> bool {
+        match self.focused_window_id() {
+            Some(focused_window_id) => focused_window_id == self.window_id(),
+            None => false,
+        }    
+    }
+
+    fn show_cursor(&self, show: bool) {
+        self.sdl.mouse().show_cursor(show);
+    }
+
+    fn is_cursor_showing(&self) -> bool {
+        self.sdl.mouse().is_cursor_showing()
+    }
+
+    fn capture_mouse(&self, capture_enabled: bool) {
+        self.sdl.mouse().capture(capture_enabled);
+    }
+
+    fn mouse_x(&self) -> i32 {
+        self.event_pump.mouse_state().x()
+    }
+
+    fn mouse_y(&self) -> i32 {
+        self.event_pump.mouse_state().y()
+    }
+
+    fn mouse_xy(&self) -> (i32, i32) {
+        self.mouse_position()
+    }
+
+    fn mouse_position(&self) -> (i32, i32) {
+        let mouse_state = self.event_pump.mouse_state();
+        (mouse_state.x(), mouse_state.y())
+    }
+
+    fn mouse_position_ref(&self, xpos: &mut i32, ypos: &mut i32) {
+        let mouse_state = self.event_pump.mouse_state();
+        *xpos = mouse_state.x();
+        *ypos = mouse_state.y();
+    }
+
+    fn is_mouse_button_pressed(&self, mouse_button: &MouseButton) -> bool {
+        let mouse_state = self.event_pump.mouse_state();
+        match mouse_button {
+            MouseButton::Left => mouse_state.left(),
+            MouseButton::Middle => mouse_state.middle(),
+            MouseButton::Right => mouse_state.right(),
+        }
+    }
+
+    fn pressed_mouse_buttons(&self) -> impl Iterator<Item = &MouseButton> {
+        MouseButton::variants()
+            .iter()
+            .filter(move |button| self.is_mouse_button_pressed(button))
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////////
@@ -301,7 +382,7 @@ impl SdlKeyboardState {
         self.new_keys = &self.pressed_keys - &self.prev_keys;
         self.old_keys = &self.prev_keys - &self.pressed_keys;
         self.prev_keys = self.pressed_keys.clone();
-        
+
         // Update key modifiers (shift, alt, ctrl)
         self.modifiers = window.sdl.keyboard().mod_state();
     }

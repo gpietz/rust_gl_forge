@@ -1,8 +1,8 @@
-use crate::render_context::RenderContext;
 use anyhow::Error as AnyhowError;
 use anyhow::Result;
-use shared_lib::gl_vertex_attribute::VertexLayoutError;
 use thiserror::Error;
+
+use shared_lib::gl_vertex_attribute::VertexLayoutError;
 
 #[derive(Debug, Error)]
 pub(crate) enum SceneError {
@@ -30,7 +30,7 @@ pub trait Scene<T> {
     fn update(&mut self, _context: &mut T) -> SceneResult {
         Ok(())
     }
-    
+
     /// Periodically updates the scene with the given context and delta time.
     /// Indicates activity status with `_is_active`.
     ///
@@ -47,5 +47,3 @@ pub trait Scene<T> {
 
     fn draw(&mut self, context: &mut T) -> SceneResult;
 }
-
-pub type RenderScene = dyn Scene<RenderContext>;

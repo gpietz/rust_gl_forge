@@ -1,3 +1,5 @@
+use std::cell::{Ref, RefCell, RefMut};
+use std::rc::Rc;
 use std::time::{Duration, Instant};
 
 use shared_lib::gl_shader_manager::ShaderManager;
@@ -7,6 +9,7 @@ use shared_lib::prelude::SdlWindow;
 use shared_lib::sdl_window::SdlKeyboardState;
 
 pub(crate) struct RenderContext {
+    window: Rc<RefCell<SdlWindow>>,
     delta_time: f32,
     frame_rate: u32,
     shader_manager: ShaderManager,
@@ -20,9 +23,10 @@ pub(crate) struct RenderContext {
 }
 
 impl RenderContext {
-    pub fn new() -> Self {
+    pub fn new(window: Rc<RefCell<SdlWindow>>) -> Self {
         let time_now = Instant::now();
         Self {
+            window,
             delta_time: 0.0,
             frame_rate: 0,
             shader_manager: ShaderManager::default(),
@@ -82,5 +86,50 @@ impl RenderContext {
 
     pub(crate) fn keyboard_state(&self) -> &SdlKeyboardState {
         &self.keyboard_state
+    }
+
+    /// Returns an immutable reference to the `SdlWindow` managed by `RefCell`.
+    ///
+    /// This function provides safe, read-only access to the `SdlWindow`. It uses
+    /// `RefCell::borrow`, which checks at runtime to ensure that no mutable
+    /// references exist before granting access.
+    ///
+    /// # Panics
+    /// If a mutable reference is already active, as this violates Rust's
+    /// borrowing rules enforced by `RefCell`.
+    ///
+    /// # Returns
+    /// A `Ref<SdlWindow>`, a RAII guard ensuring safe access to the `SdlWindow`.
+    ///
+    /// # Example
+    /// ```
+    /// let window_ref = render_context.window();
+    /// println!("Window ID: {}", window_ref.id());
+    /// ```
+    pub(crate) fn window(&self) -> Ref<SdlWindow> {
+        self.window.borrow()
+    }
+
+    /// Returns a mutable reference to the `SdlWindow` managed by `RefCell`.
+    ///
+    /// This function provides safe, write access to the `SdlWindow`. It uses
+    /// `RefCell::borrow_mut`, which checks at runtime that no other references
+    /// (mutable or immutable) are active, thereby preventing data races.
+    ///
+    /// # Panics
+    /// If any references (mutable or immutable) are currently active, as
+    /// this would break the borrowing rules enforced by `RefCell`.
+    ///
+    /// # Returns
+    /// A `RefMut<SdlWindow>`, a RAII guard that allows safe mutable access to
+    /// the `SdlWindow`.
+    ///
+    /// # Example
+    /// ```
+    /// let mut window_mut = render_context.window_mut();
+    /// window_mut.set_title("New Title");
+    /// ```
+    pub(crate) fn window_mut(&self) -> RefMut<SdlWindow> {
+        self.window.borrow_mut()
     }
 }

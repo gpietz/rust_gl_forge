@@ -4,6 +4,8 @@ extern crate gl;
 use anyhow::Result;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
+use std::cell::RefCell;
+use std::rc::Rc;
 
 use scenes::first_triangle::FirstTriangle;
 use scenes::indexed_quad::IndexedQuad;
@@ -13,7 +15,7 @@ use shared_lib::sdl_window::SdlWindow;
 
 use crate::render_context::RenderContext;
 use crate::resources::{shaders, textures};
-use crate::scene::{RenderScene};
+use crate::scene::Scene;
 use crate::scenes::projection::Projection;
 use crate::scenes::texture_triangle::TextureTriangle;
 use crate::scenes::transformation::Transformation;
@@ -36,13 +38,18 @@ pub(crate) const SCREEN_HEIGHT: usize = 768;
 pub(crate) const SHADER_SIMPLE_RED: &str = "shader_simple_red";
 
 fn main() -> Result<()> {
-    let mut window = SdlWindow::new(SCREEN_WIDTH, SCREEN_HEIGHT, WINDOW_TITLE, true)?;
-    window.clear_color = Color::new(0.10, 0.10, 0.25, 1.0);
+    let window = Rc::new(RefCell::new(SdlWindow::new(
+        SCREEN_WIDTH,
+        SCREEN_HEIGHT,
+        WINDOW_TITLE,
+        true,
+    )?));
+    window.borrow_mut().clear_color = Color::new(0.10, 0.10, 0.25, 1.0);
 
     //// add_drawable(&mut renderables, FirstText::new);
 
     // Create scenes
-    let mut scenes: Vec<Box<RenderScene>> = vec![
+    let mut scenes: Vec<Box<dyn Scene<RenderContext>>> = vec![
         Box::<FirstTriangle>::default(),
         Box::<IndexedQuad>::default(),
         Box::<ShaderTriangle>::new(ShaderTriangle::new(false)),
@@ -57,10 +64,10 @@ fn main() -> Result<()> {
 
     // Update window title with the scene index
     let window_title = format!("{} [{}/{}]", WINDOW_TITLE, current_index + 1, scenes.len());
-    window.set_window_title(&window_title)?;
+    window.borrow_mut().set_window_title(&window_title)?;
 
     // Create the render context object
-    let mut render_context = RenderContext::new();
+    let mut render_context = RenderContext::new(Rc::clone(&window));
     textures::add_textures(render_context.texture_manager());
     shaders::add_shaders(render_context.shader_manager());
 
@@ -68,7 +75,7 @@ fn main() -> Result<()> {
     let mut show_fps = false;
     let mut last_active_scene = usize::MAX;
     'main_loop: loop {
-        for event in window.event_pump.poll_iter() {
+        for event in render_context.window_mut().event_pump.poll_iter() {
             match event {
                 Event::Quit { .. } => break 'main_loop,
                 Event::KeyDown {
@@ -94,9 +101,8 @@ fn main() -> Result<()> {
         }
 
         // Update render context
-        render_context.update(&window);
-
-        window.clear();
+        render_context.update(&window.borrow_mut());
+        window.borrow_mut().clear();
 
         // Activating or deactivating scenes
         if last_active_scene != current_index {
@@ -141,7 +147,7 @@ fn main() -> Result<()> {
         }
 
         // Swap display buffers
-        window.swap();
+        window.borrow_mut().swap();
 
         // Update window title with scene number and fps tracking
         let window_title = if show_fps {
@@ -155,7 +161,7 @@ fn main() -> Result<()> {
         } else {
             format!("{} [{}/{}]", WINDOW_TITLE, current_index + 1, scenes.len())
         };
-        window.set_window_title(&window_title)?;
+        window.borrow_mut().set_window_title(&window_title)?;
     } // loop end
     Ok(())
 }

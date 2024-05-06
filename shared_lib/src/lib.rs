@@ -16,6 +16,7 @@ pub mod gl_utils;
 pub mod gl_vertex;
 pub mod gl_vertex_array;
 pub mod gl_vertex_attribute;
+pub mod input;
 pub mod meshes;
 mod operation_status;
 pub mod sdl_window;
