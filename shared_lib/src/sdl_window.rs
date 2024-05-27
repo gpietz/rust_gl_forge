@@ -1,5 +1,6 @@
 use anyhow::{Context, Error, Result};
 use sdl2::keyboard::{Keycode, Mod};
+use sdl2::sys::SDL_GL_GetDrawableSize;
 use sdl2::{
     video::{GLContext, SwapInterval, Window},
     EventPump, Sdl,
@@ -289,6 +290,33 @@ impl SdlWindow {
     pub fn window_id(&self) -> u32 {
         self.window.id()
     }
+
+    /// Retrieves the size of the drawable area of the window.
+    ///
+    /// This method returns the size of the framebuffer that is used for rendering.
+    /// The drawable size can be different from the window size due to high-DPI displays
+    /// or other factors that affect the actual rendering area.
+    ///
+    /// # Returns
+    ///
+    /// A tuple `(u32, u32)` where:
+    /// - The first element is the width of the drawable area in pixels.
+    /// - The second element is the height of the drawable area in pixels.
+    ///
+    /// # Example
+    ///
+    /// ```no-run
+    /// let (width, height) = render_context.get_drawable_size();
+    /// println!("Drawable size: width = {}, height = {}", width, height);
+    /// ```
+    ///
+    /// # Note
+    ///
+    /// This method internally calls `SDL_GL_GetDrawableSize` to get the size of the
+    /// drawable area from the SDL2 window.
+    pub fn get_drawable_size(&self) -> (u32, u32) {
+        self.window.drawable_size()
+    }
 }
 
 impl MouseAdapter for SdlWindow {
@@ -300,7 +328,7 @@ impl MouseAdapter for SdlWindow {
         match self.focused_window_id() {
             Some(focused_window_id) => focused_window_id == self.window_id(),
             None => false,
-        }    
+        }
     }
 
     fn show_cursor(&self, show: bool) {

@@ -24,6 +24,7 @@ pub mod serialization;
 pub mod string_utils;
 pub mod sys_event;
 pub mod vertices;
+pub mod apps;
 
 pub mod prelude {
     pub use crate::color::*;

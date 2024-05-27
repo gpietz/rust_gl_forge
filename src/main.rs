@@ -7,18 +7,19 @@ use sdl2::keyboard::Keycode;
 use std::cell::RefCell;
 use std::rc::Rc;
 
-use scenes::first_triangle::FirstTriangle;
-use scenes::indexed_quad::IndexedQuad;
-use scenes::shader_triangle::ShaderTriangle;
+use scenes::basic::first_triangle::FirstTriangle;
+use scenes::basic::indexed_quad::IndexedQuad;
+use scenes::basic::shader_triangle::ShaderTriangle;
 use shared_lib::color::Color;
 use shared_lib::sdl_window::SdlWindow;
 
 use crate::render_context::RenderContext;
 use crate::resources::{shaders, textures};
 use crate::scene::Scene;
-use crate::scenes::projection::Projection;
-use crate::scenes::texture_triangle::TextureTriangle;
-use crate::scenes::transformation::Transformation;
+use crate::scenes::basic::projection::Projection;
+use crate::scenes::basic::text_rendering::FirstText;
+use crate::scenes::basic::texture_triangle::TextureTriangle;
+use crate::scenes::basic::transformation::Transformation;
 
 mod render_context;
 mod resources;
@@ -46,8 +47,6 @@ fn main() -> Result<()> {
     )?));
     window.borrow_mut().clear_color = Color::new(0.10, 0.10, 0.25, 1.0);
 
-    //// add_drawable(&mut renderables, FirstText::new);
-
     // Create scenes
     let mut scenes: Vec<Box<dyn Scene<RenderContext>>> = vec![
         Box::<FirstTriangle>::default(),
@@ -57,6 +56,7 @@ fn main() -> Result<()> {
         Box::<TextureTriangle>::default(),
         Box::<Transformation>::default(),
         Box::<Projection>::default(),
+        //Box::<FirstText>::new(FirstText::new()?),
     ];
 
     // Set the initial drawable to the last one

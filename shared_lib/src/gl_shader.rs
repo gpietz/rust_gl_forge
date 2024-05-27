@@ -455,7 +455,7 @@ impl ShaderProgram {
     /// * `Err(anyhow::Error)` if the provided `location` is invalid (`-1`), indicating the uniform location was not found.
     ///
     /// # Examples
-    /// ```no_run
+    /// ```no-run
     /// // Assuming `shader_program` is a compiled and linked shader program and `UniformValue` is implemented for `f32`.
     /// let location = gl::GetUniformLocation(shader_program, c_str!("someUniform"));
     /// set_uniform_value(location, 0.5f32).expect("Failed to set uniform value");
@@ -485,6 +485,54 @@ impl ShaderProgram {
         }
         matrix.set_uniform_matrix(location, transpose);
         Ok(())
+    }
+
+    /// Sets a uniform variable with a three-component floating-point vector value in the shader program.
+    ///
+    /// This method allows you to set the value of a uniform variable in the shader program
+    /// to a three-component vector of floating-point values. It is typically used to pass
+    /// data such as positions, colors, or other vector-based information to the shader.
+    ///
+    /// # Parameters
+    ///
+    /// - `name`: A string slice that holds the name of the uniform variable in the shader.
+    /// - `value0`: The first component of the three-component vector.
+    /// - `value1`: The second component of the three-component vector.
+    /// - `value2`: The third component of the three-component vector.
+    ///
+    /// # Returns
+    ///
+    /// - `Result<()>`: Returns `Ok(())` if the uniform variable was successfully set,
+    ///   or an error if there was a problem setting the uniform variable.
+    ///
+    /// # Errors
+    ///
+    /// This method will return an error if the uniform variable could not be found or set
+    /// in the shader program. Common errors include providing an invalid uniform name or
+    /// having a mismatch between the expected and provided data types.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// let mut shader_program = ShaderProgram::new();
+    /// shader_program.set_uniform_3f("u_Color", 1.0, 0.0, 0.0)?;
+    /// ```
+    ///
+    /// In this example, the uniform variable `u_Color` in the shader program is set to
+    /// the color red with RGB components (1.0, 0.0, 0.0).
+    ///
+    /// # Note
+    ///
+    /// Ensure that the shader program is currently in use before setting uniform variables.
+    /// The shader program should be bound using appropriate methods before calling this function.
+    pub fn set_uniform_3f(
+        &mut self,
+        name: &str,
+        value0: f32,
+        value1: f32,
+        value2: f32,
+    ) -> Result<()> {
+        self.set_uniform(name, (value0, value1, value2))
     }
 
     /// Retrieves the names of all active uniform variables in the shader program.
@@ -649,9 +697,35 @@ impl Drop for ShaderProgram {
 pub struct ShaderFactory;
 
 impl ShaderFactory {
-    // pub fn from_vec(sources: Vec<ShaderSource>) -> Result<ShaderProgram> {
-    //     unimplemented!();
-    // }
+    /// Creates a `ShaderProgram` from given vertex and fragment shader sources.
+    ///
+    /// This function compiles the provided vertex and fragment shader source code
+    /// and links them into a `ShaderProgram`. After linking, the individual shader
+    /// objects are deleted as they are no longer needed.
+    ///
+    /// # Parameters
+    /// - `vertex_shader`: A string slice containing the vertex shader source code.
+    /// - `fragment_shader`: A string slice containing the fragment shader source code.
+    ///
+    /// # Returns
+    /// - `Result<ShaderProgram>`: Returns a `ShaderProgram` if the shaders compile
+    ///   and link successfully, otherwise returns an error.
+    ///
+    /// # Errors
+    /// Returns an error if the shader compilation or program linking fails.
+    ///
+    /// # Example
+    /// ```rust
+    /// let shader_program = ShaderProgram::from_source(vertex_src, fragment_src)?;
+    /// ```
+    pub fn from_source(vertex_shader: &str, fragment_shader: &str) -> Result<ShaderProgram> {
+        let mut vertex_shader = Shader::from_source(vertex_shader, ShaderType::Vertex)?;
+        let mut fragment_shader = Shader::from_source(fragment_shader, ShaderType::Fragment)?;
+        let shader_program = ShaderProgram::new(&mut vertex_shader, &mut fragment_shader)?;
+        vertex_shader.delete()?;
+        fragment_shader.delete()?;
+        Ok(shader_program)
+    }
 
     /// Creates a new shader program from vertex and fragment shader source files.
     ///

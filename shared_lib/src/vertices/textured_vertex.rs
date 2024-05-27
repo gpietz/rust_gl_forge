@@ -19,7 +19,7 @@ impl TexturedVertex {
         Self {
             position: [x, y, z],
             tex_coords: [u, v],
-            ..Default::default()
+            color: [1.0, 1.0, 1.0, 1.0],
         }
     }
 

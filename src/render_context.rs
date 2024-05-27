@@ -1,3 +1,4 @@
+use sdl2::sys::SDL_GL_GetDrawableSize;
 use std::cell::{Ref, RefCell, RefMut};
 use std::rc::Rc;
 use std::time::{Duration, Instant};
@@ -131,5 +132,33 @@ impl RenderContext {
     /// ```
     pub(crate) fn window_mut(&self) -> RefMut<SdlWindow> {
         self.window.borrow_mut()
+    }
+
+    /// Retrieves the size of the drawable area of the window.
+    ///
+    /// This method returns the size of the framebuffer that is used for rendering.
+    /// The drawable size can be different from the window size due to high-DPI displays
+    /// or other factors that affect the actual rendering area.
+    ///
+    /// # Returns
+    ///
+    /// A tuple `(u32, u32)` where:
+    /// - The first element is the width of the drawable area in pixels.
+    /// - The second element is the height of the drawable area in pixels.
+    ///
+    /// # Example
+    ///
+    /// ```rust
+    /// let render_context = RenderContext { window: Rc::new(RefCell::new(sdl_window)) };
+    /// let (width, height) = render_context.get_drawable_size();
+    /// println!("Drawable size: width = {}, height = {}", width, height);
+    /// ```
+    ///
+    /// # Note
+    ///
+    /// This method borrows the window reference and internally calls `SDL_GL_GetDrawableSize`
+    /// to get the size of the drawable area from the SDL2 window.
+    pub fn get_drawable_size(&self) -> (u32, u32) {
+        self.window.borrow().get_drawable_size()
     }
 }

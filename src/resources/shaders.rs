@@ -6,58 +6,38 @@ pub const SIMPLE_TRIANGLE: &str = "simple_triangle_shader";
 pub const SIMPLE_TEXTURED_TRIANGLE: &str = "simple_textured_triangle_shader";
 pub const SIMPLE_TRANSFORM: &str = "simple_transform_shader";
 pub const SIMPLE_PROJECTION: &str = "simple_projection_shader";
+pub const LIGHT_CUBE: &str = "light_cube_shader";
 
 pub(crate) fn add_shaders(shader_manager: &mut ShaderManager) {
-    let mut shader_map: HashMap<String, Vec<String>> = HashMap::new();
-    add_shader(
-        &mut shader_map,
-        SIMPLE_RED,
-        vec![
-            "assets/shaders/simple/simple_red_shader.vert",
-            "assets/shaders/simple/simple_red_shader.frag",
-        ],
-    );
-    add_shader(
-        &mut shader_map,
-        SIMPLE_TRIANGLE,
-        vec![
-            "assets/shaders/simple/shader_triangle.vert",
-            "assets/shaders/simple/shader_triangle.frag",
-        ],
-    );
-    add_shader(
-        &mut shader_map,
-        SIMPLE_TEXTURED_TRIANGLE,
-        vec![
-            "assets/shaders/simple/textured_triangle.vert",
-            "assets/shaders/simple/textured_triangle.frag",
-        ],
-    );
-    add_shader(
-        &mut shader_map,
-        SIMPLE_TRANSFORM,
-        vec![
-            "assets/shaders/simple/transform.vert",
-            "assets/shaders/simple/transform.frag",
-        ],
-    );
-    add_shader(
-        &mut shader_map,
-        SIMPLE_PROJECTION,
-        vec![
-            "assets/shaders/simple/projection.vert",
-            "assets/shaders/simple/projection.frag"
-        ],
-    );
+    let mut shader_map: HashMap<&'static str, Vec<&'static str>> = HashMap::new();
+    shader_map.insert(SIMPLE_RED, vec![
+        "assets/shaders/simple/simple_red_shader.vert",
+        "assets/shaders/simple/simple_red_shader.frag",
+    ]);
+    shader_map.insert(SIMPLE_TRIANGLE, vec![
+        "assets/shaders/simple/shader_triangle.vert",
+        "assets/shaders/simple/shader_triangle.frag",
+    ]);
+    shader_map.insert(SIMPLE_TEXTURED_TRIANGLE, vec![
+        "assets/shaders/simple/textured_triangle.vert",
+        "assets/shaders/simple/textured_triangle.frag",
+    ]);
+    shader_map.insert(SIMPLE_TRANSFORM, vec![
+        "assets/shaders/simple/transform.vert",
+        "assets/shaders/simple/transform.frag",
+    ]);
+    shader_map.insert(SIMPLE_PROJECTION, vec![
+        "assets/shaders/simple/projection.vert",
+        "assets/shaders/simple/projection.frag",
+    ]);
+    shader_map.insert(LIGHT_CUBE, vec![
+        "assets/shaders/light/light_cube.vert",
+        "assets/shaders/light/light_cube.frag",
+    ]);
 
-    for (key, paths) in shader_map.iter() {
+    for (key, paths) in &shader_map {
         for path in paths {
-            shader_manager.add_shader(key.clone(), path.clone());
+            shader_manager.add_shader(key.to_string(), path.to_string());
         }
     }
-}
-
-fn add_shader(map: &mut HashMap<String, Vec<String>>, name: &str, shaders: Vec<&str>) {
-    let shader_vec = shaders.into_iter().map(|s| s.to_string()).collect();
-    map.insert(name.to_string(), shader_vec);
 }

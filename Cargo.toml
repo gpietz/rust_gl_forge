@@ -17,6 +17,7 @@ shared_lib = { path = "shared_lib" }
 rand = "0.8.5"
 chrono = "0.4.38"
 nameof = "1.2.2"
+nofmt = "1.0.0"
 
 [dependencies.sdl2]
 version = "0.36.0"
@@ -26,5 +27,7 @@ features = ["bundled", "static-link"]
 members = [
     ".",
     "shared_lib",
-    "research/multitexturing", "research/rs_vertex_kit",
+    "research/multitexturing",
+    "research/rs_vertex_kit",
+    "research/glfw_text_rendering",
 ]

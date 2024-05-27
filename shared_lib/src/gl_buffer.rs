@@ -1,3 +1,4 @@
+use crate::gl_prelude::check_gl_error;
 use crate::gl_traits::{Bindable, Deletable};
 use crate::gl_types::{BufferType, BufferUsage};
 use anyhow::Result;
@@ -93,20 +94,18 @@ impl<T> BufferObject<T> {
             gl::BindBuffer(r#type.to_gl_enum(), id);
             gl::BufferData(
                 r#type.to_gl_enum(),
-                (data.len() * std::mem::size_of::<T>()) as GLsizeiptr,
+                (data.len() * size_of::<T>()) as GLsizeiptr,
                 data.as_ptr() as *const c_void,
                 usage.to_gl_enum(),
             );
         }
 
-        let buffer_object = BufferObject {
+        BufferObject {
             id,
             buffer_type: r#type,
             buffer_usage: usage,
             data,
-        };
-
-        buffer_object
+        }
     }
 
     pub fn buffer_id(&self) -> u32 {
@@ -161,49 +160,38 @@ impl<T> BufferObject<T> {
         }
     }
 
-    /// Updates the buffer's data with new vertex data.
+    /// Updates the data of the buffer object.
     ///
-    /// This function replaces the current buffer data with new data provided by the caller.
-    /// It binds the buffer, uploads the new data to the GPU, and optionally unbinds the buffer
-    /// based on the `unbind` parameter. This method is useful for dynamic buffer content
-    /// updates, such as streaming vertex data for animations or interactive applications.
+    /// This function updates the internal data of the buffer object with the provided vertices.
+    /// Optionally, it can also update the buffer's usage pattern if a new one is provided.
+    /// It then binds the buffer and updates its data in the OpenGL context.
     ///
     /// # Parameters
-    /// - `new_data`: A vector of generic type `T` that represents the new data to be uploaded
-    ///   to the buffer. The type `T` must conform to the `Vertex` trait, which ensures that
-    ///   the data can be correctly interpreted as vertex attributes.
-    /// - `unbind`: A boolean flag that determines whether the buffer should be unbound after
-    ///   updating the data. If `true`, the buffer is unbound, which can be useful for preventing
-    ///   accidental modifications. If `false`, the buffer remains bound, which might be beneficial
-    ///   for subsequent operations that require the buffer to be bound.
+    /// - `vertices`: A vector of type `T` containing the new vertex data to be stored
+    ///   in the buffer.
+    /// - `usage`: An optional parameter of type `BufferUsage` that specifies the new usage
+    ///   pattern of the buffer. If `None`, the current usage pattern remains unchanged.
+    ///
+    /// # Returns
+    /// - `Result<()>`: Returns `Ok(())` if the operation is successful, or an error if
+    ///   an OpenGL error is encountered.
     ///
     /// # Safety
-    /// This function interacts directly with the OpenGL API, making it unsafe. It requires
-    /// the caller to ensure that a valid OpenGL context is current on the calling thread
-    /// before invocation. Misuse can lead to undefined behavior, including crashes.
-    /// The caller is also responsible for ensuring that the data provided is compatible
-    /// with the buffer's intended usage and the vertex attribute layout expected by the
-    /// GPU shaders.
+    /// This function involves unsafe operations to interact with the OpenGL API. It assumes
+    /// that the OpenGL context is properly initialized and that the buffer ID is valid.
     ///
-    /// # Examples
-    /// Assuming `buffer` is an instance of `BufferObject<Vertex>`, and we have a vector
-    /// `vertices` of type `Vertex`:
+    /// # Example
     /// ```no-run
-    /// buffer.update_data(vertices, true);
+    /// buffer.update_data(new_vertices, Some(BufferUsage::DynamicDraw))?;
     /// ```
-    /// This will upload `vertices` to the GPU and unbind the buffer afterward.
-    ///
-    /// # Note
-    /// The size and layout of `T` must match the expectations of the shaders that will
-    /// utilize this buffer. Incorrect data can lead to rendering errors or GPU crashes.
-    /// Additionally, frequent updates to large buffers can impact performance, so consider
-    /// usage patterns and buffer strategies (such as double buffering) for dynamic data.
+    pub fn update_data(&mut self, vertices: Vec<T>, usage: Option<BufferUsage>) -> Result<()> {
+        self.data = vertices;
 
-    pub fn update_data(&mut self, new_data: Vec<T>, unbind: bool) {
-        self.data = new_data;
+        if let Some(new_usage) = usage {
+            self.buffer_usage = new_usage;
+        }
 
         let buffer_type = self.buffer_type.to_gl_enum();
-        let buffer_usage = self.buffer_usage.to_gl_enum();
 
         let data_len = self.data.len();
         let data_size = data_len * size_of::<T>();
@@ -214,12 +202,11 @@ impl<T> BufferObject<T> {
                 buffer_type,
                 data_size as GLsizeiptr,
                 self.data.as_ptr() as *const c_void,
-                buffer_usage,
+                self.buffer_usage.to_gl_enum(),
             );
 
-            if unbind {
-                gl::BindBuffer(buffer_type, 0);
-            }
+            // Check for opengl errors
+            check_gl_error()
         }
     }
 
