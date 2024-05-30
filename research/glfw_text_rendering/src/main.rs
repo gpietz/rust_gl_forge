@@ -18,6 +18,7 @@ mod texture_utils;
 
 const SCREEN_WIDTH: u32 = 1024;
 const SCREEN_HEIGHT: u32 = 768;
+const TAB_WIDTH_IN_SPACES: usize = 4;
 
 fn main() -> Result<()> {
     // Initialize GLFW
@@ -93,7 +94,7 @@ fn main() -> Result<()> {
     font_atlas.save_font_texture("font_atlas_gpu.png")?;
     font_atlas.save_font_mapping("font_atlas.xml")?;
 
-    let text = "Hello World! <-+-> Cool!";
+    let text = "Hello World! <-+-> Cool!\r\nTest123\n\tX-Test... 99,88 EUR";
     let text_dimensions = font_atlas.text_dimensions(text);
     let text_xpos = (SCREEN_WIDTH >> 1) as f32 - (text_dimensions.0 / 2.0);
     let text_ypos = (SCREEN_HEIGHT >> 1) as f32 - (text_dimensions.1 / 2.0);
@@ -219,18 +220,32 @@ fn create_vertices_for_text(
     start_x: f32,
     start_y: f32,
 ) -> Vec<f32> {
+    let line_height = font_atlas.line_height();
+    let space_width = font_atlas.space_width();
+    let tab_with = space_width * TAB_WIDTH_IN_SPACES as f32;
     let mut vertices = Vec::new();
     let mut x = start_x;
+    let mut y = start_y;
 
     for ch in text.chars() {
         if ch == ' ' {
-            x += font_atlas.space_width();
+            x += space_width;
+            continue;
+        } else if ch == '\r' {
+            x = start_x;
+            continue;
+        } else if ch == '\n' {
+            x = start_x;
+            y += line_height;
+            continue;
+        } else if ch == '\t' {
+            x += tab_with;
             continue;
         }
 
         if let Some(glyph) = font_atlas.glyphs.get(&ch) {
             let xpos = x;
-            let ypos = start_y + glyph.bearing_y as f32;
+            let ypos = y + glyph.bearing_y as f32;
 
             let w = glyph.width as f32;
             let h = glyph.height as f32;

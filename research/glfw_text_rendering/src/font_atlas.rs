@@ -1,11 +1,12 @@
-use crate::{create_vertices_for_text, texture_utils};
-use anyhow::{Context, Result};
-use glm::boolean;
-use image::{DynamicImage, Rgba, RgbaImage};
-use rusttype::{Font, Rect, Scale, VMetrics};
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::Write;
+
+use anyhow::{Context, Result};
+use image::{DynamicImage, Rgba, RgbaImage};
+use rusttype::{Font, Scale, VMetrics};
+
+use crate::texture_utils;
 
 pub struct GlyphData {
     pub index: u8,
@@ -149,6 +150,16 @@ impl FontAtlas {
         let total_width: u32 = self.glyphs.values().map(|glyph| glyph.width).sum();
         let num_glyphs = self.glyphs.len() as f32;
         total_width as f32 / num_glyphs
+    }
+
+    pub fn line_height(&self) -> f32 {
+        let max_glyph_height = self
+            .glyphs
+            .values()
+            .map(|glyph| glyph.height)
+            .max()
+            .unwrap();
+        max_glyph_height as f32 + self.metrics.line_gap
     }
 
     pub fn text_dimensions(&self, text: &str) -> (f32, f32) {
