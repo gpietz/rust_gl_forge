@@ -20,9 +20,9 @@ impl VertexArrayObject {
         }
         Ok(vao)
     }
-    
+
     pub fn new_without_bind() -> Result<VertexArrayObject> {
-        VertexArrayObject::create_vao()    
+        VertexArrayObject::create_vao()
     }
 
     fn create_vao() -> Result<VertexArrayObject> {

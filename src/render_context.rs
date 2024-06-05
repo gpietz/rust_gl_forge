@@ -1,4 +1,5 @@
 use sdl2::sys::SDL_GL_GetDrawableSize;
+use shared_lib::color::Color;
 use std::cell::{Ref, RefCell, RefMut};
 use std::rc::Rc;
 use std::time::{Duration, Instant};
@@ -8,6 +9,8 @@ use shared_lib::gl_texture::TextureManager;
 use shared_lib::gl_vertex_attribute::VertexLayoutManager;
 use shared_lib::prelude::SdlWindow;
 use shared_lib::sdl_window::SdlKeyboardState;
+use shared_lib::shapes::ShapesFactory;
+use shared_lib::Size2D;
 
 pub(crate) struct RenderContext {
     window: Rc<RefCell<SdlWindow>>,

@@ -37,6 +37,17 @@ pub struct Color {
     pub a: f32,
 }
 
+impl Default for Color {
+    fn default() -> Self {
+        Color {
+            r: 0.0,
+            g: 0.0,
+            b: 0.0,
+            a: 1.0,
+        }
+    }
+}
+
 impl Color {
     // *** Predefined colors ***
     pub const BLACK: Color = Color {
@@ -50,6 +61,12 @@ impl Color {
         g: 1.0,
         b: 1.0,
         a: 1.0,
+    };
+    pub const TRANSPARENT: Color = Color {
+        r: 0.0,
+        g: 0.0,
+        b: 0.0,
+        a: 0.0,
     };
 
     pub const GAINSBORO: Color = color_from_rgb!(220, 220, 220);
@@ -172,6 +189,18 @@ impl Color {
         let mut color = self.clone();
         color.a = f32::max(alpha, 1.0).min(0.0);
         color
+    }
+}
+
+impl Into<[f32; 3]> for Color {
+    fn into(self) -> [f32; 3] {
+        [self.r, self.g, self.b]
+    }
+}
+
+impl Into<[f32; 4]> for Color {
+    fn into(self) -> [f32; 4] {
+        [self.r, self.g, self.b, self.a]
     }
 }
 

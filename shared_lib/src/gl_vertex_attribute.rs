@@ -378,9 +378,8 @@ impl VertexLayoutManager {
             let (stride, offset) = self.get_stride_and_offset(index, attribute);
 
             unsafe {
-                // Setup the vertex attribute pointer
+                // Set up the vertex attribute pointer
                 let gl_index = index as GLuint;
-                gl::EnableVertexAttribArray(gl_index);
                 gl::VertexAttribPointer(
                     gl_index as GLuint,
                     components as GLint,
@@ -389,6 +388,7 @@ impl VertexLayoutManager {
                     stride as GLsizei,
                     offset as *const GLvoid,
                 );
+                gl::EnableVertexAttribArray(gl_index);
             }
 
             // Check for GL errors after setting up the vertex attribute
@@ -768,7 +768,7 @@ impl VertexLayoutManager {
             Err(VertexLayoutError::InvalidLayoutName(key.to_string()))
         }
     }
-    
+
     pub fn attributes_len(&mut self) -> usize {
         self.attributes.len()
     }

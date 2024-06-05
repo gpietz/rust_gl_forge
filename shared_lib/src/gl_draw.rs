@@ -1,5 +1,5 @@
 use crate::gl_types::{IndicesValueType, PrimitiveType};
-use gl::types::GLsizei;
+use gl::types::{GLint, GLsizei, GLuint};
 use std::ptr;
 
 /// Draws geometric primitives from array data.
@@ -22,7 +22,7 @@ use std::ptr;
 ///
 /// # Examples
 /// Assuming you have set up a shader program, VAO, and VBO correctly:
-/// ```
+/// ```no-run
 /// let primitive_type = PrimitiveType::Triangles;
 /// let vertex_count = 3; // Drawing one triangle with 3 vertices
 /// draw_primitive(primitive_type, vertex_count);
@@ -56,7 +56,7 @@ pub fn draw_primitive(primitive_type: PrimitiveType, vertex_count: u32) {
 ///
 /// # Example
 ///
-/// ```rust
+/// ```no-run
 /// # use your_module_name::draw_elements;
 /// # use your_module_name::PrimitiveType;
 /// # use your_module_name::IndicesValueType;
@@ -71,7 +71,7 @@ pub fn draw_primitive(primitive_type: PrimitiveType, vertex_count: u32) {
 /// ```
 pub fn draw_elements(
     primitive_type: PrimitiveType,
-    elements_count: u32,
+    elements_count: u32, //<< TODO usize
     indices_type: IndicesValueType,
 ) {
     unsafe {
@@ -81,5 +81,15 @@ pub fn draw_elements(
             indices_type.to_gl_enum(),
             ptr::null(),
         );
+    }
+}
+
+pub fn draw_arrays(primitive_type: PrimitiveType, first: usize, count: usize) {
+    unsafe {
+        gl::DrawArrays(
+            primitive_type.to_gl_enum(),
+            first as GLint,
+            count as GLsizei,
+        )
     }
 }

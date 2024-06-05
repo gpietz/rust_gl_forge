@@ -12,6 +12,7 @@ use crate::gl_traits::ToOpenGL;
 use crate::gl_types::RenderMask;
 use crate::gl_utils::check_gl_error;
 use crate::input::mouse_adapter::{MouseAdapter, MouseButton};
+use crate::Size2D;
 
 //////////////////////////////////////////////////////////////////////////////
 // - SdlWindow -
@@ -317,6 +318,11 @@ impl SdlWindow {
     pub fn get_drawable_size(&self) -> (u32, u32) {
         self.window.drawable_size()
     }
+    
+    pub fn size(&self) -> Size2D<u32> {
+        let (width, height) = self.window.size();
+        Size2D::<u32>::new(width, height)
+    }
 }
 
 impl MouseAdapter for SdlWindow {
@@ -380,6 +386,8 @@ impl MouseAdapter for SdlWindow {
             .iter()
             .filter(move |button| self.is_mouse_button_pressed(button))
     }
+    
+
 }
 
 //////////////////////////////////////////////////////////////////////////////

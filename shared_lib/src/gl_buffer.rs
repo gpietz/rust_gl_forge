@@ -92,12 +92,14 @@ impl<T> BufferObject<T> {
         unsafe {
             gl::GenBuffers(1, &mut id);
             gl::BindBuffer(r#type.to_gl_enum(), id);
-            gl::BufferData(
-                r#type.to_gl_enum(),
-                (data.len() * size_of::<T>()) as GLsizeiptr,
-                data.as_ptr() as *const c_void,
-                usage.to_gl_enum(),
-            );
+            if !data.is_empty() {
+                gl::BufferData(
+                    r#type.to_gl_enum(),
+                    (data.len() * size_of::<T>()) as GLsizeiptr,
+                    data.as_ptr() as *const c_void,
+                    usage.to_gl_enum(),
+                );               
+            }
         }
 
         BufferObject {

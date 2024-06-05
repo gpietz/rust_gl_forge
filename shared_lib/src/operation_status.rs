@@ -25,6 +25,7 @@ impl<T> OperationStatus<T> {
     pub fn success(&self) -> bool {
         self.success
     }
+    
     pub fn error(&self) -> Option<&T> {
         self.error.as_ref()
     }

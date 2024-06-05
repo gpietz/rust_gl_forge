@@ -486,7 +486,7 @@ impl ShaderProgram {
         matrix.set_uniform_matrix(location, transpose);
         Ok(())
     }
-
+    
     /// Sets a uniform variable with a three-component floating-point vector value in the shader program.
     ///
     /// This method allows you to set the value of a uniform variable in the shader program
@@ -882,6 +882,22 @@ impl UniformValue for (f32, f32, f32) {
     fn set_uniform(&self, location: i32) {
         unsafe {
             gl::Uniform3f(location, self.0, self.1, self.2);
+        }
+    }
+}
+
+impl UniformValue for [f32; 3] {
+    fn set_uniform(&self, location: i32) {
+        unsafe {
+            gl::Uniform3f(location, self[0], self[1], self[2]);
+        }
+    }
+}
+
+impl UniformValue for [f32; 4] {
+    fn set_uniform(&self, location: i32) {
+        unsafe {
+            gl::Uniform4f(location, self[0], self[1], self[2], self[3]);
         }
     }
 }

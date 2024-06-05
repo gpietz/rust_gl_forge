@@ -7,8 +7,8 @@ use chrono::{Local, Timelike};
 use sdl2::keyboard::Keycode;
 
 use shared_lib::camera::Camera;
+use shared_lib::color::Color;
 use shared_lib::gl_buffer::BufferObject;
-use shared_lib::gl_draw;
 use shared_lib::gl_prelude::PrimitiveType;
 use shared_lib::gl_shader::ShaderProgram;
 use shared_lib::gl_texture::Texture;
@@ -17,7 +17,10 @@ use shared_lib::gl_types::{Capability, IndicesValueType};
 use shared_lib::gl_vertex_array::VertexArrayObject;
 use shared_lib::gl_vertex_attribute::VertexLayoutManager;
 use shared_lib::sdl_window::SdlKeyboardState;
+use shared_lib::shapes::rectangle::Rectangle;
+use shared_lib::shapes::ShapesFactory;
 use shared_lib::vertices::textured_vertex::TexturedVertex;
+use shared_lib::{gl_draw, Drawable};
 
 use crate::render_context::RenderContext;
 use crate::resources::{shaders, textures};
@@ -54,6 +57,7 @@ pub(crate) struct Projection {
     vlm: Option<VertexLayoutManager>,
     rotation_paused: bool,
     mouse_capture: bool,
+    rectangle: Option<Rectangle>,
 }
 
 impl<'a> Projection {
@@ -329,6 +333,21 @@ impl Scene<RenderContext> for Projection {
             for _ in 0..10 {
                 self.cube_rotations.push(CubeRotation::new());
             }
+
+            // Create rectangle in upper left corner
+            let window_size = context.window().size();
+            let mut rectangle = ShapesFactory::new(window_size).create_rectangle(
+                10.0,
+                10.0,
+                300,
+                200,
+                Color::BLACK,
+            )?;
+            rectangle.set_fill_color(Some(Color::BLACK));
+            //rectangle.set_corner_radius(Some(5.0));
+            rectangle.set_opacity(0.6);
+            //rectangle.set_strength(3.0);
+            self.rectangle = Some(rectangle);
         }
         Ok(())
     }
@@ -358,30 +377,30 @@ impl Scene<RenderContext> for Projection {
 
     fn draw(&mut self, context: &mut RenderContext) -> SceneResult {
         let shader;
-    
+
         // Activate shader
         {
             shader = Self::get_shader_mut(context)?;
             shader.activate();
         }
-    
+
         // Bind textures
         self.textures[0].bind_as_unit(0);
         self.textures[1].bind_as_unit(1);
-    
+
         // Set texture units once after shader is activated
         shader.set_uniform("texture1", 0)?;
         shader.set_uniform("texture2", 1)?;
-    
+
         // Calculate transformation
         let screen_width = crate::SCREEN_WIDTH;
         let screen_height = crate::SCREEN_HEIGHT;
         let screen_aspect = screen_width as f32 / screen_height as f32;
-    
+
         let model = Matrix4::from_angle_x(Deg(-55.0));
         let mut view = Matrix4::from_translation(vec3(self.model_strafe, 0.0, self.model_distance));
         let projection = perspective(Deg(45.0), screen_aspect, 0.1, 100.0);
-    
+
         // Calculations for camera
         if self.is_multiple_cubes() {
             match self.camera_mode {
@@ -391,10 +410,10 @@ impl Scene<RenderContext> for Projection {
                         .expect("Start time hasn't been set in projection scene!")
                         .elapsed()
                         .as_secs_f32();
-    
+
                     let cam_x = time_elapsed.sin() * RADIUS;
                     let cam_z = time_elapsed.cos() * RADIUS;
-    
+
                     let eye = Point3::new(cam_x, 0.0, cam_z);
                     let target = Point3::new(0.0, 0.0, 0.0);
                     let up = Vector3::new(0.0, 1.0, 0.0);
@@ -407,14 +426,14 @@ impl Scene<RenderContext> for Projection {
                 _ => {}
             }
         }
-    
+
         // Send transformation matrices to GPU
         if self.render_mode != RenderMode::MultipleCubes {
             shader.set_uniform_matrix("model", false, &model)?;
         }
         shader.set_uniform_matrix("view", false, &view)?;
         shader.set_uniform_matrix("projection", false, &projection)?;
-    
+
         // Render models based on the active rendering mode
         match self.render_mode {
             RenderMode::TiltedPlane => {
@@ -425,7 +444,7 @@ impl Scene<RenderContext> for Projection {
                     let pos_vector3 = Vector3::new(pos[0], pos[1], pos[2]);
                     let translation = Matrix4::from_translation(pos_vector3);
                     let rotation: Matrix4<f32>;
-    
+
                     if self.render_mode != RenderMode::MultipleCubesRotating {
                         let angle = Rad::from(Deg(20.0 * i as f32));
                         let axis = Vector3::new(1.0, 0.3, 0.5).normalize();
@@ -435,18 +454,18 @@ impl Scene<RenderContext> for Projection {
                         let rotation_x = Matrix4::from_angle_x(Deg(cube_rotation.angle.x));
                         let rotation_y = Matrix4::from_angle_y(Deg(cube_rotation.angle.y));
                         let rotation_z = Matrix4::from_angle_z(Deg(cube_rotation.angle.z));
-    
+
                         // Combine rotations: Note the order of multiplication matters
                         rotation = rotation_x * rotation_y * rotation_z;
                     }
-    
+
                     let model = translation * rotation;
                     shader.set_uniform_matrix("model", false, &model)?;
                     if i == 0 || !self.first_only {
                         self.render_models[1].render()?;
                     }
                 }
-    
+
                 if self.render_mode == RenderMode::MultipleCubesRotating && !self.rotation_paused {
                     self.update_rotations(context.delta_time());
                 }
@@ -455,7 +474,11 @@ impl Scene<RenderContext> for Projection {
                 self.render_models[1].render()?;
             }
         }
-    
+
+        if let Some(ref mut rect) = self.rectangle {
+            rect.draw()?;
+        }
+
         Ok(())
     }
 }

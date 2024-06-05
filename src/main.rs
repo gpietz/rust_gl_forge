@@ -20,6 +20,7 @@ use crate::scenes::basic::projection::Projection;
 use crate::scenes::basic::text_rendering::FirstText;
 use crate::scenes::basic::texture_triangle::TextureTriangle;
 use crate::scenes::basic::transformation::Transformation;
+use crate::scenes::experimental::draw_rectangle::DrawRectangle;
 
 mod render_context;
 mod resources;
@@ -33,8 +34,8 @@ mod vertex_data_2d;
 mod vertex_data_3d;
 
 const WINDOW_TITLE: &str = "RUST OPENGL 2024";
-pub(crate) const SCREEN_WIDTH: usize = 1024;
-pub(crate) const SCREEN_HEIGHT: usize = 768;
+pub(crate) const SCREEN_WIDTH: usize = 1440;
+pub(crate) const SCREEN_HEIGHT: usize = 1080;
 
 pub(crate) const SHADER_SIMPLE_RED: &str = "shader_simple_red";
 
@@ -49,14 +50,15 @@ fn main() -> Result<()> {
 
     // Create scenes
     let mut scenes: Vec<Box<dyn Scene<RenderContext>>> = vec![
-        Box::<FirstTriangle>::default(),
-        Box::<IndexedQuad>::default(),
-        Box::<ShaderTriangle>::new(ShaderTriangle::new(false)),
-        Box::<ShaderTriangle>::new(ShaderTriangle::new(true)),
-        Box::<TextureTriangle>::default(),
-        Box::<Transformation>::default(),
+        // Box::<FirstTriangle>::default(),
+        // Box::<IndexedQuad>::default(),
+        // Box::<ShaderTriangle>::new(ShaderTriangle::new(false)),
+        // Box::<ShaderTriangle>::new(ShaderTriangle::new(true)),
+        // Box::<TextureTriangle>::default(),
+        //Box::<Transformation>::default(),
         Box::<Projection>::default(),
         //Box::<FirstText>::new(FirstText::new()?),
+        //Box::<DrawRectangle>::default(),
     ];
 
     // Set the initial drawable to the last one
