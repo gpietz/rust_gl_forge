@@ -1,7 +1,6 @@
 use anyhow::Result;
 
-use shared_lib::color::Color;
-use shared_lib::gl_font::{Font, FontSize, FontTextureAtlas};
+use shared_lib::gl_font::Font;
 use shared_lib::text::simple_text_renderer::SimpleTextRenderer;
 use shared_lib::Position2D;
 

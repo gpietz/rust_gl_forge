@@ -1,11 +1,12 @@
 #![allow(dead_code)]
 extern crate gl;
 
+use std::cell::RefCell;
+use std::rc::Rc;
+
 use anyhow::Result;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
-use std::cell::RefCell;
-use std::rc::Rc;
 
 use scenes::basic::first_triangle::FirstTriangle;
 use scenes::basic::indexed_quad::IndexedQuad;
@@ -20,7 +21,6 @@ use crate::scenes::basic::projection::Projection;
 use crate::scenes::basic::text_rendering::TextRendering;
 use crate::scenes::basic::texture_triangle::TextureTriangle;
 use crate::scenes::basic::transformation::Transformation;
-use crate::scenes::experimental::draw_rectangle::DrawRectangle;
 
 mod render_context;
 mod resources;

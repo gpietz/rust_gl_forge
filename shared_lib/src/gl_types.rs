@@ -3,10 +3,8 @@ use std::fmt::{Debug, Display, Formatter, Pointer};
 use std::os::raw::c_void;
 
 use anyhow::{Context, Result};
-use cgmath::{Matrix4, SquareMatrix};
+use cgmath::Matrix4;
 use gl::types::{GLboolean, GLenum, GLsizei, GLuint};
-use sdl2::keyboard::Keycode::V;
-use thiserror::__private::AsDisplay;
 
 use gl_utils::*;
 
@@ -684,7 +682,7 @@ impl Capability {
     }
 
     /// Returns true if the OpenGL capability is currently enabled.
-    pub fn is_enabled(self) -> bool {
+    pub fn check_enabled(self) -> bool {
         unsafe { gl::IsEnabled(self.to_gl_enum()) > 0 }
     }
 }
