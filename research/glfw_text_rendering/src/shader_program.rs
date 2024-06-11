@@ -3,6 +3,7 @@ use gl::types::{GLchar, GLenum, GLint, GLuint};
 use std::collections::HashMap;
 use std::ffi::CString;
 use std::fmt::{Display, Formatter};
+use std::str::from_utf8;
 use std::{fs, ptr};
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
@@ -20,9 +21,9 @@ impl Display for ShaderType {
     }
 }
 
-impl Into<GLenum> for ShaderType {
-    fn into(self) -> GLenum {
-        match self {
+impl From<ShaderType> for GLenum {
+    fn from(value: ShaderType) -> Self {
+        match value {
             ShaderType::Vertex => gl::VERTEX_SHADER,
             ShaderType::Fragment => gl::FRAGMENT_SHADER,
         }
@@ -122,8 +123,7 @@ fn check_compile_errors(shader: GLuint, shader_type: &str) -> Result<()> {
                         ptr::null_mut(),
                         info_log.as_mut_ptr() as *mut GLchar,
                     );
-                    let error_message =
-                        std::str::from_utf8(&info_log).unwrap_or_else(|_| "Failed to read log");
+                    let error_message = from_utf8(&info_log).unwrap_or("Failed to read log");
                     return Err(anyhow!(
                         "ERROR::SHADER_COMPILATION_ERROR of type: {}\n{}\n",
                         shader_type,
@@ -140,8 +140,7 @@ fn check_compile_errors(shader: GLuint, shader_type: &str) -> Result<()> {
                         ptr::null_mut(),
                         info_log.as_mut_ptr() as *mut GLchar,
                     );
-                    let error_message =
-                        std::str::from_utf8(&info_log).unwrap_or_else(|_| "Failed to read log");
+                    let error_message = from_utf8(&info_log).unwrap_or("Failed to read log");
                     return Err(anyhow!(
                         "ERROR::PROGRAM_LINKING_ERROR of type: {}\n{}\n",
                         shader_type,

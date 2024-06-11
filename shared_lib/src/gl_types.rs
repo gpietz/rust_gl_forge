@@ -1,10 +1,12 @@
 use std::fmt;
-use std::fmt::Display;
+use std::fmt::{Debug, Display, Formatter, Pointer};
 use std::os::raw::c_void;
 
 use anyhow::{Context, Result};
+use cgmath::{Matrix4, SquareMatrix};
 use gl::types::{GLboolean, GLenum, GLsizei, GLuint};
 use sdl2::keyboard::Keycode::V;
+use thiserror::__private::AsDisplay;
 
 use gl_utils::*;
 
@@ -413,6 +415,7 @@ impl Into<VertexAttribute> for VertexAttributeType {
 // - ShaderType -
 //////////////////////////////////////////////////////////////////////////////
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum ShaderType {
     Vertex,
     Fragment,
@@ -423,6 +426,28 @@ pub enum ShaderType {
 impl ShaderType {
     pub fn to_gl_enum(&self) -> GLenum {
         match self {
+            ShaderType::Vertex => gl::VERTEX_SHADER,
+            ShaderType::Fragment => gl::FRAGMENT_SHADER,
+            ShaderType::Geometry => gl::GEOMETRY_SHADER,
+            ShaderType::Compute => gl::COMPUTE_SHADER,
+        }
+    }
+}
+
+impl Display for ShaderType {
+    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
+        match self {
+            ShaderType::Vertex => f.write_str("Vertex"),
+            ShaderType::Fragment => f.write_str("Fragment"),
+            ShaderType::Geometry => f.write_str("Geometry"),
+            ShaderType::Compute => f.write_str("Compute"),
+        }
+    }
+}
+
+impl From<ShaderType> for GLenum {
+    fn from(value: ShaderType) -> Self {
+        match value {
             ShaderType::Vertex => gl::VERTEX_SHADER,
             ShaderType::Fragment => gl::FRAGMENT_SHADER,
             ShaderType::Geometry => gl::GEOMETRY_SHADER,
@@ -663,3 +688,9 @@ impl Capability {
         unsafe { gl::IsEnabled(self.to_gl_enum()) > 0 }
     }
 }
+
+//////////////////////////////////////////////////////////////////////////////
+// - ProjectionMatrix -
+//////////////////////////////////////////////////////////////////////////////
+
+pub type ProjectionMatrix = Matrix4<f32>;

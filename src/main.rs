@@ -17,7 +17,7 @@ use crate::render_context::RenderContext;
 use crate::resources::{shaders, textures};
 use crate::scene::Scene;
 use crate::scenes::basic::projection::Projection;
-use crate::scenes::basic::text_rendering::FirstText;
+use crate::scenes::basic::text_rendering::TextRendering;
 use crate::scenes::basic::texture_triangle::TextureTriangle;
 use crate::scenes::basic::transformation::Transformation;
 use crate::scenes::experimental::draw_rectangle::DrawRectangle;
@@ -50,14 +50,14 @@ fn main() -> Result<()> {
 
     // Create scenes
     let mut scenes: Vec<Box<dyn Scene<RenderContext>>> = vec![
-        // Box::<FirstTriangle>::default(),
-        // Box::<IndexedQuad>::default(),
-        // Box::<ShaderTriangle>::new(ShaderTriangle::new(false)),
-        // Box::<ShaderTriangle>::new(ShaderTriangle::new(true)),
-        // Box::<TextureTriangle>::default(),
-        //Box::<Transformation>::default(),
+        Box::<FirstTriangle>::default(),
+        Box::<IndexedQuad>::default(),
+        Box::<ShaderTriangle>::new(ShaderTriangle::new(false)),
+        Box::<ShaderTriangle>::new(ShaderTriangle::new(true)),
+        Box::<TextureTriangle>::default(),
+        Box::<Transformation>::default(),
         Box::<Projection>::default(),
-        //Box::<FirstText>::new(FirstText::new()?),
+        Box::<TextRendering>::new(TextRendering::new()?),
         //Box::<DrawRectangle>::default(),
     ];
 

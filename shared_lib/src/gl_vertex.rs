@@ -2,6 +2,7 @@ use crate::gl_prelude::{Bindable, VertexLayoutError};
 use crate::gl_types::VertexAttributeType;
 use crate::gl_utils::check_gl_error;
 use crate::gl_vertex_attribute::VertexAttribute;
+use anyhow::Result;
 
 //////////////////////////////////////////////////////////////////////////////
 // - Vertex -
@@ -13,10 +14,6 @@ pub trait Vertex {
         Self::attributes().iter().map(|attr| attr.calculate_size()).sum()
     }
 }
-
-//////////////////////////////////////////////////////////////////////////////
-// - VertexAttribute -
-//////////////////////////////////////////////////////////////////////////////
 
 //////////////////////////////////////////////////////////////////////////////
 // - VertexLayout -
@@ -44,9 +41,7 @@ impl VertexLayout {
         let mut vao_id = 0;
         gl::GenVertexArrays(1, &mut vao_id);
         if vao_id == 0 {
-            return Err(VertexLayoutError::OpenGL(
-                "Failed to generate VAO".to_string(),
-            ));
+            return Err(VertexLayoutError::OpenGL("Failed to generate VAO".to_string()));
         }
         gl::BindVertexArray(vao_id);
         Ok(vao_id)
@@ -71,25 +66,21 @@ impl VertexLayout {
 }
 
 impl Bindable for VertexLayout {
-    type Target = VertexLayout;
-
-    fn bind(&mut self) -> anyhow::Result<&mut Self::Target> {
+    fn bind(&self) -> Result<()> {
         unsafe {
             gl::BindVertexArray(self.vao_id);
-            check_gl_error()?;
         }
-        Ok(self)
+        check_gl_error()
     }
 
-    fn unbind(&mut self) -> anyhow::Result<&mut Self::Target> {
+    fn unbind(&self) -> Result<()> {
         unsafe {
             gl::BindVertexArray(0);
-            check_gl_error()?;
         }
-        Ok(self)
+        check_gl_error()
     }
 
-    fn is_bound(&self) -> bool {
+    fn is_bound(&self) -> Result<bool> {
         todo!()
     }
 }

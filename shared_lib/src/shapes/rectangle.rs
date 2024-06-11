@@ -16,7 +16,7 @@ use crate::{Drawable, Position2D, Size2D};
 use anyhow::Result;
 use cgmath::Matrix4;
 use gl::types::{GLfloat, GLsizei};
-use lazy_static::lazy_static;
+use once_cell::sync::Lazy;
 
 const VERTEX_SHADER_SOURCE: &str = "
     #version 330 core
@@ -280,8 +280,14 @@ impl RectangleDraw {
             return Ok(());
         }
 
-        let Position2D { x, y } = rect.position;
-        let Size2D { width, height } = rect.size;
+        let Position2D {
+            x,
+            y,
+        } = rect.position;
+        let Size2D {
+            width,
+            height,
+        } = rect.size;
 
         #[rustfmt::skip]
         let vertices: [f32; 12] = [
@@ -308,6 +314,6 @@ impl RectangleDraw {
     }
 }
 
-lazy_static! {
-    static ref RECTANGLE_DRAW: Mutex<RectangleDraw> = { Mutex::new(RectangleDraw::new()) };
-}
+static RECTANGLE_DRAW: Lazy<Mutex<RectangleDraw>> = Lazy::new(|| {
+    Mutex::new(RectangleDraw::new())
+});

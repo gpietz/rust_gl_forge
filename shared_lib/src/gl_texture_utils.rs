@@ -1,7 +1,6 @@
 use gl::types::GLuint;
 use image::{DynamicImage, ImageBuffer};
 
-#[allow(clippy::clone_on_ref_ptr)]
 pub(crate) fn get_texture_from_gpu(texture_id: GLuint, width: i32, height: i32) -> DynamicImage {
     let mut data = vec![0u8; (width * height * 4) as usize];
     unsafe {

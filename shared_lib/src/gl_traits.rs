@@ -5,11 +5,9 @@ use anyhow::Result;
 //////////////////////////////////////////////////////////////////////////////
 
 pub trait Bindable {
-    type Target;
-
-    fn bind(&mut self) -> Result<&mut Self::Target>;
-    fn unbind(&mut self) -> Result<&mut Self::Target>;
-    fn is_bound(&self) -> bool;
+    fn bind(&self) -> Result<()>;
+    fn unbind(&self) -> Result<()>;
+    fn is_bound(&self) -> Result<bool>;
 }
 
 //////////////////////////////////////////////////////////////////////////////

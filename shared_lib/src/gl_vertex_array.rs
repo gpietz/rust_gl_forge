@@ -1,3 +1,4 @@
+use crate::gl_prelude::check_gl_error;
 use anyhow::{anyhow, Result};
 use gl::types::GLint;
 
@@ -12,15 +13,17 @@ pub struct VertexArrayObject {
 }
 
 impl VertexArrayObject {
-    /// Create a new Vertex Array Object.
+    /// Create a new Vertex Array Object and bind it.
     pub fn new() -> Result<VertexArrayObject> {
         let vao = VertexArrayObject::create_vao()?;
         unsafe {
             gl::BindVertexArray(vao.id);
+            check_gl_error();
         }
         Ok(vao)
     }
 
+    /// Create a new Vertex Array Object without binding it.
     pub fn new_without_bind() -> Result<VertexArrayObject> {
         VertexArrayObject::create_vao()
     }
@@ -32,8 +35,25 @@ impl VertexArrayObject {
             if id == 0 {
                 return Err(anyhow!("Failed to generate a vertex array object"));
             }
+            check_gl_error()?;
         }
-        Ok(VertexArrayObject { id })
+        Ok(VertexArrayObject {
+            id,
+        })
+    }
+
+    pub fn bind(&self) -> Result<()> {
+        unsafe {
+            gl::BindVertexArray(self.id);
+        }
+        check_gl_error()
+    }
+
+    pub fn unbind(&self) -> Result<()> {
+        unsafe {
+            gl::BindVertexArray(0);
+        }
+        check_gl_error()
     }
 
     /// Returns the identifier of the vertex array.
@@ -43,28 +63,27 @@ impl VertexArrayObject {
 }
 
 impl Bindable for VertexArrayObject {
-    type Target = VertexArrayObject;
-
-    fn bind(&mut self) -> Result<&mut Self::Target> {
+    fn bind(&self) -> Result<()> {
         unsafe {
             gl::BindVertexArray(self.id);
         }
-        Ok(self)
+        check_gl_error()
     }
 
-    fn unbind(&mut self) -> Result<&mut Self::Target> {
+    fn unbind(&self) -> Result<()> {
         unsafe {
             gl::BindVertexArray(0);
         }
-        Ok(self)
+        check_gl_error()
     }
 
-    fn is_bound(&self) -> bool {
+    fn is_bound(&self) -> Result<bool> {
         let mut current_vao = 0;
         unsafe {
             gl::GetIntegerv(gl::VERTEX_ARRAY_BINDING, &mut current_vao);
+            check_gl_error()?;
         }
-        current_vao == self.id as GLint
+        Ok(current_vao == self.id as GLint)
     }
 }
 

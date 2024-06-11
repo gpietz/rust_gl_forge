@@ -1,16 +1,22 @@
-use crate::gl_traits::Deletable;
-use crate::gl_types::ShaderType;
-use crate::gl_utils::check_gl_error;
-use crate::string_utils::*;
-use anyhow::{anyhow, Context, Result};
-use cgmath::Matrix;
-use gl::types::{GLboolean, GLchar, GLenum, GLint, GLuint};
+use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ffi::CString;
 use std::fs::File;
 use std::io::Read;
+use std::panic::panic_any;
 use std::path::Path;
-use std::ptr;
+use std::str::from_utf8;
+use std::{fs, ptr};
+
+use crate::core::file_utils;
+use anyhow::{anyhow, Context, Result};
+use cgmath::Matrix;
+use gl::types::{GLboolean, GLchar, GLenum, GLint, GLuint};
+
+use crate::gl_traits::Deletable;
+use crate::gl_types::ShaderType;
+use crate::gl_utils::check_gl_error;
+use crate::string_utils::*;
 
 //////////////////////////////////////////////////////////////////////////////
 // - Shader -
@@ -203,11 +209,20 @@ impl Drop for Shader {
 #[derive(Debug)]
 pub struct ShaderProgram {
     id: u32,
-    uniform_ids: HashMap<String, i32>,
+    uniform_ids: RefCell<HashMap<String, i32>>,
+    shader_sources: HashMap<ShaderType, String>,
+    shader_files: HashMap<ShaderType, String>,
 }
 
 impl ShaderProgram {
-    //pub fn from_sources(shader_sources: &[ShaderSource]) -> Result<ShaderProgram>
+    pub fn new() -> Self {
+        ShaderProgram {
+            id: 0,
+            uniform_ids: RefCell::new(HashMap::new()),
+            shader_sources: HashMap::new(),
+            shader_files: HashMap::new(),
+        }
+    }
 
     pub fn from_files(shader_files: &[&str]) -> Result<ShaderProgram> {
         let program_id = unsafe { gl::CreateProgram() };
@@ -221,12 +236,7 @@ impl ShaderProgram {
                 Some("frag") => ShaderType::Fragment,
                 Some("geom") => ShaderType::Geometry,
                 Some("comp") => ShaderType::Compute,
-                _ => {
-                    return Err(anyhow::anyhow!(format!(
-                        "Unknown shader type: {}",
-                        filename
-                    )))
-                }
+                _ => return Err(anyhow::anyhow!(format!("Unknown shader type: {}", filename))),
             };
 
             let shader = Shader::from_file(filename, shadertype)
@@ -272,13 +282,15 @@ impl ShaderProgram {
 
         println!("Shader program created successfully (id: {})", program_id);
 
-        Ok(ShaderProgram {
-            id: program_id,
-            uniform_ids: HashMap::new(),
-        })
+        let mut shader_program = Self::new();
+        Ok(shader_program)
     }
 
-    pub fn new(vertex_shader: &mut Shader, fragment_shader: &mut Shader) -> Result<ShaderProgram> {
+    #[deprecated]
+    pub fn new_dumb(
+        vertex_shader: &mut Shader,
+        fragment_shader: &mut Shader,
+    ) -> Result<ShaderProgram> {
         let program_id = unsafe { gl::CreateProgram() };
         unsafe {
             // Attach vertex shader
@@ -322,10 +334,8 @@ impl ShaderProgram {
 
         println!("Shader program created successfully (id: {})", program_id);
 
-        Ok(ShaderProgram {
-            id: program_id,
-            uniform_ids: HashMap::new(),
-        })
+        let mut shader_program = ShaderProgram::new();
+        Ok(shader_program)
     }
 
     pub fn program_id(&self) -> u32 {
@@ -352,8 +362,9 @@ impl ShaderProgram {
         }
     }
 
-    pub fn clear_uniform_locations(&mut self) {
-        self.uniform_ids.clear();
+    pub fn clear_uniform_locations(&self) {
+        let mut uniforms = self.uniform_ids.borrow_mut();
+        uniforms.clear();
     }
 
     /// Retrieves the location of a uniform variable within the shader program.
@@ -380,8 +391,8 @@ impl ShaderProgram {
     /// let location = shader_program.get_uniform_location("myUniform")?;
     /// // Use the location for setting the uniform variable...
     /// ```
-    pub fn get_uniform_location(&mut self, name: &str) -> Result<i32> {
-        if let Some(&location) = self.uniform_ids.get(name) {
+    pub fn get_uniform_location(&self, name: &str) -> Result<i32> {
+        if let Some(&location) = self.uniform_ids.borrow().get(name) {
             return Ok(location);
         }
 
@@ -389,7 +400,8 @@ impl ShaderProgram {
         let location = unsafe { gl::GetUniformLocation(self.id, c_str.as_ptr()) };
 
         if location != -1 {
-            self.uniform_ids.insert(name.to_string(), location);
+            let mut uniforms = self.uniform_ids.borrow_mut();
+            uniforms.insert(name.to_string(), location);
             Ok(location)
         } else {
             Err(anyhow!("Uniform '{}' not found in shader program", name))
@@ -429,7 +441,7 @@ impl ShaderProgram {
     /// # Notes
     /// The actual setting of the uniform is delegated to the `set_uniform` method of the `UniformValue` trait,
     /// which must be implemented for each type that can be used as a uniform.
-    pub fn set_uniform<T: UniformValue>(&mut self, name: &str, value: T) -> Result<()> {
+    pub fn set_uniform<T: UniformValue>(&self, name: &str, value: T) -> Result<()> {
         let location = self.get_uniform_location(name)?;
         if location == -1 {
             return Err(anyhow!("Uniform '{}' not found in shader", name));
@@ -474,7 +486,7 @@ impl ShaderProgram {
     }
 
     pub fn set_uniform_matrix<T: UniformMatrix>(
-        &mut self,
+        &self,
         name: &str,
         transpose: bool,
         matrix: &T,
@@ -486,7 +498,7 @@ impl ShaderProgram {
         matrix.set_uniform_matrix(location, transpose);
         Ok(())
     }
-    
+
     /// Sets a uniform variable with a three-component floating-point vector value in the shader program.
     ///
     /// This method allows you to set the value of a uniform variable in the shader program
@@ -525,13 +537,7 @@ impl ShaderProgram {
     ///
     /// Ensure that the shader program is currently in use before setting uniform variables.
     /// The shader program should be bound using appropriate methods before calling this function.
-    pub fn set_uniform_3f(
-        &mut self,
-        name: &str,
-        value0: f32,
-        value1: f32,
-        value2: f32,
-    ) -> Result<()> {
+    pub fn set_uniform_3f(&self, name: &str, value0: f32, value1: f32, value2: f32) -> Result<()> {
         self.set_uniform(name, (value0, value1, value2))
     }
 
@@ -592,14 +598,88 @@ impl ShaderProgram {
                 let name = String::from_utf8_lossy(&name_buf[..len as usize]).to_string();
                 names.push(name);
             } else {
-                return Err(anyhow!(
-                    "Failed to retrieve the name for uniform at index {}",
-                    i
-                ));
+                return Err(anyhow!("Failed to retrieve the name for uniform at index {}", i));
             }
         }
 
         Ok(names)
+    }
+
+    pub fn add_file(&mut self, r#type: ShaderType, file: &str) -> Result<()> {
+        if self.is_type_defined(&r#type) {
+            return Err(anyhow!("ShaderType already defined: {}", r#type));
+        }
+        self.shader_files.insert(r#type, file.to_string());
+        Ok(())
+    }
+
+    pub fn add_source(&mut self, r#type: ShaderType, source: &[u8]) -> Result<()> {
+        if self.is_type_defined(&r#type) {
+            return Err(anyhow!("ShaderType already defined: {}", r#type));
+        }
+        let source_str =
+            std::str::from_utf8(source).map_err(|e| anyhow!("Invalid UTF-8 sequence: {}", e))?;
+        self.shader_sources.insert(r#type, source_str.to_string());
+        Ok(())
+    }
+
+    pub fn is_type_defined(&self, r#type: &ShaderType) -> bool {
+        self.shader_sources.contains_key(r#type) || self.shader_files.contains_key(r#type)
+    }
+
+    pub fn compile(&mut self) -> Result<()> {
+        let mut shader_sources: HashMap<ShaderType, CString> = HashMap::new();
+        for shader_file in &self.shader_files {
+            // Get and display size of the shader file
+            let file_size = match file_utils::file_size(shader_file.1) {
+                Ok(size) => size,
+                Err(e) => {
+                    eprintln!("Error: {}", e);
+                    0
+                }
+            };
+
+            // Load shader source from file
+            let source = fs::read_to_string(shader_file.1)?;
+            let source = CString::new(source.as_bytes())?;
+            shader_sources.insert(*shader_file.0, source);
+            println!("Shader file loaded: {} ({})", shader_file.1, readable_bytes(file_size));
+        }
+        for shader_source in &self.shader_sources {
+            let source_bytes = shader_source.1.as_bytes();
+            let source = CString::new(source_bytes)?;
+            shader_sources.insert(*shader_source.0, source);
+            println!("Shader source added: {}", readable_bytes(source_bytes.len() as u64));
+        }
+
+        unsafe {
+            let shader_program = gl::CreateProgram();
+            let mut shader_ids = Vec::new();
+
+            // Compile shaders
+            for shader_source in shader_sources {
+                let shader_type_name = shader_source.0.to_string();
+                let shader = gl::CreateShader(shader_source.0.into());
+                gl::ShaderSource(shader, 1, &shader_source.1.as_ptr(), ptr::null());
+                gl::CompileShader(shader);
+                check_compile_errors(shader, &shader_type_name)?;
+                gl::AttachShader(shader_program, shader);
+                shader_ids.push(shader);
+            }
+
+            // Link program
+            gl::LinkProgram(shader_program);
+            check_compile_errors(shader_program, "PROGRAM")?;
+
+            // Delete shaders
+            for shader_id in shader_ids {
+                gl::DeleteShader(shader_id);
+            }
+
+            self.id = shader_program as u32;
+        }
+
+        Ok(())
     }
 
     //=== Concepts  ===
@@ -668,6 +748,52 @@ impl Drop for ShaderProgram {
     }
 }
 
+fn check_compile_errors(shader: GLuint, shader_type: &str) -> Result<()> {
+    let mut success: GLint = 1;
+    let mut info_log = vec![0; 1024];
+
+    unsafe {
+        match shader_type {
+            "PROGRAM" => {
+                gl::GetShaderiv(shader, gl::COMPILE_STATUS, &mut success);
+                if success == 0 {
+                    gl::GetShaderInfoLog(
+                        shader,
+                        1024,
+                        ptr::null_mut(),
+                        info_log.as_mut_ptr() as *mut GLchar,
+                    );
+                    let error_message = from_utf8(&info_log).unwrap_or("Failed to read log");
+                    return Err(anyhow!(
+                        "ERROR::SHADER_COMPILATION_ERROR of type: {}\n{}\n",
+                        shader_type,
+                        error_message
+                    ));
+                }
+            }
+            _ => {
+                gl::GetProgramiv(shader, gl::LINK_STATUS, &mut success);
+                if success == 0 {
+                    gl::GetProgramInfoLog(
+                        shader,
+                        1024,
+                        ptr::null_mut(),
+                        info_log.as_mut_ptr() as *mut GLchar,
+                    );
+                    let error_message = from_utf8(&info_log).unwrap_or("Failed to read log");
+                    return Err(anyhow!(
+                        "ERROR::PROGRAM_LINKING_ERROR of type: {}\n{}\n",
+                        shader_type,
+                        error_message
+                    ));
+                }
+            }
+        }
+    }
+
+    Ok(())
+}
+
 //////////////////////////////////////////////////////////////////////////////
 // - ShaderFactory -
 //////////////////////////////////////////////////////////////////////////////
@@ -721,7 +847,7 @@ impl ShaderFactory {
     pub fn from_source(vertex_shader: &str, fragment_shader: &str) -> Result<ShaderProgram> {
         let mut vertex_shader = Shader::from_source(vertex_shader, ShaderType::Vertex)?;
         let mut fragment_shader = Shader::from_source(fragment_shader, ShaderType::Fragment)?;
-        let shader_program = ShaderProgram::new(&mut vertex_shader, &mut fragment_shader)?;
+        let shader_program = ShaderProgram::new_dumb(&mut vertex_shader, &mut fragment_shader)?;
         vertex_shader.delete()?;
         fragment_shader.delete()?;
         Ok(shader_program)
@@ -774,7 +900,7 @@ impl ShaderFactory {
     pub fn from_files(vertex_shader: &str, fragment_shader: &str) -> Result<ShaderProgram> {
         let mut vertex_shader = Shader::from_file(vertex_shader, ShaderType::Vertex)?;
         let mut fragment_shader = Shader::from_file(fragment_shader, ShaderType::Fragment)?;
-        let shader_program = ShaderProgram::new(&mut vertex_shader, &mut fragment_shader)?;
+        let shader_program = ShaderProgram::new_dumb(&mut vertex_shader, &mut fragment_shader)?;
         vertex_shader.delete()?;
         fragment_shader.delete()?;
         Ok(shader_program)

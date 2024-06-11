@@ -1,9 +1,10 @@
+use crate::gl_types::ProjectionMatrix;
 use crate::Size2D;
 use cgmath::{ortho, perspective, Matrix4, Rad, SquareMatrix};
 use sdl2::sys::Screen;
 use std::mem::Discriminant;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone)]
 pub enum ProjectionType {
     Perspective,
     Orthographic,
@@ -15,7 +16,7 @@ pub struct Projection {
     aspect_ratio: f32,
     near: f32,
     far: f32,
-    projection_matrix: Matrix4<f32>,
+    projection_matrix: ProjectionMatrix,
 }
 
 impl Projection {
@@ -110,9 +111,7 @@ impl Projection {
     }
 
     pub fn projection_type(&self) -> ProjectionType {
-        self.fov.map_or(ProjectionType::Orthographic, |_| {
-            ProjectionType::Perspective
-        })
+        self.fov.map_or(ProjectionType::Orthographic, |_| ProjectionType::Perspective)
     }
 
     pub fn is_perspective(&self) -> bool {
@@ -121,5 +120,64 @@ impl Projection {
 
     pub fn is_orthographic(&self) -> bool {
         self.fov.is_none()
+    }
+}
+
+impl PartialEq for Projection {
+    fn eq(&self, other: &Self) -> bool {
+        self.fov == other.fov
+            && self.aspect_ratio == other.aspect_ratio
+            && self.near == other.near
+            && self.far == other.far
+    }
+}
+
+pub trait HasOptionalProjection {
+    fn get_projection(&self) -> Option<&Projection>;
+    fn set_projection(&mut self, projection: Option<&Projection>);
+    fn has_projection(&self) -> bool;
+}
+
+pub fn update_orthogonal_projection(
+    projection: Option<&Projection>,
+    last_projection: &mut Option<&Projection>,
+    projection_matrix: &mut ProjectionMatrix,
+) -> bool {
+    match projection {
+        Some(proj) => {
+            if projection_matrix.is_identity()
+                || !is_projection_equal_projection(projection, last_projection)
+            {
+                
+                
+                //let ortho_projection = ortho(0.0)  
+            }
+        }
+        None => {
+            if !projection_matrix.is_identity() {
+                *projection_matrix = Matrix4::<f32>::identity();
+                return true;
+            }
+        }
+    }
+
+    false
+}
+
+fn is_projection_equal_projection(
+    projection: Option<&Projection>,
+    last_projection: &mut Option<&Projection>,
+) -> bool {
+    match (projection, last_projection) {
+        (Some(proj), Some(last_proj)) => {
+            if proj.eq(last_proj) {
+                true
+            } else {
+                false
+            }
+        }
+        (Some(proj), None) => false,
+        (None, Some(_)) => false,
+        (None, None) => true,
     }
 }

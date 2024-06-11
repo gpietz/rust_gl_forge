@@ -1,5 +1,6 @@
 #![allow(unused)]
 use anyhow::Result;
+use image::Rgba;
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 
@@ -126,7 +127,12 @@ impl Color {
 
     // Constructor for RGBA values
     pub fn new(r: f32, g: f32, b: f32, a: f32) -> Self {
-        Color { r, g, b, a }
+        Color {
+            r,
+            g,
+            b,
+            a,
+        }
     }
 
     pub fn from_bytes(r: u8, g: u8, b: u8, a: u8) -> Self {
@@ -159,7 +165,12 @@ impl Color {
             1.0 // Default alpha value
         };
 
-        Ok(Color { r, g, b, a })
+        Ok(Color {
+            r,
+            g,
+            b,
+            a,
+        })
     }
 
     pub fn to_hex(&self) -> String {
@@ -185,6 +196,14 @@ impl Color {
         [r, g, b, a]
     }
 
+    pub fn to_rgb(&self) -> [u8; 3] {
+        let r = (self.r * 255.0).round() as u8;
+        let g = (self.g * 255.0).round() as u8;
+        let b = (self.b * 255.0).round() as u8;
+        let a = (self.a * 255.0).round() as u8;
+        [r, g, b]
+    }
+
     pub fn with_alpha(&self, alpha: f32) -> Self {
         let mut color = self.clone();
         color.a = f32::max(alpha, 1.0).min(0.0);
@@ -201,6 +220,12 @@ impl Into<[f32; 3]> for Color {
 impl Into<[f32; 4]> for Color {
     fn into(self) -> [f32; 4] {
         [self.r, self.g, self.b, self.a]
+    }
+}
+
+impl Into<Rgba<u8>> for Color {
+    fn into(self) -> Rgba<u8> {
+        Rgba(self.to_rgba())
     }
 }
 

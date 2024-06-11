@@ -49,7 +49,14 @@ pub fn as_c_void(offset: usize) -> *const c_void {
     }
 }
 
-#[inline]
+pub(crate) fn check_gl_error2() -> Result<()> {
+    let error = unsafe { gl::GetError() };
+    if error != gl::NO_ERROR {
+        return Err(anyhow::anyhow!("OpenGL error: {}", error));
+    }
+    Ok(())
+}
+
 pub(crate) fn check_gl_error() -> Result<()> {
     let mut errors = Vec::new();
 

@@ -1,18 +1,27 @@
 use anyhow::{Context, Error, Result};
 use sdl2::keyboard::{Keycode, Mod};
-use sdl2::sys::SDL_GL_GetDrawableSize;
+use sdl2::sys::{size_t, SDL_GL_GetDrawableSize};
 use sdl2::{
     video::{GLContext, SwapInterval, Window},
     EventPump, Sdl,
 };
+use std::borrow::Cow;
 use std::collections::HashSet;
 
+use crate::camera::view::View;
 use crate::color::Color;
 use crate::gl_traits::ToOpenGL;
 use crate::gl_types::RenderMask;
 use crate::gl_utils::check_gl_error;
 use crate::input::mouse_adapter::{MouseAdapter, MouseButton};
-use crate::Size2D;
+use crate::rectangle::Rectangle;
+use crate::{RenderTarget, Size2D};
+
+pub trait WindowTrait {
+    fn get_size(&self) -> Size2D<u32>;
+    fn get_render_size(&self) -> Size2D<u32>;
+    fn get_title(&self) -> &str;
+}
 
 //////////////////////////////////////////////////////////////////////////////
 // - SdlWindow -
@@ -24,6 +33,7 @@ pub struct SdlWindow {
     pub gl_context: GLContext,
     pub event_pump: EventPump,
     pub clear_color: Color,
+    view: View,
 }
 
 impl SdlWindow {
@@ -103,12 +113,15 @@ impl SdlWindow {
         }
 
         let event_pump = sdl.event_pump().map_err(Error::msg)?;
+        let view = create_default_view(&window);
+
         Ok(SdlWindow {
             sdl,
             window,
             gl_context,
             event_pump,
             clear_color: Color::BLACK,
+            view,
         })
     }
 }
@@ -318,7 +331,7 @@ impl SdlWindow {
     pub fn get_drawable_size(&self) -> (u32, u32) {
         self.window.drawable_size()
     }
-    
+
     pub fn size(&self) -> Size2D<u32> {
         let (width, height) = self.window.size();
         Size2D::<u32>::new(width, height)
@@ -386,8 +399,44 @@ impl MouseAdapter for SdlWindow {
             .iter()
             .filter(move |button| self.is_mouse_button_pressed(button))
     }
-    
+}
 
+impl<'a> RenderTarget<'a> for SdlWindow {
+    fn clear(&self) {
+        SdlWindow::clear(self);
+    }
+
+    fn clear_with_color(&mut self, color: impl Into<Cow<'a, Color>>) {
+        let color = color.into();
+        self.clear_color.r = color.r;
+        self.clear_color.g = color.g;
+        self.clear_color.b = color.b;
+        self.clear_color.a = color.a;
+        self.clear();
+    }
+
+    fn set_view(&mut self, view: View) {
+        self.view = view;
+    }
+
+    fn get_view(&self) -> &View {
+        &self.view
+    }
+
+    fn get_default_view(&self) -> View {
+        create_default_view(&self.window)
+    }
+
+    fn reset_view(&mut self) {
+        let default_view = self.get_default_view();
+        self.set_view(default_view);
+    }
+}
+
+fn create_default_view(window: &Window) -> View {
+    let (width, height) = window.size();
+    let rect = Rectangle::<f32>::new(0.0, 0.0, width as f32, height as f32);
+    View::from_rect(rect)
 }
 
 //////////////////////////////////////////////////////////////////////////////

@@ -1,5 +1,7 @@
 #![allow(dead_code)]
 
+pub mod view;
+
 use cgmath::{Deg, InnerSpace, Matrix4, Point3, Rad, Vector3};
 
 use crate::input::mouse_adapter::MouseAdapter;

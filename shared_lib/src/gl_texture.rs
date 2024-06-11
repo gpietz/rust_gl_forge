@@ -3,8 +3,8 @@ use std::os::raw::c_void;
 use std::path::Path;
 
 use anyhow::{anyhow, Context, Result};
-use gl::types::{GLenum, GLint};
-use image::GenericImageView;
+use gl::types::{GLenum, GLint, GLuint};
+use image::{DynamicImage, GenericImageView, ImageBuffer};
 use thiserror::Error;
 
 use crate::gl_shader::ShaderProgram;

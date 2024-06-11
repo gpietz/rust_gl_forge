@@ -89,17 +89,27 @@ impl<T> BufferObject<T> {
 
     pub fn new(r#type: BufferType, usage: BufferUsage, data: Vec<T>) -> BufferObject<T> {
         let mut id = 0;
+        let buffer_type = r#type.to_gl_enum();
         unsafe {
             gl::GenBuffers(1, &mut id);
-            gl::BindBuffer(r#type.to_gl_enum(), id);
+            check_gl_error().unwrap();
+
+            gl::BindBuffer(buffer_type, id);
+            check_gl_error().unwrap();
+
             if !data.is_empty() {
                 gl::BufferData(
-                    r#type.to_gl_enum(),
+                    buffer_type,
                     (data.len() * size_of::<T>()) as GLsizeiptr,
                     data.as_ptr() as *const c_void,
                     usage.to_gl_enum(),
-                );               
+                );
+                check_gl_error().unwrap();
             }
+
+            // Unbind the buffer to prevent unintended modifications
+            gl::BindBuffer(buffer_type, 0);
+            check_gl_error().unwrap();
         }
 
         BufferObject {
@@ -246,26 +256,25 @@ impl<T> BufferObject<T> {
 }
 
 impl<T> Bindable for BufferObject<T> {
-    type Target = BufferObject<T>;
-
-    fn bind(&mut self) -> Result<&mut Self::Target> {
+    fn bind(&self) -> Result<()> {
         unsafe { gl::BindBuffer(self.buffer_type.to_gl_enum(), self.id) }
-        Ok(self)
+        check_gl_error()
     }
 
-    fn unbind(&mut self) -> Result<&mut Self::Target> {
+    fn unbind(&self) -> Result<()> {
         unsafe {
             gl::BindBuffer(self.buffer_type.to_gl_enum(), 0);
         }
-        Ok(self)
+        check_gl_error()
     }
 
-    fn is_bound(&self) -> bool {
+    fn is_bound(&self) -> Result<bool> {
         let mut current_buffer_id = 0;
         unsafe {
             gl::GetIntegerv(self.buffer_type.to_gl_enum(), &mut current_buffer_id);
+            check_gl_error()?;
         }
-        current_buffer_id == self.id as GLint
+        Ok(current_buffer_id == self.id as GLint)
     }
 }
 
