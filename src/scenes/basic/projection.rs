@@ -10,7 +10,6 @@ use shared_lib::camera::Camera;
 use shared_lib::color::Color;
 use shared_lib::gl_buffer::BufferObject;
 use shared_lib::gl_prelude::PrimitiveType;
-use shared_lib::gl_texture::Texture;
 use shared_lib::gl_traits::Bindable;
 use shared_lib::gl_types::{Capability, IndicesValueType};
 use shared_lib::gl_vertex_array::VertexArrayObject;
@@ -21,6 +20,7 @@ use shared_lib::shapes::rectangle::Rectangle;
 use shared_lib::shapes::ShapesFactory;
 use shared_lib::vertices::textured_vertex::TexturedVertex;
 use shared_lib::{gl_draw, Drawable};
+use shared_lib::opengl::texture::Texture;
 
 use crate::render_context::RenderContext;
 use crate::resources::{shaders, textures};

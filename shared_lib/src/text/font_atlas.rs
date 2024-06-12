@@ -5,9 +5,7 @@ use std::io::Write;
 use anyhow::{Context, Result};
 use image::{DynamicImage, Rgba, RgbaImage};
 use rusttype::{Font, Scale, VMetrics};
-
-use crate::gl_texture_utils;
-use crate::gl_texture_utils::get_texture_from_gpu;
+use crate::opengl::texture_utils::get_texture_from_gpu;
 
 pub struct GlyphData {
     pub(crate) index: u8,

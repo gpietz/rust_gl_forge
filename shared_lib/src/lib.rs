@@ -19,8 +19,6 @@ pub mod gl_blend_guard;
 pub mod gl_buffer;
 pub mod gl_draw;
 pub mod gl_font;
-pub mod gl_texture;
-pub mod gl_texture_utils;
 pub mod gl_traits;
 pub mod gl_types;
 pub mod gl_utils;
@@ -50,7 +48,6 @@ pub mod gl_prelude {
     pub use crate::gl_buffer::*;
     pub use crate::gl_draw::*;
     pub use crate::gl_font::*;
-    pub use crate::gl_texture::*;
     pub use crate::gl_traits::*;
     pub use crate::gl_types::*;
     pub use crate::gl_utils::*;

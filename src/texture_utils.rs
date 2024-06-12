@@ -1,5 +1,6 @@
-use shared_lib::gl_texture::{Texture, TextureBuilder};
 use anyhow::Result;
+use shared_lib::opengl::texture::Texture;
+use shared_lib::opengl::texture_builder::TextureBuilder;
 
 pub(crate) fn create_texture(path: &str, has_alpha: bool, flip_vertical: bool) -> Result<Texture> {
     TextureBuilder::default()

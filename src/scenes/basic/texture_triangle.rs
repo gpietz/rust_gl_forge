@@ -5,9 +5,9 @@ use sdl2::keyboard::Keycode;
 use shared_lib::gl_buffer::BufferObject;
 use shared_lib::gl_draw;
 use shared_lib::gl_prelude::VertexLayoutManager;
-use shared_lib::gl_texture::Texture;
 use shared_lib::gl_types::{IndicesValueType, PrimitiveType};
 use shared_lib::gl_vertex_array::VertexArrayObject;
+use shared_lib::opengl::texture::Texture;
 use shared_lib::sdl_window::SdlKeyboardState;
 use shared_lib::vertices::textured_vertex::TexturedVertex;
 

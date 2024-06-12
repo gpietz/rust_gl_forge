@@ -1,4 +1,4 @@
-use shared_lib::gl_texture::{TextureFlags, TextureManager};
+use shared_lib::opengl::texture_manager::{TextureFlags, TextureManager};
 
 pub(crate) const M016018BG: &str = "M016018BG";
 pub(crate) const CRATE8: &str = "CRATE8";

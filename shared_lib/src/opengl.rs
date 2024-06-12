@@ -1,5 +1,9 @@
 pub mod shader;
-pub mod shader_program;
-pub mod shader_uniform_value;
-pub mod shader_uniform_matrix;
 pub mod shader_manager;
+pub mod shader_program;
+pub mod shader_uniform_matrix;
+pub mod shader_uniform_value;
+pub mod texture;
+pub mod texture_builder;
+pub mod texture_manager;
+pub mod texture_utils;

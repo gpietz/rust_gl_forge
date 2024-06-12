@@ -1,5 +1,4 @@
-use shared_lib::gl_texture::Texture;
-
+use shared_lib::opengl::texture::Texture;
 use crate::render_context::RenderContext;
 use crate::scene::SceneError;
 
