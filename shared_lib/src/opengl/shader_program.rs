@@ -20,7 +20,7 @@ use crate::string_utils::{create_whitespace_cstring_with_len, readable_bytes};
 // - ShaderProgram -
 //////////////////////////////////////////////////////////////////////////////
 
-#[derive(Debug)]
+#[derive(Default, Debug)]
 pub struct ShaderProgram {
     id: u32,
     uniform_ids: RefCell<HashMap<String, i32>>,
@@ -30,12 +30,7 @@ pub struct ShaderProgram {
 
 impl ShaderProgram {
     pub fn new() -> Self {
-        ShaderProgram {
-            id: 0,
-            uniform_ids: RefCell::new(HashMap::new()),
-            shader_sources: HashMap::new(),
-            shader_files: HashMap::new(),
-        }
+        Self { id: 0, uniform_ids: RefCell::new(HashMap::new()), shader_sources: HashMap::new(), shader_files: HashMap::new(), }
     }
 
     pub fn from_files(shader_files: &[&str]) -> Result<ShaderProgram> {
