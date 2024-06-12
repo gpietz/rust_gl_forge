@@ -26,5 +26,5 @@ features = ["bundled", "static-link"]
 members = [
     ".",
     "shared_lib",
-    "research/multitexturing", "research/rs_vertex_kit",
+    "research/multitexturing",
 ]
