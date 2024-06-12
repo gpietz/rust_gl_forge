@@ -4,7 +4,6 @@ use crate::gl_prelude::{
     check_gl_error2, BufferObject, BufferType, BufferUsage, PrimitiveType, ShaderType,
     VertexArrayObject, VertexLayoutManager,
 };
-use crate::gl_shader::ShaderProgram;
 use crate::gl_types::ProjectionMatrix;
 use crate::gl_utils::check_gl_error;
 use crate::projection::{HasOptionalProjection, Projection};
@@ -17,6 +16,7 @@ use image::imageops::unsharpen;
 use rusttype::Scale;
 use std::borrow::Cow;
 use std::{ptr, vec};
+use crate::opengl::shader_program::ShaderProgram;
 
 const TAB_WIDTH_IN_SPACES: usize = 4;
 

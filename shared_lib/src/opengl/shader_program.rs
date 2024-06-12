@@ -1,15 +1,19 @@
+use std::{fs, ptr};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ffi::CString;
 use std::str::from_utf8;
-use std::{fs, ptr};
 
 use anyhow::{anyhow, Context, Result};
 use gl::types::{GLchar, GLint, GLuint};
 
 use crate::core::file_utils;
-use crate::gl_prelude::{check_gl_error, Deletable, ShaderType, UniformMatrix, UniformValue};
+use crate::gl_traits::Deletable;
+use crate::gl_types::ShaderType;
+use crate::gl_utils::check_gl_error;
 use crate::opengl::shader::Shader;
+use crate::opengl::shader_uniform_matrix::UniformMatrix;
+use crate::opengl::shader_uniform_value::UniformValue;
 use crate::string_utils::{create_whitespace_cstring_with_len, readable_bytes};
 
 //////////////////////////////////////////////////////////////////////////////
@@ -371,11 +375,11 @@ impl ShaderProgram {
         Ok(())
     }
 
-    pub fn add_source(&mut self, r#type: ShaderType, source: &[u8]) -> Result<()> {
+    pub fn add_source<T: AsRef<[u8]>>(&mut self, r#type: ShaderType, source: T) -> Result<()> {
         if self.is_type_defined(&r#type) {
             return Err(anyhow!("ShaderType already defined: {}", r#type));
         }
-        let source_str = from_utf8(source).map_err(|e| anyhow!("Invalid UTF-8 sequence: {}", e))?;
+        let source_str = from_utf8(source.as_ref()).map_err(|e| anyhow!("Invalid UTF-8 sequence: {}", e))?;
         self.shader_sources.insert(r#type, source_str.to_string());
         Ok(())
     }

@@ -1,5 +1,5 @@
-use shared_lib::gl_shader_manager::ShaderManager;
 use std::collections::HashMap;
+use shared_lib::opengl::shader_manager::ShaderManager;
 
 pub const SIMPLE_RED: &str = "simple_red_shader";
 pub const SIMPLE_TRIANGLE: &str = "simple_triangle_shader";

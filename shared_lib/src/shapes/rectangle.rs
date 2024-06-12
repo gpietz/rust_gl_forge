@@ -1,22 +1,22 @@
-use std::ptr;
 #[macro_use]
 use std::sync::Mutex;
+
+use anyhow::{anyhow, Result};
+use cgmath::Matrix4;
+use once_cell::sync::Lazy;
+
+use crate::{Drawable, Position2D, Size2D};
 use crate::color::Color;
 use crate::gl_blend_guard::BlendGuard;
 use crate::gl_draw::{draw_arrays, draw_elements};
 use crate::gl_prelude::{
-    BufferObject, BufferType, BufferUsage, PrimitiveType, VertexAttributeType, VertexLayoutManager,
+    BufferObject, BufferType, BufferUsage, PrimitiveType, ShaderType, VertexAttributeType,
+    VertexLayoutManager,
 };
-use crate::gl_shader::{ShaderFactory, ShaderProgram};
 use crate::gl_traits::Bindable;
 use crate::gl_types::IndicesValueType;
-use crate::gl_utils::gl_enum_size;
 use crate::gl_vertex_array::VertexArrayObject;
-use crate::{Drawable, Position2D, Size2D};
-use anyhow::Result;
-use cgmath::Matrix4;
-use gl::types::{GLfloat, GLsizei};
-use once_cell::sync::Lazy;
+use crate::opengl::shader_program::ShaderProgram;
 
 const VERTEX_SHADER_SOURCE: &str = "
     #version 330 core
@@ -188,7 +188,7 @@ struct RectangleDraw {
     vbo: BufferObject<f32>,
     ebo: BufferObject<u32>,
     vertices: Vec<f32>,
-    shader: ShaderProgram,
+    shader: Option<ShaderProgram>,
     last_position: Option<Position2D>,
     last_size: Option<Size2D<f32>>,
 }
@@ -209,17 +209,33 @@ impl RectangleDraw {
             .expect("Failed to setup vertex attribute layout");
 
         // Create shader program
-        let vertex_shader = VERTEX_SHADER_SOURCE;
-        let fragment_shader = FRAGMENT_SHADER_SOURCE;
-        let shader_program = ShaderFactory::from_source(vertex_shader, fragment_shader)
-            .expect("Failed to create shader program");
+        let mut load_shader_ok = true;
+        let mut shader_program = ShaderProgram::new();
+        if let Err(e) = shader_program.add_source(ShaderType::Vertex, VERTEX_SHADER_SOURCE) {
+            eprintln!("Failed to add vertex shader: {}", e);
+            load_shader_ok = false;
+        }
+        if let Err(e) = shader_program.add_source(ShaderType::Fragment, FRAGMENT_SHADER_SOURCE) {
+            eprintln!("Failed to add fragment shader: {}", e);
+            load_shader_ok = false;
+        }
+        if load_shader_ok {
+            if let Err(e) = shader_program.compile() {
+                eprintln!("Failed to compile shader: {}", e);
+                load_shader_ok = false;
+            }
+        }
 
         Self {
             vao,
             vbo,
             ebo,
             vertices: Vec::new(),
-            shader: shader_program,
+            shader: if load_shader_ok {
+                Some(shader_program)
+            } else {
+                None
+            },
             last_position: None,
             last_size: None,
         }
@@ -254,25 +270,29 @@ impl RectangleDraw {
     }
 
     fn update_shader_uniforms(&mut self, rect: &Rectangle) -> Result<()> {
-        self.shader.activate();
+        if let Some(shader) = &mut self.shader {
+            shader.activate();
 
-        // Projection matrix
-        self.shader.set_uniform_matrix("ortho_matrix", false, &rect.projection_matrix)?;
-        // Color
-        let border_color: [f32; 4] = rect.color.into();
-        self.shader.set_uniform("borderColor", border_color)?;
-        // Fill color
-        let fill_color: [f32; 4] = rect.fill_color.unwrap_or(Color::TRANSPARENT).into();
-        self.shader.set_uniform("fillColor", fill_color)?;
-        // Opacity
-        self.shader.set_uniform("opacity", rect.opacity.clamp(0.0, 1.0));
-        // Corner radius
-        self.shader.set_uniform("cornerRadius", rect.corner_radius.unwrap_or(0.0))?;
-        // Flags (fill rectangle/round corners)
-        self.shader.set_uniform("isFilled", rect.fill_color.is_some())?;
-        self.shader.set_uniform("hasRoundedCorners", rect.corner_radius.is_some())?;
+            // Projection matrix
+            shader.set_uniform_matrix("ortho_matrix", false, &rect.projection_matrix)?;
+            // Color
+            let border_color: [f32; 4] = rect.color.into();
+            shader.set_uniform("borderColor", border_color)?;
+            // Fill color
+            let fill_color: [f32; 4] = rect.fill_color.unwrap_or(Color::TRANSPARENT).into();
+            shader.set_uniform("fillColor", fill_color)?;
+            // Opacity
+            shader.set_uniform("opacity", rect.opacity.clamp(0.0, 1.0));
+            // Corner radius
+            shader.set_uniform("cornerRadius", rect.corner_radius.unwrap_or(0.0))?;
+            // Flags (fill rectangle/round corners)
+            shader.set_uniform("isFilled", rect.fill_color.is_some())?;
+            shader.set_uniform("hasRoundedCorners", rect.corner_radius.is_some())?;
 
-        Ok(())
+            Ok(())
+        } else {
+            Err(anyhow!("Shader program is not initialized"))
+        }
     }
 
     fn update_vertices(&mut self, rect: &Rectangle) -> Result<()> {
@@ -314,6 +334,4 @@ impl RectangleDraw {
     }
 }
 
-static RECTANGLE_DRAW: Lazy<Mutex<RectangleDraw>> = Lazy::new(|| {
-    Mutex::new(RectangleDraw::new())
-});
+static RECTANGLE_DRAW: Lazy<Mutex<RectangleDraw>> = Lazy::new(|| Mutex::new(RectangleDraw::new()));

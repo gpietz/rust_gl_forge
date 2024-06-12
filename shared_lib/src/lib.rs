@@ -50,8 +50,6 @@ pub mod gl_prelude {
     pub use crate::gl_buffer::*;
     pub use crate::gl_draw::*;
     pub use crate::gl_font::*;
-    pub use crate::gl_shader::*;
-    pub use crate::gl_shader_manager::*;
     pub use crate::gl_texture::*;
     pub use crate::gl_traits::*;
     pub use crate::gl_types::*;

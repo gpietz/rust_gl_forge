@@ -18,7 +18,6 @@ use sdl2::libc::printf;
 use crate::gl_buffer::BufferObject;
 use crate::gl_draw::draw_primitive;
 use crate::gl_prelude::{check_gl_error, VertexLayoutManager};
-use crate::gl_shader::{Shader, ShaderFactory, ShaderProgram};
 use crate::gl_traits::{Bindable, Deletable};
 use crate::gl_types::{BufferType, BufferUsage, PrimitiveType, TextureTarget};
 use crate::gl_vertex::Vertex;

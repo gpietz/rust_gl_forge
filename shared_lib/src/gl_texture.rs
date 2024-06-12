@@ -7,16 +7,16 @@ use gl::types::{GLenum, GLint, GLuint};
 use image::{DynamicImage, GenericImageView, ImageBuffer};
 use thiserror::Error;
 
-use crate::gl_shader::ShaderProgram;
 use crate::gl_traits::Deletable;
 use crate::gl_types::TextureTarget;
 use crate::gl_utils::check_gl_error;
+use crate::opengl::shader_program::ShaderProgram;
 use crate::operation_status::OperationStatus;
 
 const ERR_DELETE_NON_OWNER: &str = r#"Attempted to delete a Texture that is not owned.
 Only the owner should attempt to delete the texture to avoid
 multiple deletion attempts of the same GPU resource."#;
-const ERR_CLONE_NON_CLONABLE: &str = r#"Attempted to clone a Texture instance that is not clonable.
+const ERR_CLONE_NON_CLONEABLE: &str = r#"Attempted to clone a Texture instance that is not clonable.
 Only the original owner-created instances should be cloned to prevent
 multiple instances attempting to manage the same GPU resource lifecycle."#;
 
@@ -32,7 +32,7 @@ pub struct Texture {
     dimension: [u32; 2],
     pub uniform_name: Option<String>,
     texture_type: TextureTarget,
-    clonable: bool,
+    cloneable: bool,
 }
 
 impl Texture {
@@ -69,11 +69,7 @@ impl Texture {
                 .with_context(|| format!("Failed to create texture object: {:?}", path.as_ref()))?;
             gl::BindTexture(gl::TEXTURE_2D, texture_id);
             check_gl_error().with_context(|| {
-                format!(
-                    "Failed to bind to texture: {:?} (id: {})",
-                    path.as_ref(),
-                    texture_id
-                )
+                format!("Failed to bind to texture: {:?} (id: {})", path.as_ref(), texture_id)
             })?;
 
             // Set texture parameters here (e.g. GL_TEXTURE_WRAP_S, GL_TEXTURE_MIN_FILTER)
@@ -82,7 +78,11 @@ impl Texture {
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR as GLint);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as GLint);
 
-            let format = if has_alpha { gl::RGBA } else { gl::RGB };
+            let format = if has_alpha {
+                gl::RGBA
+            } else {
+                gl::RGB
+            };
 
             let gl_texture_type = texture_type.to_gl_enum();
             gl::TexImage2D(
@@ -99,11 +99,7 @@ impl Texture {
 
             gl::GenerateMipmap(gl_texture_type);
             check_gl_error().with_context(|| {
-                format!(
-                    "Failed to generate mipmap: {:?} (id: {})",
-                    path.as_ref(),
-                    texture_id
-                )
+                format!("Failed to generate mipmap: {:?} (id: {})", path.as_ref(), texture_id)
             })?;
 
             // Unbind the texture
@@ -127,13 +123,13 @@ impl Texture {
             dimension: [width, height],
             uniform_name,
             texture_type,
-            clonable: true,
+            cloneable: true,
         })
     }
 
     pub(crate) fn clone_as_non_owner(&self) -> Result<Self> {
-        if !self.clonable {
-            Err(anyhow!(ERR_CLONE_NON_CLONABLE))
+        if !self.cloneable {
+            Err(anyhow!(ERR_CLONE_NON_CLONEABLE))
         } else {
             Ok(Texture {
                 id: self.id,
@@ -143,7 +139,7 @@ impl Texture {
                 dimension: self.dimension,
                 uniform_name: self.uniform_name.clone(),
                 texture_type: self.texture_type,
-                clonable: false,
+                cloneable: false,
             })
         }
     }
@@ -240,7 +236,7 @@ impl Texture {
 
 impl Deletable for Texture {
     fn delete(&mut self) -> Result<()> {
-        if !self.clonable {
+        if !self.cloneable {
             return Err(anyhow!(ERR_DELETE_NON_OWNER));
         }
         if self.id != 0 {
@@ -255,7 +251,7 @@ impl Deletable for Texture {
 
 impl Drop for Texture {
     fn drop(&mut self) {
-        if self.clonable {
+        if self.cloneable {
             if let Err(err) = self.delete() {
                 eprintln!("Error while dropping texture: {}", err);
                 // You might choose to log the error or take other appropriate actions here.
@@ -428,7 +424,9 @@ impl TextureManager {
 
         // Check if key is already present
         if self.textures.contains_key(&name) {
-            return OperationStatus::new_error(TextureError::KeyExists { key_name: name });
+            return OperationStatus::new_error(TextureError::KeyExists {
+                key_name: name,
+            });
         }
 
         // Check if file is existing
@@ -684,7 +682,7 @@ impl TextureManager {
     /// If insertion of a new texture succeeds but retrieval fails, it handles this
     /// edge case by returning a `FindFailed` error.
     pub fn get_texture(&mut self, name: &str) -> Result<Texture, TextureError> {
-        // Attempt for retrieve an clone an existing texture
+        // Attempt for retrieve and clone an existing texture
         if let Some(texture_data) = self.textures.get(name) {
             return get_cloned_texture(texture_data);
         }
@@ -765,10 +763,8 @@ impl TextureManager {
             match self.get_texture(texture_name) {
                 Ok(texture) => match texture.clone_as_non_owner() {
                     Ok(cloned_texture) => {
-                        texture_results.push(TextureResult::success(
-                            texture_name.to_string(),
-                            cloned_texture,
-                        ));
+                        texture_results
+                            .push(TextureResult::success(texture_name.to_string(), cloned_texture));
                     }
                     Err(clone_error) => {
                         texture_results.push(TextureResult::failure(
@@ -780,10 +776,8 @@ impl TextureManager {
                     }
                 },
                 Err(texture_error) => {
-                    texture_results.push(TextureResult::failure(
-                        texture_name.to_string(),
-                        texture_error,
-                    ));
+                    texture_results
+                        .push(TextureResult::failure(texture_name.to_string(), texture_error));
                 }
             }
         }
@@ -867,17 +861,25 @@ impl TextureData {
 #[derive(Debug, Clone, Error)]
 pub enum TextureError {
     #[error("A texture with that key exists already: {key_name}")]
-    KeyExists { key_name: String },
+    KeyExists {
+        key_name: String,
+    },
     #[error("No key with the name found: {key_name}")]
-    KeyNotExisting { key_name: String },
+    KeyNotExisting {
+        key_name: String,
+    },
     #[error("File has not been found")]
     FileNotFound,
     #[error("Failed to create texture: {message}")]
-    CreateTextureFailure { message: String },
+    CreateTextureFailure {
+        message: String,
+    },
     #[error("Failed to find a previously created texture")]
     FindFailed,
     #[error("Failed to clone a texture: {message}")]
-    CloneFailure { message: String },
+    CloneFailure {
+        message: String,
+    },
 }
 
 //////////////////////////////////////////////////////////////////////////////
