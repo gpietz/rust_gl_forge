@@ -1,8 +1,8 @@
-use std::{fs, ptr};
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ffi::CString;
 use std::str::from_utf8;
+use std::{fs, ptr};
 
 use anyhow::{anyhow, Context, Result};
 use gl::types::{GLchar, GLint, GLuint};
@@ -30,11 +30,18 @@ pub struct ShaderProgram {
 
 impl ShaderProgram {
     pub fn new() -> Self {
-        Self { id: 0, uniform_ids: RefCell::new(HashMap::new()), shader_sources: HashMap::new(), shader_files: HashMap::new(), }
+        Self {
+            id: 0,
+            uniform_ids: RefCell::new(HashMap::new()),
+            shader_sources: HashMap::new(),
+            shader_files: HashMap::new(),
+        }
     }
 
     pub fn from_files(shader_files: &[&str]) -> Result<ShaderProgram> {
         let program_id = unsafe { gl::CreateProgram() };
+
+        let mut shader_types_and_files = Vec::<(ShaderType, String)>::new();
 
         // Attach shaders
         let mut shaders = Vec::new();
@@ -48,7 +55,7 @@ impl ShaderProgram {
                 _ => return Err(anyhow::anyhow!(format!("Unknown shader type: {}", filename))),
             };
 
-            let shader = Shader::from_file(filename, shader_type)
+            let mut shader: Shader = Shader::from_file(filename, shader_type)
                 .with_context(|| format!("Failed loading shader: {}", filename))?;
 
             unsafe {
@@ -89,9 +96,14 @@ impl ShaderProgram {
             }
         }
 
+        // Initialize a ShaderProgram with a specific program ID and 
+        // add shader types and source files
+        let mut shader_program = ShaderProgram::default();
+        shader_program.id = program_id;
+        shader_program.shader_files.extend(shader_types_and_files);
+
         println!("Shader program created successfully (id: {})", program_id);
 
-        let mut shader_program = Self::new();
         Ok(shader_program)
     }
 
@@ -374,7 +386,8 @@ impl ShaderProgram {
         if self.is_type_defined(&r#type) {
             return Err(anyhow!("ShaderType already defined: {}", r#type));
         }
-        let source_str = from_utf8(source.as_ref()).map_err(|e| anyhow!("Invalid UTF-8 sequence: {}", e))?;
+        let source_str =
+            from_utf8(source.as_ref()).map_err(|e| anyhow!("Invalid UTF-8 sequence: {}", e))?;
         self.shader_sources.insert(r#type, source_str.to_string());
         Ok(())
     }
