@@ -55,7 +55,7 @@ fn main() -> Result<()> {
         Box::<ShaderTriangle>::new(ShaderTriangle::new(true)),
         Box::<TextureTriangle>::default(),
         Box::<Transformation>::default(),
-        //Box::<Projection>::default(),
+        Box::<Projection>::default(),
         //Box::<TextRendering>::new(TextRendering::new()?),
         //Box::<DrawRectangle>::default(),
     ];

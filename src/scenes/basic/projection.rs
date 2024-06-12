@@ -15,12 +15,12 @@ use shared_lib::gl_traits::Bindable;
 use shared_lib::gl_types::{Capability, IndicesValueType};
 use shared_lib::gl_vertex_array::VertexArrayObject;
 use shared_lib::gl_vertex_attribute::VertexLayoutManager;
+use shared_lib::opengl::shader_program::ShaderProgram;
 use shared_lib::sdl_window::SdlKeyboardState;
 use shared_lib::shapes::rectangle::Rectangle;
 use shared_lib::shapes::ShapesFactory;
 use shared_lib::vertices::textured_vertex::TexturedVertex;
 use shared_lib::{gl_draw, Drawable};
-use shared_lib::opengl::shader_program::ShaderProgram;
 
 use crate::render_context::RenderContext;
 use crate::resources::{shaders, textures};
@@ -330,9 +330,8 @@ impl Scene<RenderContext> for Projection {
             ];
 
             // Create vector for cube rotations
-            for _ in 0..10 {
-                self.cube_rotations.push(CubeRotation::new());
-            }
+            self.cube_rotations
+                .extend(std::iter::repeat_with(CubeRotation::new).take(10));
 
             // Create rectangle in upper left corner
             let window_size = context.window().size();
@@ -347,7 +346,7 @@ impl Scene<RenderContext> for Projection {
             //rectangle.set_corner_radius(Some(5.0));
             rectangle.set_opacity(0.6);
             //rectangle.set_strength(3.0);
-            self.rectangle = Some(rectangle);
+            //self.rectangle = Some(rectangle);
         }
         Ok(())
     }
