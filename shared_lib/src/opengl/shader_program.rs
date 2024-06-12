@@ -1,206 +1,16 @@
 use std::cell::RefCell;
 use std::collections::HashMap;
 use std::ffi::CString;
-use std::fs::File;
-use std::io::Read;
-use std::panic::panic_any;
-use std::path::Path;
 use std::str::from_utf8;
 use std::{fs, ptr};
 
-use crate::core::file_utils;
 use anyhow::{anyhow, Context, Result};
-use cgmath::Matrix;
-use gl::types::{GLboolean, GLchar, GLenum, GLint, GLuint};
+use gl::types::{GLchar, GLint, GLuint};
 
-use crate::gl_traits::Deletable;
-use crate::gl_types::ShaderType;
-use crate::gl_utils::check_gl_error;
-use crate::string_utils::*;
-
-//////////////////////////////////////////////////////////////////////////////
-// - Shader -
-//////////////////////////////////////////////////////////////////////////////
-
-pub struct Shader {
-    id: u32,
-    shader_file: Option<String>,
-}
-
-impl Shader {
-    pub fn from_source(source: &str, shader_type: ShaderType) -> Result<Shader> {
-        let id = unsafe {
-            let shader_type = shader_type.to_gl_enum() as GLenum;
-            let shader = gl::CreateShader(shader_type);
-            let error = gl::GetError();
-            if error != gl::NO_ERROR {
-                println!("Error !!");
-            }
-            let c_str = CString::new(source.as_bytes())
-                .context("Failed to create CString from shader source")?;
-            gl::ShaderSource(shader, 1, &c_str.as_ptr(), ptr::null());
-            gl::CompileShader(shader);
-
-            // Error checking
-            let mut success = gl::FALSE as GLint;
-            gl::GetShaderiv(shader, gl::COMPILE_STATUS, &mut success);
-            if success != gl::TRUE as GLint {
-                let mut len = 0;
-                gl::GetShaderiv(shader, gl::INFO_LOG_LENGTH, &mut len);
-                let error = create_whitespace_cstring_with_len(len as usize);
-                gl::GetShaderInfoLog(shader, len, ptr::null_mut(), error.as_ptr() as *mut GLchar);
-                return Err(anyhow!(error.into_string().unwrap()));
-            }
-
-            shader
-        };
-
-        Ok(Shader {
-            id,
-            shader_file: None,
-        })
-    }
-
-    /// Creates a new `Shader` from a file.
-    ///
-    /// This method reads a shader's source code from a specified file and creates
-    /// a new `Shader` object using that source. It handles the opening and reading
-    /// of the file, error checking, and shader compilation.
-    ///
-    /// # Type Parameters
-    /// * `P`: A generic parameter that can be converted to a `Path` reference, allowing
-    ///   for flexible path handling. Accepts both `String` and `&str`.
-    ///
-    /// # Parameters
-    /// * `shader_path`: The path to the shader file.
-    /// * `shader_type`: The type of the shader (e.g., vertex, fragment).
-    ///
-    /// # Returns
-    /// A `Result` which is `Ok` containing the new `Shader` object if the shader
-    /// compilation is successful, or an `Err` with an error message in case of failure.
-    ///
-    /// # Errors
-    /// This method can return an error in several cases:
-    /// - If the shader file cannot be opened.
-    /// - If reading from the shader file fails.
-    /// - If shader compilation fails.
-    ///
-    /// # Examples
-    /// ```
-    /// let shader_type = ShaderType::Vertex; // Assuming ShaderType is defined
-    /// let shader = Shader::from_file("path/to/shader.glsl", shader_type);
-    ///
-    /// match shader {
-    ///     Ok(shader) => { /* Use the shader */ }
-    ///     Err(e) => eprintln!("Error creating shader: {}", e),
-    /// }
-    /// ```
-    pub fn from_file<P: AsRef<Path>>(shader_path: P, shader_type: ShaderType) -> Result<Shader> {
-        // Open shader file
-        let mut shader_file = File::open(shader_path.as_ref()).with_context(|| {
-            format!("Failed top open shader: {}", shader_path.as_ref().display())
-        })?;
-
-        // Load content from file
-        let mut shader_content = String::new();
-        shader_file.read_to_string(&mut shader_content).with_context(|| {
-            format!("Failed to read shader: {}", shader_path.as_ref().display())
-        })?;
-
-        // Assuming `from_source` creates the shader and returns its id
-        let shader = Self::from_source(&shader_content, shader_type)
-            .map_err(|e| anyhow!("Failed to create shader: {}", e))?;
-
-        // Convert the shader path to a String
-        let shader_file_path = shader_path.as_ref().to_string_lossy().into_owned();
-        println!("Shader loaded: {} (id: {})", shader_file_path, shader.id);
-
-        Ok(shader)
-    }
-
-    pub fn get_shader_id(&self) -> u32 {
-        self.id
-    }
-
-    /// Retrieves a reference to the shader file path.
-    ///
-    /// This method returns an `Option` containing a reference to the `String` that
-    /// holds the path of the shader file, if it exists. If the shader was not
-    /// created from a file or if the file path is not available, it returns `None`.
-    ///
-    /// # Returns
-    /// * `Some(&String)` - A reference to the `String` containing the shader file path.
-    /// * `None` - If the shader file path is not available or not applicable.
-    ///
-    /// # Examples
-    /// ```
-    /// let shader = Shader::from_file("path/to/shader.glsl", shader_type)?;
-    /// let shader_file_path = shader.get_shader_file();
-    ///
-    /// match shader_file_path {
-    ///     Some(path) => println!("Shader file path: {}", path),
-    ///     None => println!("No shader file path available"),
-    /// }
-    /// ```
-    pub fn get_shader_file(&self) -> Option<&String> {
-        self.shader_file.as_ref()
-    }
-
-    pub fn load_vertex_shader(source: &str) -> Result<Shader> {
-        Shader::from_source(source, ShaderType::Vertex).context("Failed to load vertex shader")
-    }
-
-    pub fn load_fragment_shader(source: &str) -> Result<Shader> {
-        Shader::from_source(source, ShaderType::Fragment).context("Failed to load fragment shader")
-    }
-}
-
-impl Deletable for Shader {
-    /// Deletes the shader from the OpenGL context.
-    ///
-    /// This method safely deletes the shader associated with this instance from the GPU,
-    /// provided it has been created and not already deleted. It ensures that the shader
-    /// is only deleted if it exists (i.e., `self.id` is non-zero), preventing redundant
-    /// deletion calls. After deletion, the shader ID is reset to zero to indicate that
-    /// the shader has been deleted and to prevent potential misuse of an invalid ID.
-    ///
-    /// This method is called automatically when a `Shader` instance is dropped, but it can
-    /// also be called explicitly to manage the shader's lifecycle manually.
-    ///
-    /// # Safety
-    ///
-    /// This method contains `unsafe` code to interact with the underlying OpenGL API.
-    /// It is considered safe under the assumption that it is called with a valid shader
-    /// ID and that no other OpenGL errors occur outside of this function. However, as with
-    /// all `unsafe` code, caution should be exercised to ensure that the preconditions
-    /// for safe use are met.
-    ///
-    /// # Examples
-    ///
-    /// ```
-    /// let mut shader = Shader::new(vertex_source, ShaderType::Vertex)?;
-    /// // Use the shader...
-    /// shader.delete(); // Explicitly delete the shader when done
-    /// ```
-    fn delete(&mut self) -> Result<()> {
-        unsafe {
-            if self.id != 0 {
-                gl::DeleteShader(self.id);
-                self.id = 0;
-            }
-        }
-        Ok(())
-    }
-}
-
-impl Drop for Shader {
-    fn drop(&mut self) {
-        if let Err(err) = self.delete() {
-            eprintln!("Error while dropping shader: {}", err);
-            // You might choose to log the error or take other appropriate actions here.
-        }
-    }
-}
+use crate::core::file_utils;
+use crate::gl_prelude::{check_gl_error, Deletable, ShaderType, UniformMatrix, UniformValue};
+use crate::opengl::shader::Shader;
+use crate::string_utils::{create_whitespace_cstring_with_len, readable_bytes};
 
 //////////////////////////////////////////////////////////////////////////////
 // - ShaderProgram -
@@ -231,7 +41,7 @@ impl ShaderProgram {
         let mut shaders = Vec::new();
         for filename in shader_files {
             let extension = filename.rsplit_once('.').map(|(_, ext)| ext);
-            let shadertype = match extension {
+            let shader_type = match extension {
                 Some("vert") => ShaderType::Vertex,
                 Some("frag") => ShaderType::Fragment,
                 Some("geom") => ShaderType::Geometry,
@@ -239,7 +49,7 @@ impl ShaderProgram {
                 _ => return Err(anyhow::anyhow!(format!("Unknown shader type: {}", filename))),
             };
 
-            let shader = Shader::from_file(filename, shadertype)
+            let shader = Shader::from_file(filename, shader_type)
                 .with_context(|| format!("Failed loading shader: {}", filename))?;
 
             unsafe {
@@ -283,58 +93,6 @@ impl ShaderProgram {
         println!("Shader program created successfully (id: {})", program_id);
 
         let mut shader_program = Self::new();
-        Ok(shader_program)
-    }
-
-    #[deprecated]
-    pub fn new_dumb(
-        vertex_shader: &mut Shader,
-        fragment_shader: &mut Shader,
-    ) -> Result<ShaderProgram> {
-        let program_id = unsafe { gl::CreateProgram() };
-        unsafe {
-            // Attach vertex shader
-            gl::AttachShader(program_id, vertex_shader.get_shader_id());
-            check_gl_error()?;
-
-            // Attach fragment shader
-            gl::AttachShader(program_id, fragment_shader.get_shader_id());
-            check_gl_error()?;
-
-            // Link the program
-            gl::LinkProgram(program_id);
-            check_gl_error()?;
-
-            // Check for linking errors
-            let mut success = gl::FALSE as GLint;
-            gl::GetProgramiv(program_id, gl::LINK_STATUS, &mut success);
-            if success != gl::TRUE as GLint {
-                let mut len = 0;
-                gl::GetProgramiv(program_id, gl::INFO_LOG_LENGTH, &mut len);
-                let error = create_whitespace_cstring_with_len(len as usize);
-                gl::GetProgramInfoLog(
-                    program_id,
-                    len,
-                    ptr::null_mut(),
-                    error.as_ptr() as *mut GLchar,
-                );
-                return Err(anyhow::anyhow!(error.to_string_lossy().into_owned()));
-            }
-        }
-
-        // Detach shaders after successful linking
-        unsafe {
-            gl::DetachShader(program_id, vertex_shader.get_shader_id());
-            gl::DetachShader(program_id, fragment_shader.get_shader_id());
-        }
-
-        // Delete shaders cause they are no longer required
-        vertex_shader.delete()?;
-        fragment_shader.delete()?;
-
-        println!("Shader program created successfully (id: {})", program_id);
-
-        let mut shader_program = ShaderProgram::new();
         Ok(shader_program)
     }
 
@@ -386,7 +144,7 @@ impl ShaderProgram {
     /// It also returns an error if there's an issue with converting the provided name to a CString.
     ///
     /// # Examples
-    /// ```
+    /// ```no-run
     /// let shader_program = ShaderProgram::new(vertex_shader, fragment_shader)?;
     /// let location = shader_program.get_uniform_location("myUniform")?;
     /// // Use the location for setting the uniform variable...
@@ -431,7 +189,7 @@ impl ShaderProgram {
     /// - If there's an issue with the underlying `get_uniform_location` function, such as a CString conversion error.
     ///
     /// # Examples
-    /// ```
+    /// ```no-run
     /// let shader_program = ShaderProgram::new(vertex_shader, fragment_shader)?;
     /// shader_program.set_uniform("myUniform", 0.5f32)?;
     /// shader_program.set_uniform("myVec3Uniform", (1.0, 0.0, 0.0))?;
@@ -525,7 +283,7 @@ impl ShaderProgram {
     ///
     /// # Example
     ///
-    /// ```rust
+    /// ```no-run
     /// let mut shader_program = ShaderProgram::new();
     /// shader_program.set_uniform_3f("u_Color", 1.0, 0.0, 0.0)?;
     /// ```
@@ -556,7 +314,7 @@ impl ShaderProgram {
     /// variable. This could occur due to issues like exceeding buffer size or OpenGL state errors.
     ///
     /// # Examples
-    /// ```
+    /// ```no-run
     /// let shader_program = ShaderProgram::new(vertex_shader, fragment_shader)?;
     /// let uniform_names = shader_program.get_all_uniform_names()?;
     /// for name in uniform_names {
@@ -567,7 +325,7 @@ impl ShaderProgram {
     /// # Notes
     /// The buffer size for uniform names is set to 256 characters, which should be sufficient for
     /// most use cases. However, if you have uniforms with longer names, you may need to adjust
-    /// this size. The method uses OpenGL's `gl::GetActiveUniform` function for querying uniform
+    /// this size. The method uses OpenGLs `gl::GetActiveUniform` function for querying uniform
     /// information.
     pub fn get_all_uniform_names(&self) -> Result<Vec<String>> {
         let mut num_uniforms = 0;
@@ -579,7 +337,7 @@ impl ShaderProgram {
         for i in 0..num_uniforms {
             let mut len = 0;
             let mut size = 0;
-            let mut utype = 0;
+            let mut u_type = 0;
             let mut name_buf = vec![0; 256];
 
             unsafe {
@@ -589,7 +347,7 @@ impl ShaderProgram {
                     name_buf.len() as i32,
                     &mut len,
                     &mut size,
-                    &mut utype,
+                    &mut u_type,
                     name_buf.as_mut_ptr() as *mut GLchar,
                 );
             }
@@ -617,8 +375,7 @@ impl ShaderProgram {
         if self.is_type_defined(&r#type) {
             return Err(anyhow!("ShaderType already defined: {}", r#type));
         }
-        let source_str =
-            std::str::from_utf8(source).map_err(|e| anyhow!("Invalid UTF-8 sequence: {}", e))?;
+        let source_str = from_utf8(source).map_err(|e| anyhow!("Invalid UTF-8 sequence: {}", e))?;
         self.shader_sources.insert(r#type, source_str.to_string());
         Ok(())
     }
@@ -631,13 +388,10 @@ impl ShaderProgram {
         let mut shader_sources: HashMap<ShaderType, CString> = HashMap::new();
         for shader_file in &self.shader_files {
             // Get and display size of the shader file
-            let file_size = match file_utils::file_size(shader_file.1) {
-                Ok(size) => size,
-                Err(e) => {
-                    eprintln!("Error: {}", e);
-                    0
-                }
-            };
+            let file_size = file_utils::file_size(shader_file.1).unwrap_or_else(|e| {
+                eprintln!("Error: {}", e);
+                0
+            });
 
             // Load shader source from file
             let source = fs::read_to_string(shader_file.1)?;
@@ -792,285 +546,4 @@ fn check_compile_errors(shader: GLuint, shader_type: &str) -> Result<()> {
     }
 
     Ok(())
-}
-
-//////////////////////////////////////////////////////////////////////////////
-// - ShaderFactory -
-//////////////////////////////////////////////////////////////////////////////
-
-/// A factory for creating shader programs.
-///
-/// The `ShaderFactory` struct provides a simple interface for creating shader programs
-/// by loading and compiling vertex and fragment shaders from different sources. It abstracts
-/// the process of shader creation, allowing you to quickly generate shader programs for
-/// use in your graphics applications.
-///
-/// # Example
-///
-/// ```rust
-/// use gl_shader::ShaderFactory;
-///
-/// // Create a shader program using the ShaderFactory
-/// match ShaderFactory::from_files("vertex_shader.glsl", "fragment_shader.glsl") {
-///     Ok(shader_program) => {
-///         // Successfully created a shader program
-///     },
-///     Err(error) => {
-///         eprintln!("Error: {}", error);
-///     },
-/// }
-/// ```
-pub struct ShaderFactory;
-
-impl ShaderFactory {
-    /// Creates a `ShaderProgram` from given vertex and fragment shader sources.
-    ///
-    /// This function compiles the provided vertex and fragment shader source code
-    /// and links them into a `ShaderProgram`. After linking, the individual shader
-    /// objects are deleted as they are no longer needed.
-    ///
-    /// # Parameters
-    /// - `vertex_shader`: A string slice containing the vertex shader source code.
-    /// - `fragment_shader`: A string slice containing the fragment shader source code.
-    ///
-    /// # Returns
-    /// - `Result<ShaderProgram>`: Returns a `ShaderProgram` if the shaders compile
-    ///   and link successfully, otherwise returns an error.
-    ///
-    /// # Errors
-    /// Returns an error if the shader compilation or program linking fails.
-    ///
-    /// # Example
-    /// ```rust
-    /// let shader_program = ShaderProgram::from_source(vertex_src, fragment_src)?;
-    /// ```
-    pub fn from_source(vertex_shader: &str, fragment_shader: &str) -> Result<ShaderProgram> {
-        let mut vertex_shader = Shader::from_source(vertex_shader, ShaderType::Vertex)?;
-        let mut fragment_shader = Shader::from_source(fragment_shader, ShaderType::Fragment)?;
-        let shader_program = ShaderProgram::new_dumb(&mut vertex_shader, &mut fragment_shader)?;
-        vertex_shader.delete()?;
-        fragment_shader.delete()?;
-        Ok(shader_program)
-    }
-
-    /// Creates a new shader program from vertex and fragment shader source files.
-    ///
-    /// This function takes the file paths to the vertex and fragment shaders, compiles
-    /// them, links them into a shader program, and returns a `Result` containing the
-    /// resulting `ShaderProgram` if successful.
-    ///
-    /// # Arguments
-    ///
-    /// * `vertex_shader` - A string representing the file path to the vertex shader source file.
-    /// * `fragment_shader` - A string representing the file path to the fragment shader source file.
-    ///
-    /// # Returns
-    ///
-    /// * `Result<ShaderProgram>` - If the shader program creation is successful, it returns
-    ///   a `ShaderProgram`. If there are any errors during shader compilation or program linking,
-    ///   it returns an `Err` with an error message.
-    ///
-    /// # Errors
-    ///
-    /// This function may return an `Err` if:
-    ///
-    /// * The vertex shader file cannot be loaded or compiled.
-    /// * The fragment shader file cannot be loaded or compiled.
-    /// * The shader program cannot be linked successfully.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use gl_shader::{ShaderFactory, ShaderProgram};
-    ///
-    /// match ShaderFactory::from_files("vertex_shader.glsl", "fragment_shader.glsl") {
-    ///     Ok(shader_program) => {
-    ///         // Successfully created a shader program
-    ///     },
-    ///     Err(error) => {
-    ///         eprintln!("Error: {}", error);
-    ///     },
-    /// }
-    /// ```
-    ///
-    /// # Note
-    ///
-    /// This function assumes the existence of a custom shader library (your_shader_library)
-    /// with appropriate types and functions for shader handling (e.g., `Shader`, `ShaderType`, etc.).
-    pub fn from_files(vertex_shader: &str, fragment_shader: &str) -> Result<ShaderProgram> {
-        let mut vertex_shader = Shader::from_file(vertex_shader, ShaderType::Vertex)?;
-        let mut fragment_shader = Shader::from_file(fragment_shader, ShaderType::Fragment)?;
-        let shader_program = ShaderProgram::new_dumb(&mut vertex_shader, &mut fragment_shader)?;
-        vertex_shader.delete()?;
-        fragment_shader.delete()?;
-        Ok(shader_program)
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////////
-// - ShaderSource -
-//////////////////////////////////////////////////////////////////////////////
-
-/// Represents a shader source, which can be loaded either from a file or provided as a String.
-pub struct ShaderSource {
-    /// The type of shader (e.g., vertex, fragment, etc.).
-    pub r#type: ShaderType,
-    /// The source code of the shader.
-    pub source: String,
-    /// Indicates whether the source should be loaded from a file (`true`) or provided directly (`false`).
-    pub is_file: bool,
-}
-
-impl ShaderSource {
-    /// Checks if the shader source is valid, ensuring it is not empty or consists only of whitespace.
-    ///
-    /// # Returns
-    ///
-    /// - `Ok(())` if the shader source is not empty or contains non-whitespace characters.
-    /// - `Err` with an error message if the shader source is empty.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use my_shader_library::Shader;
-    ///
-    /// let shader = Shader::new("vertex_shader.glsl", "   ").unwrap();
-    /// let result = shader.is_valid();
-    ///
-    /// assert!(result.is_err());
-    /// ```
-    pub fn is_valid(&self) -> Result<()> {
-        if self.source.trim().is_empty() {
-            Err(anyhow!("Empty shader source is invalid"))
-        } else {
-            Ok(())
-        }
-    }
-
-    pub fn from_file(r#type: ShaderType, source: &str) -> Self {
-        Self {
-            r#type,
-            source: source.to_owned(),
-            is_file: true,
-        }
-    }
-
-    pub fn from_source(r#type: ShaderType, source: &str) -> Self {
-        Self {
-            r#type,
-            source: source.to_owned(),
-            is_file: false,
-        }
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////////
-// - UniformValue -
-//////////////////////////////////////////////////////////////////////////////
-
-pub trait UniformValue {
-    fn set_uniform(&self, location: i32);
-}
-
-impl UniformValue for bool {
-    fn set_uniform(&self, location: i32) {
-        unsafe {
-            gl::Uniform1i(location, *self as GLint);
-        }
-    }
-}
-
-impl UniformValue for i32 {
-    fn set_uniform(&self, location: i32) {
-        unsafe {
-            gl::Uniform1i(location, *self as GLint);
-        }
-    }
-}
-
-impl UniformValue for f32 {
-    fn set_uniform(&self, location: i32) {
-        unsafe {
-            gl::Uniform1f(location, *self);
-        }
-    }
-}
-
-impl UniformValue for (f32, f32) {
-    fn set_uniform(&self, location: i32) {
-        unsafe {
-            gl::Uniform2f(location, self.0, self.1);
-        }
-    }
-}
-
-impl UniformValue for (f32, f32, f32) {
-    fn set_uniform(&self, location: i32) {
-        unsafe {
-            gl::Uniform3f(location, self.0, self.1, self.2);
-        }
-    }
-}
-
-impl UniformValue for [f32; 3] {
-    fn set_uniform(&self, location: i32) {
-        unsafe {
-            gl::Uniform3f(location, self[0], self[1], self[2]);
-        }
-    }
-}
-
-impl UniformValue for [f32; 4] {
-    fn set_uniform(&self, location: i32) {
-        unsafe {
-            gl::Uniform4f(location, self[0], self[1], self[2], self[3]);
-        }
-    }
-}
-
-impl UniformValue for cgmath::Vector2<f32> {
-    fn set_uniform(&self, location: i32) {
-        unsafe {
-            gl::Uniform2f(location, self.x, self.y);
-        }
-    }
-}
-
-impl UniformValue for cgmath::Vector3<f32> {
-    fn set_uniform(&self, location: i32) {
-        unsafe {
-            gl::Uniform3f(location, self.x, self.y, self.z);
-        }
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////////
-// - UniformMatrix -
-//////////////////////////////////////////////////////////////////////////////
-
-/// `UniformMatrix` is a trait designed for setting uniform matrix values in a shader program.
-///
-/// This trait abstracts the operation of passing matrix data from your Rust code to shaders
-/// within your graphics API (e.g., OpenGL, Vulkan, etc.). Implementing this trait allows for
-/// a uniform way to set matrix uniforms across different shader programs and matrix types.
-///
-/// # Parameters
-/// - `location`: The location identifier for the uniform variable in the shader program. This
-///   is typically obtained by querying the shader program with the name of the uniform variable.
-///
-/// - `transpose`: Specifies whether the supplied matrix should be transposed before being
-///   sent to the shader. If `true`, the matrix's transpose (i.e., its rows and columns are
-///   swapped) is used. This is particularly useful because Rust and some graphics APIs like
-///   OpenGL expect matrices in different formats (row-major vs column-major).
-pub trait UniformMatrix {
-    fn set_uniform_matrix(&self, location: i32, transpose: bool);
-}
-
-impl UniformMatrix for cgmath::Matrix4<f32> {
-    fn set_uniform_matrix(&self, location: i32, transpose: bool) {
-        unsafe {
-            let matrix_ptr = self.as_ptr();
-            gl::UniformMatrix4fv(location, 1, transpose as GLboolean, matrix_ptr);
-        }
-    }
 }

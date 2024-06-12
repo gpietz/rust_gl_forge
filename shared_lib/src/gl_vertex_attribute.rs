@@ -380,6 +380,7 @@ impl VertexLayoutManager {
             unsafe {
                 // Set up the vertex attribute pointer
                 let gl_index = index as GLuint;
+                gl::EnableVertexAttribArray(gl_index);
                 gl::VertexAttribPointer(
                     gl_index as GLuint,
                     components as GLint,
@@ -388,7 +389,6 @@ impl VertexLayoutManager {
                     stride as GLsizei,
                     offset as *const GLvoid,
                 );
-                gl::EnableVertexAttribArray(gl_index);
             }
 
             // Check for GL errors after setting up the vertex attribute
@@ -428,10 +428,7 @@ impl VertexLayoutManager {
 
         // Iterate over each attribute
         for (index, attribute) in self.attributes.iter().enumerate() {
-            println!(
-                "Processing attribute {} for shader {}",
-                index, shader_program_id
-            );
+            println!("Processing attribute {} for shader {}", index, shader_program_id);
 
             // Determine the attribute properties from VertexAttributeType
             let (components, data_type, normalized): (u8, GLenum, bool) = (
@@ -454,9 +451,7 @@ impl VertexLayoutManager {
             // Check if the attribute location is valid
             if attr_location < 0 {
                 return if let Some(attribute_name) = &attribute.name {
-                    Err(VertexLayoutError::InvalidAttributeName(
-                        attribute_name.to_string(),
-                    ))
+                    Err(VertexLayoutError::InvalidAttributeName(attribute_name.to_string()))
                 } else {
                     Err(VertexLayoutError::InvalidAttributeLocation(index))
                 };

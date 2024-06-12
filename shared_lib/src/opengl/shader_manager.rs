@@ -1,6 +1,6 @@
-use crate::gl_shader::ShaderProgram;
 use anyhow::{anyhow, Result};
 use std::collections::HashMap;
+use crate::opengl::shader_program::ShaderProgram;
 
 #[derive(Default, Debug)]
 pub struct ShaderManager {
