@@ -15,6 +15,11 @@ use shared_lib::sdl_window::SdlWindow;
 use crate::render_context::RenderContext;
 use crate::resources::{shaders, textures};
 use crate::scene::Scene;
+use crate::scenes::basic::indexed_quad::IndexedQuad;
+use crate::scenes::basic::projection::Projection;
+use crate::scenes::basic::shader_triangle::ShaderTriangle;
+use crate::scenes::basic::texture_triangle::TextureTriangle;
+use crate::scenes::basic::transformation::Transformation;
 
 mod render_context;
 mod resources;
@@ -45,11 +50,11 @@ fn main() -> Result<()> {
     // Create scenes
     let mut scenes: Vec<Box<dyn Scene<RenderContext>>> = vec![
         Box::<FirstTriangle>::default(),
-        //Box::<IndexedQuad>::default(),
-        //Box::<ShaderTriangle>::new(ShaderTriangle::new(false)),
-        // Box::<ShaderTriangle>::new(ShaderTriangle::new(true)),
-        // Box::<TextureTriangle>::default(),
-        // Box::<Transformation>::default(),
+        Box::<IndexedQuad>::default(),
+        Box::<ShaderTriangle>::new(ShaderTriangle::new(false)),
+        Box::<ShaderTriangle>::new(ShaderTriangle::new(true)),
+        Box::<TextureTriangle>::default(),
+        Box::<Transformation>::default(),
         //Box::<Projection>::default(),
         //Box::<TextRendering>::new(TextRendering::new()?),
         //Box::<DrawRectangle>::default(),
