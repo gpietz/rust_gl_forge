@@ -2,19 +2,19 @@ use std::time::Instant;
 
 use gl::types::GLfloat;
 
-use crate::render_context::RenderContext;
-use shared_lib::gl_prelude::VertexDataType;
 use shared_lib::{
     gl_draw,
     gl_prelude::{
-        Bindable, BufferObject, BufferType, BufferUsage, PrimitiveType, VertexArrayObject,
+        BufferObject, BufferType, BufferUsage, PrimitiveType, VertexArrayObject,
         VertexAttribute, VertexAttributeType, VertexLayoutManager,
     },
     gl_vertex::Vertex,
 };
+use shared_lib::gl_prelude::VertexDataType;
 
-use crate::scene::{Scene, SceneResult};
+use crate::render_context::RenderContext;
 use crate::resources::shaders;
+use crate::scene::{Scene, SceneResult};
 
 //////////////////////////////////////////////////////////////////////////////
 // - ShaderTriangle -

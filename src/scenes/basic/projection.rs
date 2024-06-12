@@ -271,7 +271,7 @@ impl<'a> Projection {
     }
 
     fn toggle_depth_test(&mut self) {
-        let depth_test_enabled = Capability::DepthTest.is_enabled();
+        let depth_test_enabled = Capability::DepthTest.check_enabled();
         if !depth_test_enabled {
             Capability::DepthTest.enable();
             println!("Depth-Test enabled");

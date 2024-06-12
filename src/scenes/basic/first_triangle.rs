@@ -3,7 +3,7 @@ use cgmath::Vector3;
 use shared_lib::{
     gl_draw::draw_primitive,
     gl_prelude::{
-        Bindable, BufferObject, BufferType, BufferUsage, PrimitiveType
+        BufferObject, BufferType, BufferUsage, PrimitiveType
         , VertexArrayObject, VertexAttributeType, VertexLayoutManager,
     },
 };

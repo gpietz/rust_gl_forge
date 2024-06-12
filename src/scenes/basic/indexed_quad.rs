@@ -3,13 +3,13 @@ use cgmath::Vector3;
 use shared_lib::gl_prelude::{BufferType, BufferUsage, VertexAttributeType, VertexLayoutManager};
 use shared_lib::{
     gl_draw,
-    gl_prelude::{Bindable, BufferObject, PrimitiveType, VertexArrayObject},
+    gl_prelude::{BufferObject, PrimitiveType, VertexArrayObject},
     gl_types::IndicesValueType,
 };
 
 use crate::render_context::RenderContext;
-use crate::scene::{Scene, SceneError, SceneResult};
 use crate::resources::shaders;
+use crate::scene::{Scene, SceneError, SceneResult};
 
 //////////////////////////////////////////////////////////////////////////////
 // - IndexedQuad -
@@ -54,7 +54,7 @@ impl Scene<RenderContext> for IndexedQuad {
     fn draw(&mut self, context: &mut RenderContext) -> SceneResult {
         if let Some(vao) = self.vao.as_mut() {
             vao.bind()?;
-            
+
             let shader = context.shader_manager().get_shader(shaders::SIMPLE_RED);
             if let Ok(shader) = shader {
                 shader.activate();

@@ -28,7 +28,7 @@ impl Scene<RenderContext> for LightCube {
         Ok(())
     }
 
-    fn draw(&mut self, context: &mut RenderContext) -> SceneResult {
+    fn draw(&mut self, _context: &mut RenderContext) -> SceneResult {
         todo!()
     }
 }
