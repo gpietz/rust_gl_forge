@@ -1,5 +1,5 @@
-use shared_lib::gl_buffer::BufferObject;
 use shared_lib::gl_types::{BufferType, BufferUsage};
+use shared_lib::opengl::buffer_object::BufferObject;
 use shared_lib::vertices::textured_vertex::TexturedVertex;
 
 pub(crate) fn create_textured_vertices(vertices: &Vec<[f32; 5]>) -> Vec<TexturedVertex> {

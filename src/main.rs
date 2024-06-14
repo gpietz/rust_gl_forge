@@ -50,12 +50,12 @@ fn main() -> Result<()> {
     // Create scenes
     let mut scenes: Vec<Box<dyn Scene<RenderContext>>> = vec![
         Box::<FirstTriangle>::default(),
-        Box::<IndexedQuad>::default(),
-        Box::<ShaderTriangle>::new(ShaderTriangle::new(false)),
-        Box::<ShaderTriangle>::new(ShaderTriangle::new(true)),
-        Box::<TextureTriangle>::default(),
-        Box::<Transformation>::default(),
-        Box::<Projection>::default(),
+        // Box::<IndexedQuad>::default(),
+        // Box::<ShaderTriangle>::new(ShaderTriangle::new(false)),
+        // Box::<ShaderTriangle>::new(ShaderTriangle::new(true)),
+        // Box::<TextureTriangle>::default(),
+        // Box::<Transformation>::default(),
+        // Box::<Projection>::default(),
         //Box::<TextRendering>::new(TextRendering::new()?),
         //Box::<DrawRectangle>::default(),
     ];

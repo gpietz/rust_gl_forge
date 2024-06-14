@@ -5,18 +5,18 @@ use anyhow::{anyhow, Result};
 use cgmath::Matrix4;
 use once_cell::sync::Lazy;
 
-use crate::{Drawable, Position2D, Size2D};
 use crate::color::Color;
 use crate::gl_blend_guard::BlendGuard;
 use crate::gl_draw::{draw_arrays, draw_elements};
 use crate::gl_prelude::{
-    BufferObject, BufferType, BufferUsage, PrimitiveType, ShaderType, VertexAttributeType,
-    VertexLayoutManager,
+    BufferType, BufferUsage, PrimitiveType, ShaderType, VertexAttributeType, VertexLayoutManager,
 };
 use crate::gl_traits::Bindable;
 use crate::gl_types::IndicesValueType;
 use crate::gl_vertex_array::VertexArrayObject;
 use crate::opengl::shader_program::ShaderProgram;
+use crate::{Drawable, Position2D, Size2D};
+use crate::opengl::buffer_object::BufferObject;
 
 const VERTEX_SHADER_SOURCE: &str = "
     #version 330 core

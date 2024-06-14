@@ -3,8 +3,8 @@ use crate::scene::{Scene, SceneResult};
 use crate::vertex_data_3d::create_vbo;
 use cgmath::{Point3, Vector3};
 use shared_lib::camera::Camera;
-use shared_lib::gl_buffer::BufferObject;
 use shared_lib::gl_prelude::VertexArrayObject;
+use shared_lib::opengl::buffer_object::BufferObject;
 use shared_lib::vertices::textured_vertex::TexturedVertex;
 
 #[derive(Default)]

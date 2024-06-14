@@ -109,7 +109,7 @@ impl<T> BufferObject<T> {
 
             // Unbind the buffer to prevent unintended modifications
             //gl::BindBuffer(buffer_type, 0);
-            //check_gl_error().unwrap();
+            check_gl_error().unwrap();
         }
 
         BufferObject {

@@ -3,10 +3,11 @@ use cgmath::Vector3;
 use shared_lib::{
     gl_draw::draw_primitive,
     gl_prelude::{
-        BufferObject, BufferType, BufferUsage, PrimitiveType
-        , VertexArrayObject, VertexAttributeType, VertexLayoutManager,
+        BufferType, BufferUsage, PrimitiveType, VertexArrayObject, VertexAttributeType,
+        VertexLayoutManager,
     },
 };
+use shared_lib::opengl::buffer_object::BufferObject;
 
 use crate::render_context::RenderContext;
 use crate::resources::shaders;

@@ -3,9 +3,10 @@ use cgmath::Vector3;
 use shared_lib::gl_prelude::{BufferType, BufferUsage, VertexAttributeType, VertexLayoutManager};
 use shared_lib::{
     gl_draw,
-    gl_prelude::{BufferObject, PrimitiveType, VertexArrayObject},
+    gl_prelude::{PrimitiveType, VertexArrayObject},
     gl_types::IndicesValueType,
 };
+use shared_lib::opengl::buffer_object::BufferObject;
 
 use crate::render_context::RenderContext;
 use crate::resources::shaders;

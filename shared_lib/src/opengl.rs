@@ -1,3 +1,4 @@
+pub mod buffer_object;
 pub mod shader;
 pub mod shader_manager;
 pub mod shader_program;

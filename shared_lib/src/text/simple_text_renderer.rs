@@ -1,7 +1,7 @@
 use crate::color::Color;
 use crate::gl_font::Font;
 use crate::gl_prelude::{
-    check_gl_error2, BufferObject, BufferType, BufferUsage, PrimitiveType, ShaderType,
+    check_gl_error2, BufferType, BufferUsage, PrimitiveType, ShaderType,
     VertexArrayObject, VertexLayoutManager,
 };
 use crate::gl_types::ProjectionMatrix;
@@ -16,6 +16,7 @@ use image::imageops::unsharpen;
 use rusttype::Scale;
 use std::borrow::Cow;
 use std::{ptr, vec};
+use crate::opengl::buffer_object::BufferObject;
 use crate::opengl::shader_program::ShaderProgram;
 
 const TAB_WIDTH_IN_SPACES: usize = 4;
@@ -76,7 +77,7 @@ impl SimpleTextRenderer {
         self.font_atlas.texture_id
     }
 
-    pub fn render_text<'a>(
+    pub fn render_text(
         &mut self,
         text: &str,
         position: Position2D,
@@ -198,8 +199,8 @@ fn create_vertices_for_text(
         }
 
         if let Some(glyph) = font_atlas.glyphs.get(&ch) {
-            let xpos = x;
-            let ypos = y + glyph.bearing_y as f32;
+            let x_pos = x;
+            let y_pos = y + glyph.bearing_y as f32;
 
             let w = glyph.width as f32;
             let h = glyph.height as f32;
@@ -210,34 +211,34 @@ fn create_vertices_for_text(
             let v1 = glyph.y as f32 / font_atlas.height as f32;
 
             // First triangle
-            vertices.push(xpos);
-            vertices.push(ypos + h);
+            vertices.push(x_pos);
+            vertices.push(y_pos + h);
             vertices.push(u0);
             vertices.push(v0);
 
-            vertices.push(xpos);
-            vertices.push(ypos);
+            vertices.push(x_pos);
+            vertices.push(y_pos);
             vertices.push(u0);
             vertices.push(v1);
 
-            vertices.push(xpos + w);
-            vertices.push(ypos);
+            vertices.push(x_pos + w);
+            vertices.push(y_pos);
             vertices.push(u1);
             vertices.push(v1);
 
             // Second triangle
-            vertices.push(xpos);
-            vertices.push(ypos + h);
+            vertices.push(x_pos);
+            vertices.push(y_pos + h);
             vertices.push(u0);
             vertices.push(v0);
 
-            vertices.push(xpos + w);
-            vertices.push(ypos);
+            vertices.push(x_pos + w);
+            vertices.push(y_pos);
             vertices.push(u1);
             vertices.push(v1);
 
-            vertices.push(xpos + w);
-            vertices.push(ypos + h);
+            vertices.push(x_pos + w);
+            vertices.push(y_pos + h);
             vertices.push(u1);
             vertices.push(v0);
 
