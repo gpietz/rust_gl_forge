@@ -1,5 +1,7 @@
 pub mod blend_guard;
 pub mod buffer_object;
+pub mod font;
+pub mod font_texture_atlas;
 pub mod shader;
 pub mod shader_manager;
 pub mod shader_program;

@@ -1,5 +1,4 @@
 use crate::color::Color;
-use crate::gl_font::Font;
 use crate::gl_prelude::{check_gl_error2, BufferType, BufferUsage, PrimitiveType, ShaderType};
 use crate::gl_types::ProjectionMatrix;
 use crate::gl_utils::check_gl_error;
@@ -16,6 +15,7 @@ use image::imageops::unsharpen;
 use rusttype::Scale;
 use std::borrow::Cow;
 use std::{ptr, vec};
+use crate::opengl::font::Font;
 
 const TAB_WIDTH_IN_SPACES: usize = 4;
 

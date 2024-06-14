@@ -1,125 +1,14 @@
-#![allow(dead_code)]
-
-use std::collections::HashMap;
-use std::ffi::{c_void, CString};
-use std::fs::{read, File};
-use std::io::Write;
-use std::path::Path;
-use std::{mem, ptr, str};
-
-use anyhow::{format_err, Context, Result};
-use cgmath::{Matrix, Vector2};
-use gl::types::{GLfloat, GLint, GLsizei, GLsizeiptr, GLuint};
-use image::codecs::png::CompressionType::Fast;
-use image::{DynamicImage, ImageBuffer, Rgba, RgbaImage};
+use crate::color::Color;
+use anyhow::Context;
+use cgmath::Vector2;
+use image::{DynamicImage, Rgba, RgbaImage};
 use rusttype::{point, Scale};
-use sdl2::libc::printf;
-
-use crate::gl_draw::draw_primitive;
-use crate::gl_prelude::check_gl_error;
-use crate::gl_traits::{Bindable, Deletable};
-use crate::gl_types::{BufferType, BufferUsage, PrimitiveType, TextureTarget};
-use crate::prelude::Color;
-use crate::vertices::textured_vertex::TexturedVertex;
-
-//////////////////////////////////////////////////////////////////////////////
-// - FontScale -
-//////////////////////////////////////////////////////////////////////////////
-
-#[derive(Debug, Copy, Clone)]
-pub struct FontSize {
-    pub x: f32,
-    pub y: f32,
-}
-
-impl FontSize {
-    pub fn new(x: f32, y: f32) -> Self {
-        Self {
-            x,
-            y,
-        }
-    }
-
-    pub fn uniform(size: f32) -> Self {
-        Self {
-            x: size,
-            y: size,
-        }
-    }
-
-    fn to_rusttype_scale(&self) -> Scale {
-        Scale {
-            x: self.x,
-            y: self.y,
-        }
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////////
-// - Font -
-//////////////////////////////////////////////////////////////////////////////
-
-pub struct Font<'a> {
-    font_path: Option<String>,
-    pub(crate) font: Box<rusttype::Font<'a>>,
-}
-
-impl<'a> Font<'a> {
-    pub fn from_file<P: AsRef<Path>>(font_path: P) -> Result<Font<'a>> {
-        let path = font_path.as_ref();
-        let path_str = path.to_string_lossy().into_owned();
-
-        // load the font
-        let font_data =
-            read(path).with_context(|| format!("Error reading font file: {}", path_str))?;
-        let font = rusttype::Font::try_from_vec(font_data)
-            .with_context(|| format!("Error constructing a font from data {}", path_str))?;
-
-        println!("Loaded font {}", path_str);
-
-        Ok(Self {
-            font_path: Some(path_str),
-            font: Box::new(font),
-        })
-    }
-
-    /// Returns a read-only reference to the font's file path, if available.
-    ///
-    /// This method provides access to the path of the font file used to create
-    /// the font instance. It's useful for retrieving the original path of the font
-    /// for informational purposes, logging, or debugging. The method returns `None`
-    /// if the path was not set during the creation of the `Font` instance.
-    pub fn font_path(&self) -> Option<&str> {
-        self.font_path.as_deref()
-    }
-
-    // pub fn create_texture_atlas(&self, font_size: f32, color: &Color) -> Result<FontTextureAtlas> {
-    //     self.create_texture_atlas_with_size(FontSize::uniform(font_size), color)
-    // }
-
-    // pub fn create_texture_atlas_with_size(
-    //     &self,
-    //     font_size: FontSize,
-    //     color: &Color,
-    // ) -> Result<FontTextureAtlas> {
-    //     let font: &rusttype::Font = self.font.as_ref();
-    //     FontTextureAtlas::new(font, font_size, color)
-    // }
-}
-
-impl<'a> From<Font<'a>> for rusttype::Font<'a> {
-    fn from(font: Font<'a>) -> rusttype::Font<'a> {
-        let font_ref = font.font.as_ref();
-        font_ref.clone()
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////////
-// - FontTextureAtlas -
-//////////////////////////////////////////////////////////////////////////////
+use std::collections::HashMap;
+use std::fs::File;
+use std::io::Write;
 
 pub struct FontTextureAtlas {
-    font_size: FontSize,
+    font_size: f32,
     dimension: Vector2<u32>,
     image: Box<RgbaImage>,
     glyphs: HashMap<char, GlyphData>,
@@ -127,10 +16,14 @@ pub struct FontTextureAtlas {
 }
 
 impl FontTextureAtlas {
-    pub fn new(font: &rusttype::Font<'static>, font_size: FontSize, color: &Color) -> Result<Self> {
+    pub fn new(
+        font: &rusttype::Font<'static>,
+        font_size: f32,
+        color: &Color,
+    ) -> anyhow::Result<Self> {
         #[rustfmt::skip]
         let characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-.,;:_#*@?!=()[]";
-        let scale = font_size.to_rusttype_scale();
+        let scale = Scale::uniform(font_size);
         let metrics = font.v_metrics(scale);
         let offset = point(0.0, metrics.ascent);
         let glyphs: Vec<_> = font.layout(characters, scale, offset).collect();
@@ -171,12 +64,12 @@ impl FontTextureAtlas {
 
         for glyph in glyphs {
             if let Some(bounding_box) = glyph.pixel_bounding_box() {
-                if x_offset + bounding_box.width() as u32 > atlas_width as u32 {
+                if x_offset + bounding_box.width() as u32 > atlas_width {
                     x_offset = 1; // Neue Zeile beginnen
                     y_offset += atlas_height; // Höhe der aktuellen Zeile hinzufügen und mit Padding
                 }
 
-                if y_offset + bounding_box.height() as u32 > atlas_height as u32 {
+                if y_offset + bounding_box.height() as u32 > atlas_height {
                     return Err(anyhow::anyhow!("Glyph position out of bounds: x_offset={}, y_offset={}, glyph width={}, glyph height={}, atlas width={}, atlas height={}",
                         x_offset, y_offset, bounding_box.width(), bounding_box.height(), atlas_width, atlas_height));
                 }
@@ -218,7 +111,7 @@ impl FontTextureAtlas {
         })
     }
 
-    pub fn font_size(&self) -> &FontSize {
+    pub fn font_size(&self) -> &f32 {
         &self.font_size
     }
 
@@ -238,13 +131,13 @@ impl FontTextureAtlas {
         &self.color
     }
 
-    pub fn save_texture(&self, file_path: &str) -> Result<()> {
+    pub fn save_texture(&self, file_path: &str) -> anyhow::Result<()> {
         self.image
             .save(file_path)
             .with_context(|| "Error in saving texture atlas image")
     }
 
-    pub fn save_font_mapping(&self, file_path: &str) -> Result<()> {
+    pub fn save_font_mapping(&self, file_path: &str) -> anyhow::Result<()> {
         save_mapping_to_xml(&self.glyphs, file_path).with_context(|| "Error in saving font mapping")
     }
 
@@ -293,7 +186,10 @@ struct GlyphMapping {
 ///
 /// This function returns an `Err` if there is an error during serialization,
 /// file creation, or writing to the file.
-fn save_mapping_to_xml(glyph_data_map: &HashMap<char, GlyphData>, file_path: &str) -> Result<()> {
+fn save_mapping_to_xml(
+    glyph_data_map: &HashMap<char, GlyphData>,
+    file_path: &str,
+) -> anyhow::Result<()> {
     let mut glyph_mapping = GlyphMapping {
         glyphs: glyph_data_map.values().cloned().collect(),
     };

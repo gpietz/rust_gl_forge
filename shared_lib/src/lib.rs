@@ -16,7 +16,6 @@ pub mod color;
 pub mod conversion_utils;
 pub mod core;
 pub mod gl_draw;
-pub mod gl_font;
 pub mod gl_traits;
 pub mod gl_types;
 pub mod gl_utils;
@@ -41,7 +40,6 @@ pub mod prelude {
 }
 pub mod gl_prelude {
     pub use crate::gl_draw::*;
-    pub use crate::gl_font::*;
     pub use crate::gl_traits::*;
     pub use crate::gl_types::*;
     pub use crate::gl_utils::*;
