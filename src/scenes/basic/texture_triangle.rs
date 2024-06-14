@@ -5,9 +5,9 @@ use sdl2::keyboard::Keycode;
 use shared_lib::gl_draw;
 use shared_lib::gl_prelude::VertexLayoutManager;
 use shared_lib::gl_types::{IndicesValueType, PrimitiveType};
-use shared_lib::gl_vertex_array::VertexArrayObject;
 use shared_lib::opengl::buffer_object::BufferObject;
 use shared_lib::opengl::texture::Texture;
+use shared_lib::opengl::vertex_array_object::VertexArrayObject;
 use shared_lib::sdl_window::SdlKeyboardState;
 use shared_lib::vertices::textured_vertex::TexturedVertex;
 
@@ -43,7 +43,7 @@ impl TextureTriangle {
         } else {
             vertex_data_2d::create_triangle()
         };
-        
+
         let had_vao_data = self.vao.is_some();
         self.vao = Some(VertexArrayObject::new()?);
         self.vbo = Some(vertex_data.create_vbo());
@@ -52,7 +52,7 @@ impl TextureTriangle {
 
         // Setup vertex layout
         VertexLayoutManager::new::<TexturedVertex>().setup_attributes()?;
-        
+
         self.print_render_mode();
 
         if !had_vao_data {

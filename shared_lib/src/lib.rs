@@ -22,7 +22,6 @@ pub mod gl_traits;
 pub mod gl_types;
 pub mod gl_utils;
 pub mod gl_vertex;
-pub mod gl_vertex_array;
 pub mod gl_vertex_attribute;
 pub mod input;
 pub mod math;
@@ -50,7 +49,6 @@ pub mod gl_prelude {
     pub use crate::gl_types::*;
     pub use crate::gl_utils::*;
     pub use crate::gl_vertex::*;
-    pub use crate::gl_vertex_array::*;
     pub use crate::gl_vertex_attribute::*;
 }
 

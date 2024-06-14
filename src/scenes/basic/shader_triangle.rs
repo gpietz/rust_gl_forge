@@ -5,13 +5,14 @@ use gl::types::GLfloat;
 use shared_lib::{
     gl_draw,
     gl_prelude::{
-        BufferType, BufferUsage, PrimitiveType, VertexArrayObject,
+        BufferType, BufferUsage, PrimitiveType,
         VertexAttribute, VertexAttributeType, VertexLayoutManager,
     },
     gl_vertex::Vertex,
 };
 use shared_lib::gl_prelude::VertexDataType;
 use shared_lib::opengl::buffer_object::BufferObject;
+use shared_lib::opengl::vertex_array_object::VertexArrayObject;
 
 use crate::render_context::RenderContext;
 use crate::resources::shaders;

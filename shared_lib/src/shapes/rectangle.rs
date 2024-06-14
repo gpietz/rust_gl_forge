@@ -13,10 +13,10 @@ use crate::gl_prelude::{
 };
 use crate::gl_traits::Bindable;
 use crate::gl_types::IndicesValueType;
-use crate::gl_vertex_array::VertexArrayObject;
 use crate::opengl::shader_program::ShaderProgram;
 use crate::{Drawable, Position2D, Size2D};
 use crate::opengl::buffer_object::BufferObject;
+use crate::opengl::vertex_array_object::VertexArrayObject;
 
 const VERTEX_SHADER_SOURCE: &str = "
     #version 330 core
