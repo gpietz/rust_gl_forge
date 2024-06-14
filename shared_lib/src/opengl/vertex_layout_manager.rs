@@ -1,4 +1,4 @@
-use crate::gl_prelude::{check_gl_error, Vertex, VertexAttributeType};
+use crate::gl_prelude::{check_gl_error, VertexAttributeType};
 use crate::opengl::vertex_attribute::VertexAttribute;
 use anyhow::anyhow;
 use gl::types::{GLboolean, GLenum, GLint, GLsizei, GLuint, GLvoid};
@@ -28,7 +28,7 @@ impl VertexLayoutManager {
     }
 
     /// Constructs a new instance using attributes from the Vertex trait and initializes layout info.
-    pub fn new<T: Vertex>() -> Self {
+    pub fn new<T: VertexLayoutDescription>() -> Self {
         let mut manager = Self {
             attributes: T::attributes(),
             layout_info: HashMap::new(),
@@ -684,6 +684,13 @@ impl VertexLayoutManager {
     }
 }
 
+pub trait VertexLayoutDescription {
+    fn attributes() -> Vec<VertexAttribute>;
+    fn layout_size() -> usize {
+        Self::attributes().iter().map(|attr| attr.calculate_size()).sum()
+    }
+}
+
 #[derive(Error, Debug)]
 pub enum VertexLayoutError {
     #[error("Invalid VAO id")]
@@ -712,3 +719,4 @@ pub enum VertexLayoutError {
 fn check_and_map_gl_error() -> anyhow::Result<(), VertexLayoutError> {
     check_gl_error().map_err(|e| VertexLayoutError::OpenGL(e.to_string()))
 }
+

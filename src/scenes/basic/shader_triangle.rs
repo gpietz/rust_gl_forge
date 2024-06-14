@@ -2,19 +2,15 @@ use std::time::Instant;
 
 use gl::types::GLfloat;
 
-use shared_lib::{
-    gl_draw,
-    gl_prelude::{
-        BufferType, BufferUsage, PrimitiveType,
-        VertexAttributeType,
-    },
-    gl_vertex::Vertex,
-};
 use shared_lib::gl_prelude::VertexDataType;
 use shared_lib::opengl::buffer_object::BufferObject;
 use shared_lib::opengl::vertex_array_object::VertexArrayObject;
 use shared_lib::opengl::vertex_attribute::VertexAttribute;
-use shared_lib::opengl::vertex_layout_manager::VertexLayoutManager;
+use shared_lib::opengl::vertex_layout_manager::{VertexLayoutDescription, VertexLayoutManager};
+use shared_lib::{
+    gl_draw,
+    gl_prelude::{BufferType, BufferUsage, PrimitiveType, VertexAttributeType},
+};
 
 use crate::render_context::RenderContext;
 use crate::resources::shaders;
@@ -113,7 +109,7 @@ struct ColorPointVertex {
     pub color: [f32; 3],
 }
 
-impl Vertex for ColorPointVertex {
+impl VertexLayoutDescription for ColorPointVertex {
     // The color must be specified with 3 components here because normally the color includes
     // a fourth value, which indicates the alpha channel (transparency).
     fn attributes() -> Vec<VertexAttribute> {

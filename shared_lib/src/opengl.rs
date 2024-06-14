@@ -1,3 +1,4 @@
+pub mod blend_guard;
 pub mod buffer_object;
 pub mod shader;
 pub mod shader_manager;

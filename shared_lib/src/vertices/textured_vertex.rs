@@ -1,6 +1,7 @@
 use crate::color::Color;
-use crate::gl_prelude::{Vertex,VertexAttributeType};
+use crate::gl_prelude::VertexAttributeType;
 use crate::opengl::vertex_attribute::VertexAttribute;
+use crate::opengl::vertex_layout_manager::VertexLayoutDescription;
 use crate::vertices::{VertexColor, VertexTexCoords};
 
 //////////////////////////////////////////////////////////////////////////////
@@ -120,7 +121,7 @@ impl Default for TexturedVertex {
     }
 }
 
-impl Vertex for TexturedVertex {
+impl VertexLayoutDescription for TexturedVertex {
     fn attributes() -> Vec<VertexAttribute> {
         vec![
             VertexAttributeType::Position.into(),
