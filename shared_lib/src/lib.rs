@@ -23,7 +23,6 @@ pub mod input;
 pub mod math;
 pub mod meshes;
 pub mod opengl;
-pub mod operation_status;
 pub mod projection;
 pub mod rectangle;
 pub mod sdl_window;

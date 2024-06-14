@@ -50,13 +50,20 @@ pub(crate) fn add_textures(texture_manager: &mut TextureManager) {
     ];
 
     for info in texture_infos {
-        texture_manager.add_path(&info.name, &info.path);
-        texture_manager.add_texture_flags(
-            &info.name,
-            TextureFlags {
-                has_alpha: info.has_alpha,
-                flip_vertically: info.flip_vertically,
-            },
-        );
+        let result = texture_manager.add_path(&info.name, &info.path);
+        match result {
+            Ok(_) => {
+                texture_manager.add_texture_flags(
+                    &info.name,
+                    TextureFlags {
+                        has_alpha: info.has_alpha,
+                        flip_vertically: info.flip_vertically,
+                    },
+                );
+            }
+            Err(_) => {
+                //Todo Handle error here!
+            }
+        }
     }
 }

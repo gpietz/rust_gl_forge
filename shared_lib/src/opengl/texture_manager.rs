@@ -1,6 +1,5 @@
 use crate::opengl::texture::Texture;
 use crate::opengl::texture_builder::TextureBuilder;
-use crate::operation_status::OperationStatus;
 use std::collections::HashMap;
 use std::path::Path;
 use thiserror::Error;
@@ -67,25 +66,23 @@ impl TextureManager {
     ///     OperationStatus::Error(e) => println!("Failed to add texture: {:?}", e),
     /// }
     /// ```
-    pub fn add_path(&mut self, name: &str, texture_path: &str) -> OperationStatus<TextureError> {
+    pub fn add_path(&mut self, name: &str, texture_path: &str) -> Result<(), TextureError> {
         let name = name.to_string();
 
         // Check if key is already present
         if self.textures.contains_key(&name) {
-            return OperationStatus::new_error(TextureError::KeyExists {
-                key_name: name,
-            });
+            return Err(TextureError::KeyExists { key_name: name });
         }
 
         // Check if file is existing
         if let Some(texture_error) = Self::check_file_exists(texture_path) {
             self.texture_error.insert(name, texture_error.clone());
-            return OperationStatus::new_error(texture_error);
+            return Err(texture_error);
         }
 
         // Add texture path into map
         self.texture_paths.insert(name, texture_path.to_string());
-        OperationStatus::new_success()
+        Ok(())
     }
 
     /// Adds or updates a texture path in the map.
@@ -121,18 +118,18 @@ impl TextureManager {
         &mut self,
         name: &str,
         texture_path: &str,
-    ) -> OperationStatus<TextureError> {
+    ) -> Result<(), TextureError> {
         let name = name.to_string();
 
         // Check if file is existing
         if let Some(texture_error) = Self::check_file_exists(texture_path) {
             self.texture_error.insert(name.clone(), texture_error.clone());
-            return OperationStatus::new_error(texture_error);
+            return Err(texture_error);
         }
 
         // Add texture path to map where it'll be replaced if it exists already
         self.texture_paths.insert(name, texture_path.to_string());
-        OperationStatus::new_success()
+        Ok(())
     }
 
     /// Checks if a file exists at the specified texture path.
