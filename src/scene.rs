@@ -1,8 +1,7 @@
 use anyhow::Error as AnyhowError;
 use anyhow::Result;
 use thiserror::Error;
-
-use shared_lib::gl_vertex_attribute::VertexLayoutError;
+use shared_lib::opengl::vertex_layout_manager::VertexLayoutError;
 
 #[derive(Debug, Error)]
 pub(crate) enum SceneError {

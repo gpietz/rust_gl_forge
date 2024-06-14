@@ -1,6 +1,6 @@
-use crate::gl_vertex_attribute::VertexLayoutManager;
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
+use crate::opengl::vertex_layout_manager::VertexLayoutManager;
 
 #[derive(Serialize, Deserialize)]
 pub(crate) struct VertexAttribute {

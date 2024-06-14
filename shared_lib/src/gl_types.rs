@@ -10,7 +10,7 @@ use gl_utils::*;
 
 use crate::gl_traits::ToOpenGL;
 use crate::gl_utils;
-use crate::gl_vertex_attribute::VertexAttribute;
+use crate::opengl::vertex_attribute::VertexAttribute;
 
 //////////////////////////////////////////////////////////////////////////////
 // - BufferType -

@@ -1,12 +1,11 @@
 use crate::color::Color;
 use crate::gl_font::Font;
-use crate::gl_prelude::{
-    check_gl_error2, BufferType, BufferUsage, PrimitiveType, ShaderType, VertexLayoutManager,
-};
+use crate::gl_prelude::{check_gl_error2, BufferType, BufferUsage, PrimitiveType, ShaderType};
 use crate::gl_types::ProjectionMatrix;
 use crate::gl_utils::check_gl_error;
 use crate::opengl::buffer_object::BufferObject;
 use crate::opengl::shader_program::ShaderProgram;
+use crate::opengl::vertex_array_object::VertexArrayObject;
 use crate::projection::{HasOptionalProjection, Projection};
 use crate::text::font_atlas::FontAtlas;
 use crate::{gl_draw, Position2D, Size2D};
@@ -17,7 +16,6 @@ use image::imageops::unsharpen;
 use rusttype::Scale;
 use std::borrow::Cow;
 use std::{ptr, vec};
-use crate::opengl::vertex_array_object::VertexArrayObject;
 
 const TAB_WIDTH_IN_SPACES: usize = 4;
 

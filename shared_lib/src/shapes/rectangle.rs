@@ -8,15 +8,14 @@ use once_cell::sync::Lazy;
 use crate::color::Color;
 use crate::gl_blend_guard::BlendGuard;
 use crate::gl_draw::{draw_arrays, draw_elements};
-use crate::gl_prelude::{
-    BufferType, BufferUsage, PrimitiveType, ShaderType, VertexAttributeType, VertexLayoutManager,
-};
+use crate::gl_prelude::{BufferType, BufferUsage, PrimitiveType, ShaderType, VertexAttributeType};
 use crate::gl_traits::Bindable;
 use crate::gl_types::IndicesValueType;
 use crate::opengl::shader_program::ShaderProgram;
 use crate::{Drawable, Position2D, Size2D};
 use crate::opengl::buffer_object::BufferObject;
 use crate::opengl::vertex_array_object::VertexArrayObject;
+use crate::opengl::vertex_layout_manager::VertexLayoutManager;
 
 const VERTEX_SHADER_SOURCE: &str = "
     #version 330 core

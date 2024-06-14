@@ -4,11 +4,11 @@ use shared_lib::{
     gl_draw::draw_primitive,
     gl_prelude::{
         BufferType, BufferUsage, PrimitiveType, VertexAttributeType,
-        VertexLayoutManager,
     },
 };
 use shared_lib::opengl::buffer_object::BufferObject;
 use shared_lib::opengl::vertex_array_object::VertexArrayObject;
+use shared_lib::opengl::vertex_layout_manager::VertexLayoutManager;
 
 use crate::render_context::RenderContext;
 use crate::resources::shaders;

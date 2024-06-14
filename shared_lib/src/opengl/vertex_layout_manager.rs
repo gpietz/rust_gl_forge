@@ -1,98 +1,9 @@
-// Ensure you have the `gl` crate added to your `Cargo.toml`
-extern crate gl;
-
-use std::collections::HashMap;
-use std::fmt::Debug;
-
+use crate::gl_prelude::{check_gl_error, Vertex, VertexAttributeType};
+use crate::opengl::vertex_attribute::VertexAttribute;
 use anyhow::anyhow;
-use anyhow::Result;
 use gl::types::{GLboolean, GLenum, GLint, GLsizei, GLuint, GLvoid};
+use std::collections::HashMap;
 use thiserror::Error;
-
-use crate::gl_prelude::Vertex;
-use crate::gl_types::{VertexAttributeType, VertexDataType};
-use crate::gl_utils::check_gl_error;
-
-//////////////////////////////////////////////////////////////////////////////
-// - VertexAttribute -
-//////////////////////////////////////////////////////////////////////////////
-
-#[derive(Clone, Debug)]
-pub struct VertexAttribute {
-    /// Optional name of the attribute, useful when querying by name in shader programs.
-    pub name: Option<String>,
-    pub components: u8,
-    pub data_type: VertexDataType,
-    pub normalized: Option<bool>,
-    pub stride: Option<u32>,
-    pub offset: Option<u32>,
-}
-
-impl VertexAttribute {
-    pub fn new(components: u8, data_type: VertexDataType) -> Self {
-        Self {
-            components,
-            data_type,
-            ..Self::default()
-        }
-    }
-
-    /// Sets the name field of the instance, consuming and returning self for method chaining.
-    pub fn name(mut self, name: impl Into<Option<String>>) -> Self {
-        self.name = name.into();
-        self
-    }
-
-    /// Sets the number of components for the vertex attribute and returns the modified object.
-    /// # Arguments
-    /// * `components` - A `u8` specifying the number of components (1 to 4 are typical values).
-    pub fn components(mut self, components: u8) -> Self {
-        self.components = components;
-        self
-    }
-
-    pub fn data_type(mut self, data_type: VertexDataType) -> Self {
-        self.data_type = data_type;
-        self
-    }
-
-    pub fn normalized(mut self, normalized: impl Into<Option<bool>>) -> Self {
-        self.normalized = normalized.into();
-        self
-    }
-
-    pub fn stride(mut self, stride: impl Into<Option<u32>>) -> Self {
-        self.stride = stride.into();
-        self
-    }
-
-    pub fn offset(mut self, offset: impl Into<Option<u32>>) -> Self {
-        self.offset = offset.into();
-        self
-    }
-
-    /// Calculates the byte size of the attribute based on its specifications or its type.
-    pub fn calculate_size(&self) -> usize {
-        self.data_type.size() * self.components as usize
-    }
-}
-
-impl Default for VertexAttribute {
-    fn default() -> Self {
-        VertexAttribute {
-            name: None,
-            components: 3,
-            data_type: VertexDataType::Float,
-            normalized: None,
-            stride: None,
-            offset: None,
-        }
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////////
-// - VertexLayoutManager -
-//////////////////////////////////////////////////////////////////////////////
 
 #[derive(Debug, Default)]
 pub struct VertexLayoutManager {
@@ -272,7 +183,7 @@ impl VertexLayoutManager {
     /// layout_manager.add_attribute(VertexAttribute { components: 3, ... });
     /// assert!(layout_manager.finalize_layout().is_ok());
     /// ```
-    pub fn finalize_layout(&mut self) -> Result<(), VertexLayoutError> {
+    pub fn finalize_layout(&mut self) -> anyhow::Result<(), VertexLayoutError> {
         for attribute in self.attributes.iter() {
             // Check number of components
             if attribute.components < 1 || attribute.components > 4 {
@@ -359,7 +270,7 @@ impl VertexLayoutManager {
     /// ```no-run
     /// layout.setup_attributes()?;
     /// ```
-    pub fn setup_attributes(&mut self) -> Result<(), VertexLayoutError> {
+    pub fn setup_attributes(&mut self) -> anyhow::Result<(), VertexLayoutError> {
         self.finalize_layout()?;
 
         for (index, attribute) in self.attributes.iter().enumerate() {
@@ -419,7 +330,7 @@ impl VertexLayoutManager {
     pub fn setup_attributes_for_shader(
         &mut self,
         shader_program_id: u32,
-    ) -> Result<(), VertexLayoutError> {
+    ) -> anyhow::Result<(), VertexLayoutError> {
         if shader_program_id == 0 {
             return Err(VertexLayoutError::InvalidShaderId);
         }
@@ -566,7 +477,11 @@ impl VertexLayoutManager {
     /// vertex layouts are uniquely identified and managed within a centralized
     /// system, facilitating better resource management and consistency across
     /// rendering operations.
-    pub fn create_layout(&mut self, key: &str, attributes: Vec<VertexAttribute>) -> Result<()> {
+    pub fn create_layout(
+        &mut self,
+        key: &str,
+        attributes: Vec<VertexAttribute>,
+    ) -> anyhow::Result<()> {
         if self.layouts.contains_key(key) {
             return Err(anyhow!("A layout with the key '{}' already exists.", key));
         }
@@ -631,7 +546,7 @@ impl VertexLayoutManager {
     /// # Usage
     /// This method is typically used when specific vertex layouts are no longer
     /// needed or during cleanup processes where resources need to be released.
-    pub fn delete_layout(&mut self, key: &str) -> Result<()> {
+    pub fn delete_layout(&mut self, key: &str) -> anyhow::Result<()> {
         if self.layouts.remove(key).is_none() {
             return Err(anyhow!("No layout found with the key '{}'", key));
         }
@@ -718,7 +633,7 @@ impl VertexLayoutManager {
     ///
     /// This example demonstrates how to attempt to activate a vertex layout and
     /// handle a potential error if the layout does not exist.
-    pub fn activate_layout(&mut self, key: &str) -> Result<(), VertexLayoutError> {
+    pub fn activate_layout(&mut self, key: &str) -> anyhow::Result<(), VertexLayoutError> {
         if let Some(layout) = self.layouts.get_mut(key) {
             layout.setup_attributes()?;
             Ok(())
@@ -753,7 +668,7 @@ impl VertexLayoutManager {
     /// according to the layout's specifications. This setup is crucial for correct
     /// graphical rendering and should be done whenever a layout is first used or
     /// if the layout's configuration might have changed.
-    pub fn force_activate_layout(&mut self, key: &str) -> Result<(), VertexLayoutError> {
+    pub fn force_activate_layout(&mut self, key: &str) -> anyhow::Result<(), VertexLayoutError> {
         if let Some(layout) = self.layouts.get_mut(key) {
             self.is_setup = false;
             self.shader_id = None;
@@ -768,10 +683,6 @@ impl VertexLayoutManager {
         self.attributes.len()
     }
 }
-
-//////////////////////////////////////////////////////////////////////////////
-// - VertexLayoutError -
-//////////////////////////////////////////////////////////////////////////////
 
 #[derive(Error, Debug)]
 pub enum VertexLayoutError {
@@ -793,15 +704,11 @@ pub enum VertexLayoutError {
     OpenGL(String),
 }
 
-//////////////////////////////////////////////////////////////////////////////
-// - Misc. Functions -
-//////////////////////////////////////////////////////////////////////////////
-
 /// Checks for OpenGL errors and maps any encountered errors to `VertexLayoutError`.
 ///
 /// # Returns
 /// A `Result<(), VertexLayoutError>`, returning `Ok(())` if no OpenGL errors were detected,
 /// or `Err(VertexLayoutError::OpenGL)` with an error description if errors are present.
-fn check_and_map_gl_error() -> Result<(), VertexLayoutError> {
+fn check_and_map_gl_error() -> anyhow::Result<(), VertexLayoutError> {
     check_gl_error().map_err(|e| VertexLayoutError::OpenGL(e.to_string()))
 }

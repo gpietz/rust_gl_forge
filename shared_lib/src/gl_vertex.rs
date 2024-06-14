@@ -1,8 +1,9 @@
-use crate::gl_prelude::{Bindable, VertexLayoutError};
+use crate::gl_prelude::Bindable;
 use crate::gl_types::VertexAttributeType;
 use crate::gl_utils::check_gl_error;
-use crate::gl_vertex_attribute::VertexAttribute;
 use anyhow::Result;
+use crate::opengl::vertex_attribute::VertexAttribute;
+use crate::opengl::vertex_layout_manager::VertexLayoutError;
 
 //////////////////////////////////////////////////////////////////////////////
 // - Vertex -

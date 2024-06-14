@@ -1,5 +1,6 @@
 use crate::color::Color;
-use crate::gl_prelude::{Vertex, VertexAttribute, VertexAttributeType};
+use crate::gl_prelude::{Vertex,VertexAttributeType};
+use crate::opengl::vertex_attribute::VertexAttribute;
 use crate::vertices::{VertexColor, VertexTexCoords};
 
 //////////////////////////////////////////////////////////////////////////////
