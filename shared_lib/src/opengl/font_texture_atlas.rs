@@ -21,7 +21,7 @@ impl FontTextureAtlas {
         font_size: f32,
         color: &Color,
     ) -> anyhow::Result<Self> {
-        #[rustfmt::skip]
+        let font_size = font_size.clamp(4.0, font_size);
         let characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-.,;:_#*@?!=()[]";
         let scale = Scale::uniform(font_size);
         let metrics = font.v_metrics(scale);
