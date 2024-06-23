@@ -1,5 +1,6 @@
 #![allow(dead_code)]
 
+use crate::string_utils::convert_glubyte_to_string;
 use anyhow::Result;
 use std::os::raw::c_void;
 use std::ptr;
@@ -87,6 +88,29 @@ pub(crate) fn check_gl_error() -> Result<()> {
     }
 }
 
+#[macro_export]
+macro_rules! check_gl_panic {
+    ($msg:expr) => {{
+        match check_gl_error() {
+            Ok(val) => val,
+            Err(err) => {
+                eprintln!("ERROR: {}", $msg);
+                panic!("ERROR: {:?}", err);
+            }
+        }
+    }};
+    ($fmt:expr, $($arg:tt)*) => {{
+        let msg = format!($fmt, $($arg)*);
+        match check_gl_error() {
+            Ok(val) => val,
+            Err(err) => {
+                eprintln!("ERROR: {}", msg);
+                panic!("ERROR: {:?}", err);
+            }
+        }
+    }};
+}
+
 /// Returns the size in bytes of OpenGL data types.
 ///
 /// This function maps OpenGL data type enums (`GLenum`) to their corresponding sizes
@@ -121,4 +145,12 @@ pub(crate) fn gl_enum_size(data_type: gl::types::GLenum) -> usize {
         // Add other data types as needed
         _ => panic!("Unsupported GLenum data type for size calculation."),
     }
+}
+
+pub fn gl_get_version() -> String {
+    let version = unsafe {
+        let version_str = gl::GetString(gl::VERSION);
+        std::ffi::CStr::from_ptr(version_str as *const i8).to_str().unwrap()
+    };
+    version.to_string()
 }

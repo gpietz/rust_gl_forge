@@ -1,9 +1,15 @@
-use std::ffi::CString;
+use gl::types::GLubyte;
+use std::ffi::{CStr, CString};
 use std::iter;
+
+pub fn convert_glubyte_to_string(glubyte_ptr: *const GLubyte) -> String {
+    let c_str = unsafe { CStr::from_ptr(glubyte_ptr as *const _) };
+    c_str.to_string_lossy().to_string()
+}
 
 pub fn create_whitespace_cstring_with_len(len: usize) -> CString {
     // Create a CString filled with len number of spaces
-    let buffer: Vec<u8> = iter::repeat(b' ' as u8).take(len).collect();
+    let buffer: Vec<u8> = iter::repeat(b' ').take(len).collect();
     unsafe { CString::from_vec_unchecked(buffer) }
 }
 

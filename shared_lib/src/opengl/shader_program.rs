@@ -4,6 +4,7 @@ use std::ffi::CString;
 use std::str::from_utf8;
 use std::{fs, ptr};
 
+use crate::check_gl_panic;
 use anyhow::{anyhow, Context, Result};
 use gl::types::{GLchar, GLint, GLuint};
 
@@ -96,7 +97,7 @@ impl ShaderProgram {
             }
         }
 
-        // Initialize a ShaderProgram with a specific program ID and 
+        // Initialize a ShaderProgram with a specific program ID and
         // add shader types and source files
         let mut shader_program = ShaderProgram::default();
         shader_program.id = program_id;
@@ -386,8 +387,9 @@ impl ShaderProgram {
         if self.is_type_defined(&r#type) {
             return Err(anyhow!("ShaderType already defined: {}", r#type));
         }
+        let source_ref = source.as_ref();
         let source_str =
-            from_utf8(source.as_ref()).map_err(|e| anyhow!("Invalid UTF-8 sequence: {}", e))?;
+            from_utf8(source_ref).map_err(|e| anyhow!("Invalid UTF-8 sequence: {}", e))?;
         self.shader_sources.insert(r#type, source_str.to_string());
         Ok(())
     }
@@ -399,28 +401,22 @@ impl ShaderProgram {
     pub fn compile(&mut self) -> Result<()> {
         let mut shader_sources: HashMap<ShaderType, CString> = HashMap::new();
         for shader_file in &self.shader_files {
-            // Get and display size of the shader file
-            let file_size = file_utils::file_size(shader_file.1).unwrap_or_else(|e| {
-                eprintln!("Error: {}", e);
-                0
-            });
-
-            // Load shader source from file
             let source = fs::read_to_string(shader_file.1)?;
             let source = CString::new(source.as_bytes())?;
-            shader_sources.insert(*shader_file.0, source);
-            println!("Shader file loaded: {} ({})", shader_file.1, readable_bytes(file_size));
+            shader_sources.insert(shader_file.0.clone(), source);
         }
         for shader_source in &self.shader_sources {
-            let source_bytes = shader_source.1.as_bytes();
-            let source = CString::new(source_bytes)?;
-            shader_sources.insert(*shader_source.0, source);
-            println!("Shader source added: {}", readable_bytes(source_bytes.len() as u64));
+            let source = CString::new(shader_source.1.as_bytes())?;
+            shader_sources.insert(shader_source.0.clone(), source);
         }
 
         unsafe {
             let shader_program = gl::CreateProgram();
+            check_gl_panic!("Failed to create shader program");
+
             let mut shader_ids = Vec::new();
+
+            println!("Shader program created: {}", shader_program);
 
             // Compile shaders
             for shader_source in shader_sources {
@@ -429,7 +425,9 @@ impl ShaderProgram {
                 gl::ShaderSource(shader, 1, &shader_source.1.as_ptr(), ptr::null());
                 gl::CompileShader(shader);
                 check_compile_errors(shader, &shader_type_name)?;
+                check_gl_panic!("Failed to compile shader");
                 gl::AttachShader(shader_program, shader);
+                check_gl_panic!("Attempt to attach a shader failed");
                 shader_ids.push(shader);
             }
 
@@ -520,40 +518,25 @@ fn check_compile_errors(shader: GLuint, shader_type: &str) -> Result<()> {
 
     unsafe {
         match shader_type {
-            "PROGRAM" => {
-                gl::GetShaderiv(shader, gl::COMPILE_STATUS, &mut success);
-                if success == 0 {
-                    gl::GetShaderInfoLog(
-                        shader,
-                        1024,
-                        ptr::null_mut(),
-                        info_log.as_mut_ptr() as *mut GLchar,
-                    );
-                    let error_message = from_utf8(&info_log).unwrap_or("Failed to read log");
-                    return Err(anyhow!(
-                        "ERROR::SHADER_COMPILATION_ERROR of type: {}\n{}\n",
-                        shader_type,
-                        error_message
-                    ));
-                }
-            }
-            _ => {
-                gl::GetProgramiv(shader, gl::LINK_STATUS, &mut success);
-                if success == 0 {
-                    gl::GetProgramInfoLog(
-                        shader,
-                        1024,
-                        ptr::null_mut(),
-                        info_log.as_mut_ptr() as *mut GLchar,
-                    );
-                    let error_message = from_utf8(&info_log).unwrap_or("Failed to read log");
-                    return Err(anyhow!(
-                        "ERROR::PROGRAM_LINKING_ERROR of type: {}\n{}\n",
-                        shader_type,
-                        error_message
-                    ));
-                }
-            }
+            "PROGRAM" => gl::GetProgramiv(shader, gl::LINK_STATUS, &mut success),
+            _ => gl::GetShaderiv(shader, gl::COMPILE_STATUS, &mut success),
+        };
+
+        if success == 0 {
+            // Get error message for shader or program
+            let func = match shader_type {
+                "PROGRAM" => gl::GetProgramInfoLog,
+                _ => gl::GetShaderInfoLog,
+            };
+            func(shader, 1024, ptr::null_mut(), info_log.as_mut_ptr() as *mut GLchar);
+
+            // Format message to string (str)
+            let error_message = from_utf8(&info_log).unwrap_or("Failed to read log");
+            return Err(anyhow!(
+                "ERROR::SHADER_COMPILATION_ERROR of type: {}\n{}\n",
+                shader_type,
+                error_message
+            ));
         }
     }
 
