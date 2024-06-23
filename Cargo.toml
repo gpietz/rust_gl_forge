@@ -29,5 +29,5 @@ members = [
     "shared_lib",
     "research/multitexturing",
     "research/rs_vertex_kit",
-    "research/glfw_text_rendering",
+    "research/glfw_text_rendering", "tools/file_hasher",
 ]
