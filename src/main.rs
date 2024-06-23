@@ -10,6 +10,7 @@ use sdl2::keyboard::Keycode;
 
 use scenes::basic::first_triangle::FirstTriangle;
 use shared_lib::color::Color;
+use shared_lib::gl_prelude::gl_get_version;
 use shared_lib::sdl_window::SdlWindow;
 
 use crate::render_context::RenderContext;
@@ -18,6 +19,7 @@ use crate::scene::Scene;
 use crate::scenes::basic::indexed_quad::IndexedQuad;
 use crate::scenes::basic::projection::Projection;
 use crate::scenes::basic::shader_triangle::ShaderTriangle;
+use crate::scenes::basic::text_rendering::TextRendering;
 use crate::scenes::basic::texture_triangle::TextureTriangle;
 use crate::scenes::basic::transformation::Transformation;
 
@@ -47,6 +49,9 @@ fn main() -> Result<()> {
     )?));
     window.borrow_mut().clear_color = Color::new(0.10, 0.10, 0.25, 1.0);
 
+    let opengl_version = gl_get_version();
+    println!("OpenGL version: {}", opengl_version);
+
     // Create scenes
     let mut scenes: Vec<Box<dyn Scene<RenderContext>>> = vec![
         Box::<FirstTriangle>::default(),
@@ -56,7 +61,7 @@ fn main() -> Result<()> {
         Box::<TextureTriangle>::default(),
         Box::<Transformation>::default(),
         Box::<Projection>::default(),
-        //Box::<TextRendering>::new(TextRendering::new()?),
+        Box::<TextRendering>::new(TextRendering::new()?),
         //Box::<DrawRectangle>::default(),
     ];
 

@@ -2,20 +2,23 @@ use crate::color::Color;
 use crate::gl_prelude::{check_gl_error2, BufferType, BufferUsage, PrimitiveType, ShaderType};
 use crate::gl_types::ProjectionMatrix;
 use crate::gl_utils::check_gl_error;
+use crate::opengl::blend_guard;
+use crate::opengl::blend_guard::BlendGuard;
 use crate::opengl::buffer_object::BufferObject;
+use crate::opengl::font::Font;
 use crate::opengl::shader_program::ShaderProgram;
 use crate::opengl::vertex_array_object::VertexArrayObject;
 use crate::projection::{HasOptionalProjection, Projection};
 use crate::text::font_atlas::FontAtlas;
-use crate::{gl_draw, Position2D, Size2D};
+use crate::{check_gl_panic, gl_draw, Position2D, Size2D};
 use anyhow::Result;
-use cgmath::{Matrix, Matrix4, SquareMatrix, Vector2};
+use cgmath::{ortho, Matrix, Matrix4, SquareMatrix, Vector2};
 use gl::types::{GLfloat, GLint, GLsizei, GLuint};
 use image::imageops::unsharpen;
 use rusttype::Scale;
 use std::borrow::Cow;
+use std::ffi::CString;
 use std::{ptr, vec};
-use crate::opengl::font::Font;
 
 const TAB_WIDTH_IN_SPACES: usize = 4;
 
@@ -39,19 +42,17 @@ impl SimpleTextRenderer {
     }
 
     pub fn from_font_atlas(font_atlas: FontAtlas) -> Result<Self> {
-        println!("--> Create VAO");
         let vao = VertexArrayObject::new()?;
         check_gl_error2();
 
-        println!("--> Create VBO");
         let vbo = BufferObject::empty(BufferType::ArrayBuffer, BufferUsage::StaticDraw);
         check_gl_error2();
 
-        println!("--> Create vertex layout");
         setup_vertex_layout()?;
+        check_gl_panic!("Failed to setup vertex layout");
 
-        //println!("--> Create shader");
         let shader_program = create_shader_program()?;
+        check_gl_panic!("Failed to create shader program");
 
         let text_renderer = Self {
             font_atlas,
@@ -83,25 +84,29 @@ impl SimpleTextRenderer {
     ) -> Result<()> {
         let mut text_color = Color::WHITE;
         let mut opacity = 1.0;
-        let mut projection = Matrix4::<f32>::identity();
-
-        println!("Render Text****");
 
         if let Some(opt) = options {
             text_color = opt.color;
             opacity = opt.opacity.clamp(0.0, 1.0);
         }
 
-        // Use the shader program
-        self.shader_program.activate();
-
-        println!("Shader activated****");
+        let blend_guard = BlendGuard::default();
+        blend_guard.enable();
 
         unsafe {
-            // Bind the texture
-            gl::ActiveTexture(gl::TEXTURE0);
+            // Bind and activate the texture
             gl::BindTexture(gl::TEXTURE_2D, self.font_atlas.texture_id);
+            check_gl_error().expect("Failed to bind texture");
+            gl::ActiveTexture(gl::TEXTURE0);
+            check_gl_error().expect("Failed to activate texture");
         }
+
+        self.shader_program.activate();
+
+        // Calculate projection matrix
+        let screen_dimensions = (1440.0f32, 1080.0f32);
+        let projection = ortho(0.0, screen_dimensions.0, screen_dimensions.1, 0.0, -1.0, 0.0);
+        // TODO ^^ Add screen dimensions for projection calculations ^^
 
         // Set uniforms (color + projection)
         let rgb = text_color.to_rgb();
@@ -113,19 +118,14 @@ impl SimpleTextRenderer {
         )?;
         self.shader_program.set_uniform_matrix("projection", false, &projection);
 
-        println!("Create vertx stuff****");
-
         // Create vertex data for text
         let vertices = create_vertices_for_text(&self.font_atlas, text, position.x, position.y);
         let triangle_count = (vertices.len() / 4) as u32;
-
-        println!("Draw call****");
 
         // Update vertex data
         self.vbo.update_data(vertices, None);
 
         gl_draw::draw_arrays(PrimitiveType::Triangles, 0, triangle_count as usize);
-
         Ok(())
     }
 }
@@ -140,17 +140,16 @@ fn create_shader_program() -> Result<ShaderProgram> {
         ShaderType::Fragment,
         include_bytes!("../../resources/shaders/text_rendering.frag"),
     )?;
-    shader_program.compile();
+    check_gl_panic!("Loading shaders failed?");
+
+    shader_program.compile()?;
+    check_gl_panic!("Shader compile failed");
 
     Ok(shader_program)
 }
 
 fn setup_vertex_layout() -> Result<()> {
-    //VertexLayoutManager::new().add_attribute()
     unsafe {
-        check_gl_error2()?;
-        println!("**** Vertex layout ****");
-
         gl::VertexAttribPointer(
             0,
             4,
@@ -159,7 +158,8 @@ fn setup_vertex_layout() -> Result<()> {
             4 * std::mem::size_of::<GLfloat>() as GLsizei,
             ptr::null(),
         );
-        check_gl_error2()?;
+        check_gl_error()?;
+
         gl::EnableVertexAttribArray(0);
         check_gl_error()?;
     }

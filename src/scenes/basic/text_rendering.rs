@@ -25,7 +25,7 @@ impl TextRendering {
 
 impl Scene<RenderContext> for TextRendering {
     fn draw(&mut self, _context: &mut RenderContext) -> SceneResult {
-        let position = Position2D::new(0.0, 0.0);
+        let position = Position2D::new(10.0, 10.0);
         self.text_renderer
             .render_text("Hello world!", position, None)?;
         Ok(())

@@ -79,6 +79,8 @@ fn main() -> Result<()> {
     let shader_program_id = shader_program.id as GLuint;
     let screen_dimensions = [SCREEN_WIDTH as f32, SCREEN_HEIGHT as f32];
 
+    let font_atlas = FontAtlas::new(&font, scale, color);
+
     // Create and bind VAO
     let mut vao: GLuint = 0;
     let mut vbo: GLuint = 0;
@@ -88,8 +90,6 @@ fn main() -> Result<()> {
         gl::GenBuffers(1, &mut vbo);
         gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
     }
-
-    let font_atlas = FontAtlas::new(&font, scale, color);
 
     font_atlas.save_font_texture("font_atlas_gpu.png")?;
     font_atlas.save_font_mapping("font_atlas.xml")?;
@@ -170,8 +170,8 @@ fn render_text(
         gl::UseProgram(shader_program);
 
         // Bind the texture
-        gl::ActiveTexture(gl::TEXTURE0);
         gl::BindTexture(gl::TEXTURE_2D, font_atlas.texture_id);
+        gl::ActiveTexture(gl::TEXTURE0);
 
         // Set uniforms
         let color_location =

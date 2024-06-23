@@ -1,11 +1,15 @@
+use mem::size_of_val;
 use std::collections::HashMap;
 use std::fs::File;
 use std::io::Write;
+use std::mem;
 
+use crate::check_gl_panic;
+use crate::gl_prelude::check_gl_error;
+use crate::opengl::texture_utils::get_texture_from_gpu;
 use anyhow::{Context, Result};
 use image::{DynamicImage, Rgba, RgbaImage};
 use rusttype::{Font, Scale, VMetrics};
-use crate::opengl::texture_utils::get_texture_from_gpu;
 
 pub struct GlyphData {
     pub(crate) index: u8,
@@ -28,13 +32,14 @@ pub struct FontAtlas {
     pub(crate) scale: Scale,
 }
 
+const DEFAULT_CHARS: &str =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-.,;:_#*@?!=()[]<>";
+
 impl FontAtlas {
     pub fn new(font: &Font, scale: Scale, color: Rgba<u8>) -> FontAtlas {
-        let characters =
-            "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+-.,;:_#*@?!=()[]<>";
         let metrics = font.v_metrics(scale);
         let offset = rusttype::point(0.0, metrics.ascent);
-        let glyphs: Vec<_> = font.layout(characters, scale, offset).collect();
+        let glyphs: Vec<_> = font.layout(DEFAULT_CHARS, scale, offset).collect();
 
         // Spacing between glyphs
         // let glyphs: Vec<_> = font
@@ -53,7 +58,7 @@ impl FontAtlas {
         let mut texture_image = DynamicImage::new_rgba8(glyphs_width, glyphs_height).to_rgba8();
         let mut glyph_data_map = HashMap::new();
 
-        if glyphs.len() != characters.len() {
+        if glyphs.len() != DEFAULT_CHARS.len() {
             panic!("Glyphs length is not equal to characters length!");
         }
 
@@ -68,7 +73,7 @@ impl FontAtlas {
                     )
                 });
 
-                let glyph_char = characters.chars().nth(char_index).unwrap();
+                let glyph_char = DEFAULT_CHARS.chars().nth(char_index).unwrap();
                 let glyph_data = GlyphData {
                     index: glyph_data_map.len() as u8,
                     char: glyph_char,
@@ -86,7 +91,7 @@ impl FontAtlas {
             }
         }
 
-        //texture_image.save("font_atlas_original.png").unwrap();
+        //texture_image.save("aa_font_atlas_original.png").unwrap();
 
         //vertical_flip(&mut texture_image);
         let texture_data = texture_image.into_raw();
@@ -94,7 +99,12 @@ impl FontAtlas {
         let texture_id = unsafe {
             let mut texture: u32 = 0;
             gl::GenTextures(1, &mut texture);
+            check_gl_error().expect("Failed to create texture for font");
+            println!("Created font texture with id: {}", texture);
+
             gl::BindTexture(gl::TEXTURE_2D, texture);
+            check_gl_panic!(format!("Failed to bind texture: {}", texture));
+
             gl::TexImage2D(
                 gl::TEXTURE_2D,
                 0,
@@ -106,11 +116,16 @@ impl FontAtlas {
                 gl::UNSIGNED_BYTE,
                 texture_data.as_ptr() as *const _,
             );
+            check_gl_panic!("Failed to call glTextImage2D");
+
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_S, gl::CLAMP_TO_EDGE as i32);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_WRAP_T, gl::CLAMP_TO_EDGE as i32);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MIN_FILTER, gl::LINEAR as i32);
             gl::TexParameteri(gl::TEXTURE_2D, gl::TEXTURE_MAG_FILTER, gl::LINEAR as i32);
+
             gl::GenerateMipmap(gl::TEXTURE_2D);
+            //gl::GenerateTextureMipmap(texture);
+            check_gl_panic!("Failed to call GenerateTextureMipmap for texture: {}", texture);
             texture
         };
 
