@@ -127,7 +127,7 @@ impl<'a> SimpleTextRenderer<'a> {
         self.vbo.update_data(vertices, None);
 
         // Enable blend mode
-        let blend_guard = BlendGuard::default();
+        let mut blend_guard = BlendGuard::default();
         blend_guard.enable();
 
         gl_draw::draw_arrays(PrimitiveType::Triangles, 0, triangle_count as usize);
