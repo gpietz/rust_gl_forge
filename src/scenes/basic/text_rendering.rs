@@ -1,5 +1,6 @@
 use anyhow::Result;
 use shared_lib::opengl::font::Font;
+use std::sync::Arc;
 
 use shared_lib::text::simple_text_renderer::SimpleTextRenderer;
 use shared_lib::Position2D;
@@ -11,19 +12,23 @@ use crate::scene::{Scene, SceneResult};
 // - FirstText -
 //////////////////////////////////////////////////////////////////////////////
 
-pub struct TextRendering {
-    text_renderer: SimpleTextRenderer,
+pub struct TextRendering<'a> {
+    font: Arc<Font<'a>>,
+    text_renderer: SimpleTextRenderer<'a>,
 }
 
-impl TextRendering {
-    pub fn new() -> Result<TextRendering> {
-        let font = Font::from_file("assets/fonts/Roboto-Regular.ttf")?;
+impl<'a> TextRendering<'a> {
+    pub fn new() -> Result<TextRendering<'a>> {
+        let font = Arc::new(Font::from_file("assets/fonts/Roboto-Regular.ttf")?);
         let text_renderer = SimpleTextRenderer::new(&font, 36.0)?;
-        Ok(Self { text_renderer })
+        Ok(Self {
+            font,
+            text_renderer,
+        })
     }
 }
 
-impl Scene<RenderContext> for TextRendering {
+impl<'a> Scene<RenderContext> for TextRendering<'a> {
     fn draw(&mut self, _context: &mut RenderContext) -> SceneResult {
         let position = Position2D::new(10.0, 10.0);
         self.text_renderer

@@ -1,24 +1,22 @@
+use std::ptr;
+
+use anyhow::{Context, Result};
+use cgmath::ortho;
+use gl::types::{GLfloat, GLsizei};
+use rusttype::Scale;
+use sha2::digest::typenum::op;
+
 use crate::color::Color;
 use crate::gl_prelude::{check_gl_error2, BufferType, BufferUsage, PrimitiveType, ShaderType};
 use crate::gl_types::ProjectionMatrix;
 use crate::gl_utils::check_gl_error;
-use crate::opengl::blend_guard;
 use crate::opengl::blend_guard::BlendGuard;
 use crate::opengl::buffer_object::BufferObject;
 use crate::opengl::font::Font;
 use crate::opengl::shader_program::ShaderProgram;
 use crate::opengl::vertex_array_object::VertexArrayObject;
-use crate::projection::{HasOptionalProjection, Projection};
 use crate::text::font_atlas::FontAtlas;
-use crate::{check_gl_panic, gl_draw, Position2D, Size2D};
-use anyhow::Result;
-use cgmath::{ortho, Matrix, Matrix4, SquareMatrix, Vector2};
-use gl::types::{GLfloat, GLint, GLsizei, GLuint};
-use image::imageops::unsharpen;
-use rusttype::Scale;
-use std::borrow::Cow;
-use std::ffi::CString;
-use std::{ptr, vec};
+use crate::{check_gl_panic, gl_draw, Position2D};
 
 const TAB_WIDTH_IN_SPACES: usize = 4;
 
@@ -26,14 +24,15 @@ const TAB_WIDTH_IN_SPACES: usize = 4;
 // - SimpleTextRenderer -
 //////////////////////////////////////////////////////////////////////////////
 
-pub struct SimpleTextRenderer {
+pub struct SimpleTextRenderer<'a> {
     font_atlas: FontAtlas,
     shader_program: ShaderProgram,
     vao: VertexArrayObject,
     vbo: BufferObject<f32>,
+    options: Option<&'a TextRenderOptions>,
 }
 
-impl SimpleTextRenderer {
+impl<'a> SimpleTextRenderer<'a> {
     pub fn new(font: &Font, scale: f32) -> Result<Self> {
         let uniform_scale = Scale::uniform(scale);
         let rt_font = &*font.font;
@@ -59,6 +58,7 @@ impl SimpleTextRenderer {
             shader_program,
             vao,
             vbo,
+            options: None,
         };
 
         Ok(text_renderer)
@@ -76,9 +76,9 @@ impl SimpleTextRenderer {
         self.font_atlas.texture_id
     }
 
-    pub fn render_text(
+    pub fn render_text<S: AsRef<str>>(
         &mut self,
-        text: &str,
+        text: S,
         position: Position2D,
         options: Option<&TextRenderOptions>,
     ) -> Result<()> {
@@ -90,15 +90,15 @@ impl SimpleTextRenderer {
             opacity = opt.opacity.clamp(0.0, 1.0);
         }
 
-        let blend_guard = BlendGuard::default();
-        blend_guard.enable();
+        // activate vao
+        self.vao.bind();
 
         unsafe {
             // Bind and activate the texture
             gl::BindTexture(gl::TEXTURE_2D, self.font_atlas.texture_id);
-            check_gl_error().expect("Failed to bind texture");
+            check_gl_error().with_context(|| "Failed to bind texture");
             gl::ActiveTexture(gl::TEXTURE0);
-            check_gl_error().expect("Failed to activate texture");
+            check_gl_error().with_context(|| "Failed to activate texture");
         }
 
         self.shader_program.activate();
@@ -119,14 +119,32 @@ impl SimpleTextRenderer {
         self.shader_program.set_uniform_matrix("projection", false, &projection);
 
         // Create vertex data for text
+        let text = text.as_ref();
         let vertices = create_vertices_for_text(&self.font_atlas, text, position.x, position.y);
         let triangle_count = (vertices.len() / 4) as u32;
 
         // Update vertex data
         self.vbo.update_data(vertices, None);
 
+        // Enable blend mode
+        let blend_guard = BlendGuard::default();
+        blend_guard.enable();
+
         gl_draw::draw_arrays(PrimitiveType::Triangles, 0, triangle_count as usize);
         Ok(())
+    }
+
+    pub fn set_options(&mut self, options: Option<&'a TextRenderOptions>) -> Result<()> {
+        self.options = options;
+        Ok(())
+    }
+
+    pub fn get_options(&self) -> Option<&'a TextRenderOptions> {
+        self.options
+    }
+
+    pub fn get_options_mut(&mut self) -> Option<&mut &'a TextRenderOptions> {
+        self.options.as_mut()
     }
 }
 
