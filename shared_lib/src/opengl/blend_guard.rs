@@ -9,6 +9,8 @@ pub struct BlendGuard {
     blend_src: GLenum,
     blend_dest: GLenum,
     callback: Option<Box<dyn Fn(bool) -> bool>>,
+    pub enabled: bool,
+    separate_blend: Option<SeparateBlend>,
 }
 
 impl BlendGuard {
@@ -27,22 +29,27 @@ impl BlendGuard {
             blend_src,
             blend_dest,
             callback: None,
+            enabled: true,
+            separate_blend: None,
         })
     }
 
-    pub fn enable(&self) -> Result<()> {
-        if self.call_callback(true) {
+    pub fn enable(&mut self) -> Result<()> {
+        if self.enabled && self.call_callback(true) {
             unsafe {
                 gl::Enable(gl::BLEND);
                 gl::BlendFunc(self.blend_src, self.blend_dest);
+                if let Some(separate_blend) = self.separate_blend {
+                    enable_separate_blend(&separate_blend)?;
+                }
             }
             check_gl_error()?;
         }
         Ok(())
     }
 
-    pub fn disable(&self) -> Result<()> {
-        if self.call_callback(false) {
+    pub fn disable(&mut self) -> Result<()> {
+        if self.enabled && self.call_callback(false) {
             unsafe {
                 gl::Disable(gl::BLEND);
             }
@@ -52,13 +59,21 @@ impl BlendGuard {
     }
 
     pub fn set_blend_func(&mut self, src: GLenum, dest: GLenum) -> Result<()> {
-        unsafe {
-            gl::BlendFunc(src, dest);
-            check_gl_panic!("Error calling blend function");
-        }
         check_gl_error()?;
         self.blend_src = src;
         self.blend_dest = dest;
+        Ok(())
+    }
+
+    pub fn set_blend_func_immediate(&mut self, src: GLenum, dest: GLenum) -> Result<()> {
+        self.set_blend_func(src, dest)?;
+        unsafe {
+            gl::BlendFunc(self.blend_src, self.blend_dest);
+            if let Some(separate_blend) = self.separate_blend {
+                enable_separate_blend(&separate_blend)?;
+            }
+        }
+        check_gl_error()?;
         Ok(())
     }
 
@@ -81,10 +96,13 @@ impl BlendGuard {
         }
     }
 
-    pub fn is_enabled(&self) -> bool {
-        unsafe { 
-            gl::IsEnabled(gl::BLEND) == gl::TRUE 
-        }
+    pub fn is_blend_enabled(&self) -> bool {
+        unsafe { gl::IsEnabled(gl::BLEND) == gl::TRUE }
+    }
+
+    pub fn set_separate_blend_func(&mut self, separate_blend: Option<SeparateBlend>) -> Result<()> {
+        self.separate_blend = separate_blend;
+        Ok(())
     }
 }
 
@@ -107,3 +125,34 @@ impl Drop for BlendGuard {
 
 unsafe impl Send for BlendGuard {}
 unsafe impl Sync for BlendGuard {}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct SeparateBlend {
+    pub src_rgb: GLenum,
+    pub dest_rgb: GLenum,
+    pub src_alpha: GLenum,
+    pub dest_alpha: GLenum,
+}
+
+impl SeparateBlend {
+    pub fn new(src_rgb: GLenum, dest_rgb: GLenum, src_alpha: GLenum, dest_alpha: GLenum) -> Self {
+        Self {
+            src_rgb,
+            dest_rgb,
+            src_alpha,
+            dest_alpha,
+        }
+    }
+}
+
+fn enable_separate_blend(separate_blend: &SeparateBlend) -> Result<()> {
+    unsafe {
+        let src_rgb = separate_blend.src_rgb;
+        let dest_rgb = separate_blend.dest_rgb;
+        let src_alpha = separate_blend.src_alpha;
+        let dest_alpha = separate_blend.dest_alpha;
+        gl::BlendFuncSeparate(src_rgb, dest_rgb, src_alpha, dest_alpha);
+        check_gl_error()?;
+    }
+    Ok(())
+}
