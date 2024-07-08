@@ -1,7 +1,6 @@
 #![allow(unused)]
 extern crate gl;
 
-use crate::camera::view::View;
 use crate::color::Color;
 use anyhow::Result;
 use cgmath::num_traits::{Num, Signed, Unsigned};
@@ -123,12 +122,4 @@ pub trait RenderTarget<'a> {
 
     /// Clears the entire target with a single color.
     fn clear_with_color(&mut self, color: impl Into<Cow<'a, Color>>);
-
-    fn set_view(&mut self, view: View);
-
-    fn get_view(&self) -> &View;
-
-    fn get_default_view(&self) -> View;
-
-    fn reset_view(&mut self);
 }
