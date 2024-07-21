@@ -7,6 +7,7 @@ use anyhow::Result;
 use gl::types::{GLboolean, GLint, GLsizei, GLuint, GLvoid};
 use sdl2::filesystem::PrefPathError;
 use std::cell::RefCell;
+use std::collections::HashMap;
 use std::ffi::c_void;
 
 /// Represents a Vertex Array Object (VAO) in OpenGL, which stores the format
@@ -370,10 +371,44 @@ impl Drop for LayoutData {
 
 impl LayoutData {
     fn upload_to_gpu(&mut self) {
+        // Calculate the stride if it is 0
+        let mut stride_map = HashMap::<usize, i32>::new();
+        for (i, attr) in self.layout.iter().enumerate() {
+            if attr.stride == 0 {
+                stride_map.insert(
+                    i,
+                    self.layout
+                        .iter()
+                        .map(|a| a.components as i32 * a.data_type.size() as i32)
+                        .sum(),
+                );
+            }
+        }
+
+        // Calculate the offset if it is not set
+        let mut offset_map = HashMap::<usize, u32>::new();
+        for (i, attr) in self.layout.iter().enumerate() {
+            if attr.offset.is_none() {
+                offset_map.insert(
+                    i,
+                    self.layout
+                        .iter()
+                        .take(i)
+                        .map(|a| a.components as u32 * a.data_type.size() as u32)
+                        .sum(),
+                );
+            }
+        }
+
+        // Upload the attribute data to the GPU
         for (i, attr) in self.layout.iter().enumerate() {
             let normalized = attr.normalized;
-            let stride = attr.stride;
-            let offset = attr.offset;
+            let stride = if attr.stride > 0 {
+                attr.stride
+            } else {
+                stride_map[&i]
+            };
+            let offset = attr.offset.unwrap_or(offset_map[&i]) as usize;
             let type_ = attr.data_type.to_gl_enum();
 
             unsafe {

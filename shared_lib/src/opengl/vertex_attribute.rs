@@ -8,7 +8,7 @@ pub struct VertexAttribute {
     pub data_type: VertexDataType,
     pub normalized: bool,
     pub stride: i32,
-    pub offset: u32,
+    pub offset: Option<u32>,
 }
 
 impl VertexAttribute {
@@ -49,7 +49,7 @@ impl VertexAttribute {
         self
     }
 
-    pub fn offset(mut self, offset: u32) -> Self {
+    pub fn offset(mut self, offset: Option<u32>) -> Self {
         self.offset = offset;
         self
     }
