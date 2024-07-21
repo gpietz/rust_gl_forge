@@ -1,6 +1,5 @@
 use cgmath::Vector3;
 
-use shared_lib::{gl_draw, gl_prelude::PrimitiveType, gl_types::IndicesValueType};
 use shared_lib::gl_prelude::{BufferType, BufferUsage, VertexAttributeType};
 use shared_lib::opengl::buffer_object::BufferObject;
 use shared_lib::opengl::vertex_array_object::VertexArrayObject;
@@ -8,10 +7,6 @@ use shared_lib::opengl::vertex_array_object::VertexArrayObject;
 use crate::render_context::RenderContext;
 use crate::resources::shaders;
 use crate::scene::{Scene, SceneResult};
-
-//////////////////////////////////////////////////////////////////////////////
-// - IndexedQuad -
-//////////////////////////////////////////////////////////////////////////////
 
 #[derive(Default)]
 pub struct IndexedQuad {
@@ -33,8 +28,14 @@ impl Scene<RenderContext> for IndexedQuad {
 
             let vao =
                 VertexArrayObject::new_with_attribute_types(vec![VertexAttributeType::Position]);
-            let vbo = BufferObject::new(BufferType::ArrayBuffer, BufferUsage::StaticDraw, vertices);
-            let ibo = BufferObject::new(
+            let vbo = BufferObject::new_with_vao(
+                &vao,
+                BufferType::ArrayBuffer,
+                BufferUsage::StaticDraw,
+                vertices,
+            );
+            let ibo = BufferObject::new_with_vao(
+                &vao,
                 BufferType::ElementArrayBuffer,
                 BufferUsage::StaticDraw,
                 indices,
@@ -49,13 +50,10 @@ impl Scene<RenderContext> for IndexedQuad {
 
     fn draw(&mut self, context: &mut RenderContext) -> SceneResult {
         if let Some(vao) = self.vao.as_mut() {
-            vao.bind();
-
-            let shader = context.shader_manager().get_shader(shaders::SIMPLE_RED);
-            if let Ok(shader) = shader {
-                shader.activate();
-                gl_draw::draw_elements(PrimitiveType::Triangles, 6, IndicesValueType::Int);
-            }
+            context
+                .shader_manager()
+                .activate_shader(shaders::SIMPLE_RED);
+            vao.render(true, 6);
         }
         Ok(())
     }

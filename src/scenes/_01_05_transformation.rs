@@ -4,8 +4,6 @@ use std::time::Instant;
 use cgmath::{vec3, Deg, Matrix4, Rad, SquareMatrix};
 use sdl2::keyboard::Keycode;
 
-use shared_lib::gl_draw;
-use shared_lib::gl_types::{IndicesValueType, PrimitiveType};
 use shared_lib::opengl::buffer_object::BufferObject;
 use shared_lib::opengl::texture::Texture;
 use shared_lib::opengl::vertex_array_object::VertexArrayObject;
@@ -25,10 +23,6 @@ const ROTATION_SPEED_CHANGE: i32 = 16;
 const MIN_SCALE: f32 = 0.5;
 const MAX_SCALE: f32 = 1.5;
 const SPEED_CHANGE_DELAY_MS: i32 = 250;
-
-//////////////////////////////////////////////////////////////////////////////
-// - Transformation  -
-//////////////////////////////////////////////////////////////////////////////
 
 #[derive(Default)]
 pub struct Transformation {
@@ -102,11 +96,17 @@ impl Scene<RenderContext> for Transformation {
             self.rotation_speed = DEFAULT_ROTATION_SPEED;
 
             let vertex_data = vertex_data_2d::create_quad();
+
+            // Create VAO object and bind it
             self.vao = Some(VertexArrayObject::new_with_attributes(
                 TexturedVertex::attributes(),
             ));
+            self.vao.as_ref().unwrap().bind();
+
+            // Add vertex data to the VAO
             self.vbo = Some(vertex_data.create_vbo());
             self.ibo = Some(vertex_data.create_ibo());
+            VertexArrayObject::unbind();
 
             // Load textures
             self.textures
@@ -188,15 +188,10 @@ impl Scene<RenderContext> for Transformation {
                 // Get matrix uniform location an set matrix
                 shader.set_uniform_matrix("transform", false, &transform)?;
 
-                // Activate VAO buffer
-                vao.bind();
+                // Render the scene
+                vao.render(true, ibo.data_len());
 
-                gl_draw::draw_elements(
-                    PrimitiveType::Triangles,
-                    ibo.data_len() as u32,
-                    IndicesValueType::Int,
-                );
-
+                // Update transformation
                 if render_cycle == 0 {
                     transform = Matrix4::identity();
                     transform = transform * Matrix4::<f32>::from_translation(vec3(-0.5, 0.5, 0.0));
@@ -223,10 +218,6 @@ impl Scene<RenderContext> for Transformation {
         Ok(())
     }
 }
-
-/////////////////////////////////////////////////////////////////////////////
-// - RenderMode -
-//////////////////////////////////////////////////////////////////////////////
 
 #[derive(Default, Copy, Clone, PartialEq)]
 enum RenderMode {

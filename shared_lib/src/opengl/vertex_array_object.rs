@@ -352,11 +352,46 @@ impl RenderPrepare for VertexArrayObject {
     }
 }
 
+/// Represents the layout data for a `VertexArrayObject`.
+///
+/// This struct contains the vertex attributes and the state of the layout data.
+///
+/// # Fields
+/// * `layout` - A vector of `VertexAttribute` representing the attributes of the layout.
+/// * `layout_data_state` - The current state of the layout data, represented by `RenderDataState`.
+///
+/// # Example
+/// ```ignore
+/// let attributes = vec![VertexAttribute::new(...), VertexAttribute::new(...)];
+/// let layout_data = LayoutData {
+///     layout: attributes,
+///     layout_data_state: RenderDataState::Initialized,
+/// };
+/// ```
 struct LayoutData {
     layout: Vec<VertexAttribute>,
     layout_data_state: RenderDataState,
 }
 
+/// Implements the `Drop` trait for the `LayoutData` struct.
+///
+/// This implementation ensures that when a `LayoutData` instance is dropped,
+/// any vertex attributes that were enabled are disabled if the layout data state
+/// is greater than `RenderDataState::Provided`.
+///
+/// # Safety
+/// This function contains an unsafe block to call the OpenGL function `gl::DisableVertexAttribArray`.
+///
+/// # Example
+/// ```ignore
+/// {
+///     let layout_data = LayoutData {
+///         layout: vec![VertexAttribute::new(...), VertexAttribute::new(...)],
+///         layout_data_state: RenderDataState::Initialized,
+///     };
+///     // layout_data will be dropped here and vertex attributes will be disabled if necessary
+/// }
+/// ```
 impl Drop for LayoutData {
     fn drop(&mut self) {
         if self.layout_data_state > RenderDataState::Provided {
@@ -370,6 +405,30 @@ impl Drop for LayoutData {
 }
 
 impl LayoutData {
+    /// Uploads the vertex attribute layout data to the GPU.
+    ///
+    /// This function calculates the stride and offset for each vertex attribute if they are not set,
+    /// and then uploads the attribute data to the GPU using OpenGL functions.
+    ///
+    /// # Details
+    /// - If an attribute's stride is zero, the stride is calculated as the sum of the sizes of all components.
+    /// - If an attribute's offset is not set, it is calculated as the sum of the sizes of the components of the preceding attributes.
+    /// - The attributes are then uploaded to the GPU using `gl::VertexAttribPointer` and enabled using `gl::EnableVertexAttribArray`.
+    ///
+    /// # Safety
+    /// This function contains unsafe blocks to call OpenGL functions (`gl::VertexAttribPointer` and `gl::EnableVertexAttribArray`).
+    ///
+    /// # Example
+    /// ```ignore
+    /// let mut layout_data = LayoutData {
+    ///     layout: vec![VertexAttribute::new(...), VertexAttribute::new(...)],
+    ///     layout_data_state: RenderDataState::Initialized,
+    /// };
+    /// layout_data.upload_to_gpu();
+    /// ```
+    ///
+    /// # Panics
+    /// This function may panic if the calculated stride or offset maps are not found in the respective hash maps.
     fn upload_to_gpu(&mut self) {
         // Calculate the stride if it is 0
         let mut stride_map = HashMap::<usize, i32>::new();

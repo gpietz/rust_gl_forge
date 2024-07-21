@@ -8,7 +8,11 @@ use anyhow::Result;
 use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 
-use scenes::basic::first_triangle::FirstTriangle;
+use scenes::_01_01_first_triangle::FirstTriangle;
+use scenes::_01_02_indexed_quad::IndexedQuad;
+use scenes::_01_03_shader_triangle::ShaderTriangle;
+use scenes::_01_04_texture_triangle::TextureTriangle;
+use scenes::_01_05_transformation::Transformation;
 use shared_lib::color::Color;
 use shared_lib::gl_prelude::gl_get_version;
 use shared_lib::sdl_window::SdlWindow;
@@ -16,13 +20,6 @@ use shared_lib::sdl_window::SdlWindow;
 use crate::render_context::RenderContext;
 use crate::resources::{shaders, textures};
 use crate::scene::Scene;
-// use crate::scenes::basic::indexed_quad::IndexedQuad;
-//use crate::scenes::basic::projection::Projection;
-// use crate::scenes::basic::shader_triangle::ShaderTriangle;
-// use crate::scenes::basic::text_rendering::TextRendering;
-//use crate::scenes::basic::texture_triangle::TextureTriangle;
-// use crate::scenes::basic::transformation::Transformation;
-//use crate::scenes::light::light_cube::LightCube;
 
 mod render_context;
 mod resources;
@@ -56,11 +53,11 @@ fn main() -> Result<()> {
     // Create scenes
     let mut scenes: Vec<Box<dyn Scene<RenderContext>>> = vec![
         Box::<FirstTriangle>::default(),
-        // Box::<IndexedQuad>::default(),
-        // Box::<ShaderTriangle>::new(ShaderTriangle::new(false)),
-        // Box::<ShaderTriangle>::new(ShaderTriangle::new(true)),
-        // //Box::<TextureTriangle>::default(),
-        // Box::<Transformation>::default(),
+        Box::<IndexedQuad>::default(),
+        Box::<ShaderTriangle>::new(ShaderTriangle::new(false)),
+        Box::<ShaderTriangle>::new(ShaderTriangle::new(true)),
+        Box::<TextureTriangle>::default(),
+        Box::<Transformation>::default(),
         // //Box::<Projection>::default(),
         // Box::<TextRendering>::new(TextRendering::new()?),
         // //Box::<DrawRectangle>::default(),

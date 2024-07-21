@@ -6,18 +6,11 @@ use shared_lib::gl_prelude::VertexDataType;
 use shared_lib::opengl::buffer_object::BufferObject;
 use shared_lib::opengl::vertex_array_object::VertexArrayObject;
 use shared_lib::opengl::vertex_attribute::VertexAttribute;
-use shared_lib::{
-    gl_draw,
-    gl_prelude::{BufferType, BufferUsage, PrimitiveType, VertexAttributeType},
-};
+use shared_lib::gl_prelude::{BufferType, BufferUsage, VertexAttributeType};
 use shared_lib::opengl::vertex_layout::VertexLayout;
 use crate::render_context::RenderContext;
 use crate::resources::shaders;
 use crate::scene::{Scene, SceneResult};
-
-//////////////////////////////////////////////////////////////////////////////
-// - ShaderTriangle -
-//////////////////////////////////////////////////////////////////////////////
 
 pub struct ShaderTriangle {
     use_uniform: bool,
@@ -71,7 +64,7 @@ impl Scene<RenderContext> for ShaderTriangle {
     }
 
     fn draw(&mut self, context: &mut RenderContext) -> SceneResult {
-        if let Some(vao) = self.vao.as_mut() {
+        if let Some(vao) = self.vao.as_ref() {
             vao.bind();
 
             if let Ok(shader) = context
@@ -87,17 +80,13 @@ impl Scene<RenderContext> for ShaderTriangle {
                 if let Ok(time_location) = shader.get_uniform_location("time") {
                     shader.activate();
                     shader.set_uniform_value(time_location, current_time as GLfloat)?;
-                    gl_draw::draw_primitive(PrimitiveType::Triangles, 3);
+                    vao.render(false,  3);
                 }
             }
         }
         Ok(())
     }
 }
-
-//////////////////////////////////////////////////////////////////////////////
-// - ColorPointVertex -
-//////////////////////////////////////////////////////////////////////////////
 
 struct ColorPointVertex {
     pub position: [f32; 3],
