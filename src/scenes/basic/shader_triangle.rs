@@ -6,12 +6,11 @@ use shared_lib::gl_prelude::VertexDataType;
 use shared_lib::opengl::buffer_object::BufferObject;
 use shared_lib::opengl::vertex_array_object::VertexArrayObject;
 use shared_lib::opengl::vertex_attribute::VertexAttribute;
-use shared_lib::opengl::vertex_layout_manager::{VertexLayoutDescription, VertexLayoutManager};
 use shared_lib::{
     gl_draw,
     gl_prelude::{BufferType, BufferUsage, PrimitiveType, VertexAttributeType},
 };
-
+use shared_lib::opengl::vertex_layout::VertexLayout;
 use crate::render_context::RenderContext;
 use crate::resources::shaders;
 use crate::scene::{Scene, SceneResult};
@@ -61,12 +60,8 @@ impl Scene<RenderContext> for ShaderTriangle {
                 },
             ];
 
-            let vao = VertexArrayObject::new()?;
-            let vbo = BufferObject::new(BufferType::ArrayBuffer, BufferUsage::StaticDraw, vertices);
-
-            VertexLayoutManager::empty()
-                .add_attributes(&ColorPointVertex::attributes())
-                .setup_attributes()?;
+            let vao = VertexArrayObject::new_with_attributes(ColorPointVertex::attributes());
+            let vbo = BufferObject::new_with_vao(&vao, BufferType::ArrayBuffer, BufferUsage::StaticDraw, vertices);
 
             self.vao = Some(vao);
             self.vbo = Some(vbo);
@@ -77,7 +72,7 @@ impl Scene<RenderContext> for ShaderTriangle {
 
     fn draw(&mut self, context: &mut RenderContext) -> SceneResult {
         if let Some(vao) = self.vao.as_mut() {
-            vao.bind()?;
+            vao.bind();
 
             if let Ok(shader) = context
                 .shader_manager()
@@ -109,9 +104,7 @@ struct ColorPointVertex {
     pub color: [f32; 3],
 }
 
-impl VertexLayoutDescription for ColorPointVertex {
-    // The color must be specified with 3 components here because normally the color includes
-    // a fourth value, which indicates the alpha channel (transparency).
+impl VertexLayout for ColorPointVertex {
     fn attributes() -> Vec<VertexAttribute> {
         vec![
             VertexAttributeType::Position.into(),

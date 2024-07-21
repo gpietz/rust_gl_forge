@@ -1,6 +1,6 @@
+use crate::opengl::shader_program::ShaderProgram;
 use anyhow::{anyhow, Result};
 use std::collections::HashMap;
-use crate::opengl::shader_program::ShaderProgram;
 
 #[derive(Default, Debug)]
 pub struct ShaderManager {
@@ -76,5 +76,23 @@ impl ShaderManager {
 
     pub fn get_shader_program_keys(&self) -> Vec<String> {
         self.shader_programs.keys().map(|sp| sp.to_string()).collect()
+    }
+
+    /// Attempts to activate a shader by its key.
+    ///
+    /// This method tries to retrieve a shader associated with the given key and activate it. 
+    /// If the shader is successfully retrieved and activated, the method returns `true`. 
+    /// Otherwise, it returns `false`.
+    ///
+    /// # Parameters
+    /// - `key`: A string slice that holds the key associated with the shader to be activated.
+    ///
+    /// # Returns
+    /// - `bool`: `true` if the shader is successfully retrieved and activated, otherwise `false`.
+    pub fn activate_shader(&mut self, key: &str) -> bool {
+        self.get_shader(key).map_or(false, |shader| {
+            shader.activate();
+            true
+        })
     }
 }

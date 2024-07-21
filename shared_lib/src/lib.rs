@@ -12,8 +12,10 @@ use std::borrow::Cow;
 pub mod apps;
 pub mod camera;
 pub mod color;
+mod component;
 pub mod conversion_utils;
 pub mod core;
+pub mod geometry_manager;
 pub mod gl_draw;
 pub mod gl_traits;
 pub mod gl_types;
@@ -30,6 +32,7 @@ pub mod shapes;
 pub mod string_utils;
 pub mod sys_event;
 pub mod text;
+pub mod vertex;
 pub mod vertices;
 
 pub mod prelude {
@@ -122,4 +125,20 @@ pub trait RenderTarget<'a> {
 
     /// Clears the entire target with a single color.
     fn clear_with_color(&mut self, color: impl Into<Cow<'a, Color>>);
+}
+
+//////////////////////////////////////////////////////////////////////////////
+// - DataState -
+//////////////////////////////////////////////////////////////////////////////
+
+#[derive(Debug, Copy, Clone, PartialEq, PartialOrd)]
+pub enum RenderDataState {
+    None,
+    Provided,
+    Uploaded,
+    NeedsUpdate,
+}
+
+pub(crate) trait RenderPrepare {
+    fn prepare_render(&self);
 }

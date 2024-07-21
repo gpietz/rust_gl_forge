@@ -1,6 +1,7 @@
 use crate::gl_prelude::check_gl_error;
 use crate::gl_traits::{Bindable, Deletable};
 use crate::gl_types::{BufferType, BufferUsage};
+use crate::opengl::vertex_array_object::VertexArrayObject;
 use anyhow::Result;
 use gl::types::{GLint, GLsizeiptr};
 use std::ffi::c_void;
@@ -87,15 +88,12 @@ impl<T> BufferObject<T> {
     /// Note: This function expects the caller to manage the OpenGL context and ensure it is
     /// available and current. Failing to do so could result in OpenGL errors or undefined behavior.
 
-    pub fn new(r#type: BufferType, usage: BufferUsage, data: Vec<T>) -> BufferObject<T> {
+    pub fn new(type_: BufferType, usage: BufferUsage, data: Vec<T>) -> BufferObject<T> {
         let mut id = 0;
-        let buffer_type = r#type.to_gl_enum();
+        let buffer_type = type_.to_gl_enum();
         unsafe {
             gl::GenBuffers(1, &mut id);
-            check_gl_error().unwrap();
-
             gl::BindBuffer(buffer_type, id);
-            check_gl_error().unwrap();
 
             if !data.is_empty() {
                 gl::BufferData(
@@ -104,20 +102,27 @@ impl<T> BufferObject<T> {
                     data.as_ptr() as *const c_void,
                     usage.to_gl_enum(),
                 );
-                check_gl_error().unwrap();
             }
-
-            // Unbind the buffer to prevent unintended modifications
-            //gl::BindBuffer(buffer_type, 0);
-            check_gl_error().unwrap();
         }
 
         BufferObject {
             id,
-            buffer_type: r#type,
+            buffer_type: type_,
             buffer_usage: usage,
             data,
         }
+    }
+
+    pub fn new_with_vao(
+        vao: &VertexArrayObject,
+        type_: BufferType,
+        usage: BufferUsage,
+        data: Vec<T>,
+    ) -> Self {
+        vao.bind();
+        let vbo = Self::new(type_, usage, data);
+        VertexArrayObject::unbind();
+        vbo
     }
 
     pub fn buffer_id(&self) -> u32 {
@@ -196,7 +201,7 @@ impl<T> BufferObject<T> {
     /// ```no-run
     /// buffer.update_data(new_vertices, Some(BufferUsage::DynamicDraw))?;
     /// ```
-    pub fn update_data(&mut self, vertices: Vec<T>, usage: Option<BufferUsage>) -> Result<()> {
+    pub fn update_data(&mut self, vertices: Vec<T>, usage: Option<BufferUsage>) {
         self.data = vertices;
 
         if let Some(new_usage) = usage {
@@ -216,9 +221,6 @@ impl<T> BufferObject<T> {
                 self.data.as_ptr() as *const c_void,
                 self.buffer_usage.to_gl_enum(),
             );
-
-            // Check for opengl errors
-            check_gl_error()
         }
     }
 

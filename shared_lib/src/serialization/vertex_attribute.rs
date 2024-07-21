@@ -1,6 +1,5 @@
 use anyhow::Result;
 use serde::{Deserialize, Serialize};
-use crate::opengl::vertex_layout_manager::VertexLayoutManager;
 
 #[derive(Serialize, Deserialize)]
 pub(crate) struct VertexAttribute {
@@ -19,11 +18,4 @@ pub(crate) struct VertexAttribute {
 #[derive(Serialize, Deserialize)]
 pub(crate) struct VertexLayout {
     attributes: Vec<VertexAttribute>,
-}
-
-pub fn write_vertex_layout<N: AsRef<str>>(
-    _layout_manager: &VertexLayoutManager,
-    _file_name: N,
-) -> Result<()> {
-    Ok(())
 }

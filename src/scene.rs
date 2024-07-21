@@ -1,7 +1,6 @@
 use anyhow::Error as AnyhowError;
 use anyhow::Result;
 use thiserror::Error;
-use shared_lib::opengl::vertex_layout_manager::VertexLayoutError;
 
 #[derive(Debug, Error)]
 pub(crate) enum SceneError {
@@ -11,8 +10,8 @@ pub(crate) enum SceneError {
     InvalidStateTransition,
     #[error("Failed to activate scene due to VAO creation error: {0}")]
     VaoCreationError(#[from] AnyhowError),
-    #[error("Failed to")]
-    VertexLayoutError(#[from] VertexLayoutError),
+    // #[error("Failed to")]
+    // VertexLayoutError(#[from] VertexLayoutError),
     #[error("Failed to load texture: {name}")]
     TextLoadError { name: String },
 }

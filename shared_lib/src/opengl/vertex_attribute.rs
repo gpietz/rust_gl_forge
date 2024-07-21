@@ -1,18 +1,14 @@
-use crate::gl_prelude::VertexDataType;
+use crate::gl_prelude::{VertexAttributeType, VertexDataType};
 
-//////////////////////////////////////////////////////////////////////////////
-// - VertexAttribute -
-//////////////////////////////////////////////////////////////////////////////
-
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Default)]
 pub struct VertexAttribute {
     /// Optional name of the attribute, useful when querying by name in shader programs.
     pub name: Option<String>,
     pub components: u8,
     pub data_type: VertexDataType,
-    pub normalized: Option<bool>,
-    pub stride: Option<u32>,
-    pub offset: Option<u32>,
+    pub normalized: bool,
+    pub stride: i32,
+    pub offset: u32,
 }
 
 impl VertexAttribute {
@@ -43,18 +39,18 @@ impl VertexAttribute {
         self
     }
 
-    pub fn normalized(mut self, normalized: impl Into<Option<bool>>) -> Self {
-        self.normalized = normalized.into();
+    pub fn normalized(mut self, normalized: bool) -> Self {
+        self.normalized = normalized;
         self
     }
 
-    pub fn stride(mut self, stride: impl Into<Option<u32>>) -> Self {
-        self.stride = stride.into();
+    pub fn stride(mut self, stride: i32) -> Self {
+        self.stride = stride;
         self
     }
 
-    pub fn offset(mut self, offset: impl Into<Option<u32>>) -> Self {
-        self.offset = offset.into();
+    pub fn offset(mut self, offset: u32) -> Self {
+        self.offset = offset;
         self
     }
 
@@ -64,15 +60,39 @@ impl VertexAttribute {
     }
 }
 
-impl Default for VertexAttribute {
-    fn default() -> Self {
-        VertexAttribute {
-            name: None,
-            components: 3,
-            data_type: VertexDataType::Float,
-            normalized: None,
-            stride: None,
-            offset: None,
+impl From<VertexAttributeType> for VertexAttribute {
+    fn from(value: VertexAttributeType) -> Self {
+        match value {
+            VertexAttributeType::Position => VertexAttribute {
+                components: 3,
+                data_type: VertexDataType::Float,
+                normalized: false,
+                ..Default::default()
+            },
+            VertexAttributeType::Position2D => VertexAttribute {
+                components: 2,
+                data_type: VertexDataType::Float,
+                normalized: false,
+                ..Default::default()
+            },
+            VertexAttributeType::Color => VertexAttribute {
+                components: 4,
+                data_type: VertexDataType::Float,
+                normalized: false,
+                ..Default::default()
+            },
+            VertexAttributeType::TexCoords => VertexAttribute {
+                components: 2,
+                data_type: VertexDataType::Float,
+                normalized: false,
+                ..Default::default()
+            },
+            VertexAttributeType::Normal => VertexAttribute {
+                components: 3,
+                data_type: VertexDataType::Float,
+                normalized: false,
+                ..Default::default()
+            },
         }
     }
 }

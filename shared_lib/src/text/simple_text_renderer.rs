@@ -41,7 +41,7 @@ impl<'a> SimpleTextRenderer<'a> {
     }
 
     pub fn from_font_atlas(font_atlas: FontAtlas) -> Result<Self> {
-        let vao = VertexArrayObject::new()?;
+        let vao = VertexArrayObject::new();
         check_gl_error2();
 
         let vbo = BufferObject::empty(BufferType::ArrayBuffer, BufferUsage::StaticDraw);

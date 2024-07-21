@@ -9,7 +9,7 @@ use shared_lib::gl_types::{IndicesValueType, PrimitiveType};
 use shared_lib::opengl::buffer_object::BufferObject;
 use shared_lib::opengl::texture::Texture;
 use shared_lib::opengl::vertex_array_object::VertexArrayObject;
-use shared_lib::opengl::vertex_layout_manager::{VertexLayoutDescription, VertexLayoutManager};
+use shared_lib::opengl::vertex_layout::VertexLayout;
 use shared_lib::sdl_window::SdlKeyboardState;
 use shared_lib::vertices::textured_vertex::TexturedVertex;
 
@@ -102,7 +102,9 @@ impl Scene<RenderContext> for Transformation {
             self.rotation_speed = DEFAULT_ROTATION_SPEED;
 
             let vertex_data = vertex_data_2d::create_quad();
-            self.vao = Some(VertexArrayObject::new()?);
+            self.vao = Some(VertexArrayObject::new_with_attributes(
+                TexturedVertex::attributes(),
+            ));
             self.vbo = Some(vertex_data.create_vbo());
             self.ibo = Some(vertex_data.create_ibo());
 
@@ -111,10 +113,6 @@ impl Scene<RenderContext> for Transformation {
                 .push(query_texture(context, textures::CRATE8)?);
             self.textures
                 .push(query_texture(context, textures::AWESOMEFACE2)?);
-
-            // Setup vertex layout
-            VertexLayoutManager::from_attributes(TexturedVertex::attributes())
-                .setup_attributes()?;
 
             // Create shader program
             context
@@ -191,7 +189,7 @@ impl Scene<RenderContext> for Transformation {
                 shader.set_uniform_matrix("transform", false, &transform)?;
 
                 // Activate VAO buffer
-                vao.bind()?;
+                vao.bind();
 
                 gl_draw::draw_elements(
                     PrimitiveType::Triangles,

@@ -167,6 +167,12 @@ pub enum VertexDataType {
     UnsignedInt_10F_11F_11F_Rev,
 }
 
+impl Default for VertexDataType {
+    fn default() -> Self {
+        VertexDataType::Float
+    }
+}
+
 impl VertexDataType {
     pub fn from_gl_enum(gl_enum: GLenum) -> Option<VertexDataType> {
         match gl_enum {
@@ -261,7 +267,7 @@ pub enum VertexAttributeType {
     /// **4 components per color, float, not normalized**
     Color,
     /// **2 components per texture coordinate, float, not normalized**
-    TexCoord,
+    TexCoords,
     /// **3 components per normal, float, not normalized**
     Normal,
 }
@@ -345,7 +351,7 @@ impl VertexAttributeType {
             // 4 components per color, float, not normalized
             VertexAttributeType::Color => (4, gl::FLOAT, gl::FALSE),
             // 2 components per texture coordinate, float, not normalized
-            VertexAttributeType::TexCoord => (2, gl::FLOAT, gl::FALSE),
+            VertexAttributeType::TexCoords => (2, gl::FLOAT, gl::FALSE),
             // 3 components per normal, float, not normalized
             VertexAttributeType::Normal => (3, gl::FLOAT, gl::FALSE),
         }
@@ -362,7 +368,7 @@ impl VertexAttributeType {
             VertexAttributeType::Color => {
                 VertexAttribute::new(4, VertexDataType::Float).name("color".to_string())
             }
-            VertexAttributeType::TexCoord => {
+            VertexAttributeType::TexCoords => {
                 VertexAttribute::new(2, VertexDataType::Float).name("tex_coord".to_string())
             }
             VertexAttributeType::Normal => {
@@ -372,41 +378,16 @@ impl VertexAttributeType {
     }
 }
 
-impl Into<VertexAttribute> for VertexAttributeType {
-    fn into(self) -> VertexAttribute {
-        match self {
-            VertexAttributeType::Position => VertexAttribute {
-                components: 3,
-                data_type: VertexDataType::Float,
-                normalized: Some(false),
-                ..Default::default()
-            },
-            VertexAttributeType::Position2D => VertexAttribute {
-                components: 2,
-                data_type: VertexDataType::Float,
-                normalized: Some(false),
-                ..Default::default()
-            },
-            VertexAttributeType::Color => VertexAttribute {
-                components: 4,
-                data_type: VertexDataType::Float,
-                normalized: Some(false),
-                ..Default::default()
-            },
-            VertexAttributeType::TexCoord => VertexAttribute {
-                components: 2,
-                data_type: VertexDataType::Float,
-                normalized: Some(false),
-                ..Default::default()
-            },
-            VertexAttributeType::Normal => VertexAttribute {
-                components: 3,
-                data_type: VertexDataType::Float,
-                normalized: Some(false),
-                ..Default::default()
-            },
-        }
-    }
+/// Converts an input iterable of `VertexAttributeType` into a `Vec<VertexAttribute>`.
+///
+/// # Arguments
+/// * `input` - An iterable of items that can be converted into VertexAttribute.
+pub fn convert_attributes<I>(input: I) -> Vec<VertexAttribute>
+where
+    I: IntoIterator,
+    I::Item: Into<VertexAttribute>,
+{
+    input.into_iter().map(Into::into).collect()
 }
 
 //////////////////////////////////////////////////////////////////////////////

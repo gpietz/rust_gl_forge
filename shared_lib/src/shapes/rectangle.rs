@@ -10,12 +10,11 @@ use crate::gl_draw::{draw_arrays, draw_elements};
 use crate::gl_prelude::{BufferType, BufferUsage, PrimitiveType, ShaderType, VertexAttributeType};
 use crate::gl_traits::Bindable;
 use crate::gl_types::IndicesValueType;
+use crate::opengl::blend_guard::BlendGuard;
 use crate::opengl::buffer_object::BufferObject;
 use crate::opengl::shader_program::ShaderProgram;
 use crate::opengl::vertex_array_object::VertexArrayObject;
-use crate::opengl::vertex_layout_manager::VertexLayoutManager;
 use crate::{Drawable, Position2D, Size2D};
-use crate::opengl::blend_guard::BlendGuard;
 
 const VERTEX_SHADER_SOURCE: &str = "
     #version 330 core
@@ -194,7 +193,7 @@ struct RectangleDraw {
 
 impl RectangleDraw {
     pub fn new() -> Self {
-        let vao = VertexArrayObject::new().expect("Failed to create vertex array object");
+        let vao = VertexArrayObject::new();
         let vbo = BufferObject::empty(BufferType::ArrayBuffer, BufferUsage::DynamicDraw);
         let ebo = BufferObject::new(
             BufferType::ElementArrayBuffer,
@@ -203,9 +202,10 @@ impl RectangleDraw {
         );
 
         // Set vertex Attributes
-        VertexLayoutManager::from_attribute_types(vec![VertexAttributeType::Position])
-            .setup_attributes()
-            .expect("Failed to setup vertex attribute layout");
+        //FIXME
+        // VertexLayoutManager::from_attribute_types(vec![VertexAttributeType::Position])
+        //     .setup_attributes()
+        //     .expect("Failed to setup vertex attribute layout");
 
         // Create shader program
         let mut load_shader_ok = true;
@@ -241,9 +241,7 @@ impl RectangleDraw {
     }
 
     pub fn draw(&mut self, rect: &Rectangle) -> Result<()> {
-        self.vao.bind()?;
-        self.vbo.bind()?;
-        self.ebo.bind()?;
+        self.vao.bind();
         self.update_shader_uniforms(rect);
         self.update_vertices(rect);
 
@@ -316,7 +314,7 @@ impl RectangleDraw {
             x, y + height, 0.0,         // Top-left
         ];
         let vec = vertices.to_vec();
-        self.vbo.update_data(vec, None)?;
+        self.vbo.update_data(vec, None);
 
         self.last_position = Some(rect.position);
         self.last_size = Some(rect.size);

@@ -4,7 +4,6 @@ use std::time::{Duration, Instant};
 
 use shared_lib::opengl::shader_manager::ShaderManager;
 use shared_lib::opengl::texture_manager::TextureManager;
-use shared_lib::opengl::vertex_layout_manager::VertexLayoutManager;
 use shared_lib::prelude::SdlWindow;
 use shared_lib::sdl_window::SdlKeyboardState;
 
@@ -13,7 +12,6 @@ pub(crate) struct RenderContext {
     delta_time: f32,
     frame_rate: u32,
     shader_manager: ShaderManager,
-    vertex_layout_manager: VertexLayoutManager,
     texture_manager: TextureManager,
     keyboard_state: SdlKeyboardState,
 
@@ -30,7 +28,6 @@ impl RenderContext {
             delta_time: 0.0,
             frame_rate: 0,
             shader_manager: ShaderManager::default(),
-            vertex_layout_manager: VertexLayoutManager::default(),
             texture_manager: TextureManager::default(),
             last_update_time: time_now,
             last_fps_time: time_now,
@@ -74,10 +71,6 @@ impl RenderContext {
 
     pub(crate) fn shader_manager(&mut self) -> &mut ShaderManager {
         &mut self.shader_manager
-    }
-
-    pub(crate) fn vertex_layout_manager(&mut self) -> &mut VertexLayoutManager {
-        &mut self.vertex_layout_manager
     }
 
     pub(crate) fn texture_manager(&mut self) -> &mut TextureManager {

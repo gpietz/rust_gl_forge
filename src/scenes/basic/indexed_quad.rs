@@ -1,10 +1,10 @@
 use cgmath::Vector3;
+use std::ops::Index;
 
 use shared_lib::gl_prelude::{BufferType, BufferUsage, VertexAttributeType};
 use shared_lib::opengl::buffer_object::BufferObject;
-use shared_lib::{gl_draw, gl_prelude::PrimitiveType, gl_types::IndicesValueType};
 use shared_lib::opengl::vertex_array_object::VertexArrayObject;
-use shared_lib::opengl::vertex_layout_manager::VertexLayoutManager;
+use shared_lib::{gl_draw, gl_prelude::PrimitiveType, gl_types::IndicesValueType};
 
 use crate::render_context::RenderContext;
 use crate::resources::shaders;
@@ -32,16 +32,14 @@ impl Scene<RenderContext> for IndexedQuad {
             ];
             let indices = vec![0, 1, 3, 1, 2, 3];
 
-            let vao = VertexArrayObject::new().map_err(SceneError::VaoCreationError)?;
+            let vao =
+                VertexArrayObject::new_with_attribute_types(vec![VertexAttributeType::Position]);
             let vbo = BufferObject::new(BufferType::ArrayBuffer, BufferUsage::StaticDraw, vertices);
             let ibo = BufferObject::new(
                 BufferType::ElementArrayBuffer,
                 BufferUsage::StaticDraw,
                 indices,
             );
-
-            VertexLayoutManager::from_attribute_types(vec![VertexAttributeType::Position])
-                .setup_attributes()?;
 
             self.vao = Some(vao);
             self.vbo = Some(vbo);
@@ -52,7 +50,7 @@ impl Scene<RenderContext> for IndexedQuad {
 
     fn draw(&mut self, context: &mut RenderContext) -> SceneResult {
         if let Some(vao) = self.vao.as_mut() {
-            vao.bind()?;
+            vao.bind();
 
             let shader = context.shader_manager().get_shader(shaders::SIMPLE_RED);
             if let Ok(shader) = shader {

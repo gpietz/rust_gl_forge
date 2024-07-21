@@ -13,4 +13,4 @@ pub mod texture_manager;
 pub mod texture_utils;
 pub mod vertex_array_object;
 pub mod vertex_attribute;
-pub mod vertex_layout_manager;
+pub mod vertex_layout;
