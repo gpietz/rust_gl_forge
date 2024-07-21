@@ -193,7 +193,7 @@ struct RectangleDraw {
 
 impl RectangleDraw {
     pub fn new() -> Self {
-        let vao = VertexArrayObject::new();
+        let vao = VertexArrayObject::default();
         let vbo = BufferObject::empty(BufferType::ArrayBuffer, BufferUsage::DynamicDraw);
         let ebo = BufferObject::new(
             BufferType::ElementArrayBuffer,
