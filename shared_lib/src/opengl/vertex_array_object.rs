@@ -313,7 +313,9 @@ impl VertexArrayObject {
     fn upload_layout_data(&self) {
         if let Some(layout) = self.layout.as_ref() {
             self.bind();
-            layout.borrow_mut().upload_to_gpu();
+            let mut layout = layout.borrow_mut();
+            layout.upload_to_gpu();
+            layout.layout_data_state = RenderDataState::Uploaded;
             Self::unbind();
         }
     }
