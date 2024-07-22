@@ -1,11 +1,12 @@
-use crate::camera::Camera;
+use crate::camera::orthographic_camera::OrthographicCamera;
+use crate::camera::{Camera, CameraError};
 use crate::conversion_utils::convert_to_vector3_vec;
 use crate::math::deg_to_rad;
 use crate::Position2D;
 use anyhow::{anyhow, Context, Result};
 use cgmath::{perspective, Deg, Matrix4, Point3, Rad, SquareMatrix, Transform, Vector2, Vector3};
 use float_cmp::approx_eq;
-use crate::camera::orthographic_camera::OrthographicCamera;
+use std::any::Any;
 
 #[derive(Debug, Copy, Clone)]
 pub struct PerspectiveCamera {
@@ -31,6 +32,8 @@ pub struct PerspectiveCamera {
     pub yaw: f32,
     /// The pitch (rotation around the x-axis) of the camera, in degrees.
     pub pitch: f32,
+    /// The roll (rotation arount the z-axis) of the camera, in degrees.
+    pub roll: f32,
 
     projection_matrix: Matrix4<f32>,
     projection_matrix_inverse: Matrix4<f32>,
@@ -63,11 +66,14 @@ impl PerspectiveCamera {
         // Calculate the view matrix
         let rotation_yaw = Matrix4::from_angle_y(Deg(self.yaw));
         let rotation_pitch = Matrix4::from_angle_x(Deg(self.pitch));
-        let rotation_matrix = rotation_yaw * rotation_pitch;
+        let rotation_roll = Matrix4::from_angle_y(Deg(self.roll));
+        let rotation_matrix = rotation_yaw * rotation_pitch * rotation_roll;
         self.direction = (rotation_matrix * self.direction.extend(0.0)).truncate();
 
-        self.view_matrix = Matrix4::look_at_rh(self.position, self.position + self.direction, self.up);
-        self.matrix_world_inverse = self.view_matrix.invert().context("View matrix is not invertible")?;
+        self.view_matrix =
+            Matrix4::look_at_rh(self.position, self.position + self.direction, self.up);
+        self.matrix_world_inverse =
+            self.view_matrix.invert().context("View matrix is not invertible")?;
 
         // Calculate the combined view-projection matrix
         self.view_projection_matrix = self.projection_matrix * self.view_matrix;
@@ -105,6 +111,36 @@ impl PerspectiveCamera {
         }
         false
     }
+
+    /// Resets the camera's position, up vector, and optionally its direction and speed.
+    ///
+    /// This function resets the camera's position to the origin (0.0, 0.0, 0.0) and
+    /// the up vector to (0.0, 1.0, 0.0). It optionally resets the direction and speed
+    /// based on the provided parameters.
+    ///
+    /// # Parameters
+    /// * `direction` - If `true`, the camera's direction is reset to (0.0, 0.0, -1.0).
+    pub fn reset(&mut self, direction: bool) {
+        self.position = Point3::new(0.0, 0.0, 0.0);
+        self.up = Vector3::new(0.0, 1.0, 0.0);
+        if direction {
+            self.direction = Vector3::new(0.0, 0.0, -1.0);
+        }
+    }
+
+    /// Resets the position of the camera to the origin.
+    /// This function sets the camera's position to the coordinates (0.0, 0.0, 0.0).
+    pub fn reset_position(&mut self) {
+        self.position = Point3::new(0.0, 0.0, 0.0);
+    }
+
+    /// Resets the direction of the camera to the default direction.
+    ///
+    /// This function sets the camera's direction to the vector (0.0, 0.0, -1.0),
+    /// which typically represents looking forward along the negative z-axis.
+    pub fn reset_direction(&mut self) {
+        self.direction = Vector3::new(0.0, 0.0, -1.0);
+    }
 }
 
 impl Default for PerspectiveCamera {
@@ -122,6 +158,7 @@ impl Default for PerspectiveCamera {
             zoom: 1,
             yaw: -90.0,
             pitch: 0.0,
+            roll: 0.0,
             projection_matrix: Matrix4::identity(),
             projection_matrix_inverse: Matrix4::identity(),
             view_matrix: Matrix4::identity(),
@@ -148,17 +185,26 @@ impl Camera for PerspectiveCamera {
         &self.view_projection_matrix
     }
 
-    fn copy(&mut self, source: &Self) -> &mut Self {
-        self.position = source.position;
-        self.target = source.target;
-        self.up = source.up;
-        self.fov = source.fov;
-        self.aspect = source.aspect;
-        self.near = source.near.max(0.1);
-        self.far = source.far;
-        self.zoom = source.zoom;
-        self.yaw = source.yaw;
-        self.pitch = source.pitch;
+    fn copy_from(&mut self, source: &dyn Camera) -> Result<(), CameraError> {
+        if let Some(source) = source.as_any().downcast_ref::<PerspectiveCamera>() {
+            self.position = source.position;
+            self.target = source.target;
+            self.up = source.up;
+            self.fov = source.fov;
+            self.aspect = source.aspect;
+            self.near = source.near.max(0.1);
+            self.far = source.far;
+            self.zoom = source.zoom;
+            self.yaw = source.yaw;
+            self.pitch = source.pitch;
+            self.roll = source.roll;
+            Ok(())
+        } else {
+            Err(CameraError::NotPerspectiveCamera)
+        }
+    }
+
+    fn as_any(&self) -> &dyn Any {
         self
     }
 }
