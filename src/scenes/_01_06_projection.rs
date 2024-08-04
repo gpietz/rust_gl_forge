@@ -2,7 +2,7 @@ use std::fmt::{Display, Formatter};
 use std::time::{Duration, Instant};
 
 use anyhow::Result;
-use cgmath::{perspective, vec3, Deg, InnerSpace, Matrix4, Point3, Rad, Vector3, SquareMatrix};
+use cgmath::{perspective, vec3, Deg, InnerSpace, Matrix4, Point3, Rad, Vector3};
 use chrono::{Local, Timelike};
 use sdl2::keyboard::Keycode;
 
@@ -77,7 +77,7 @@ impl<'a> Projection {
                 for rotation in &mut self.cube_rotations {
                     if !self.synchronized_rotation_prev {
                         rotation.reset_angle();
-                    } 
+                    }
                     rotation.speed = rotation_speed;
                 }
             } else {
@@ -88,7 +88,7 @@ impl<'a> Projection {
 
             self.last_update = Some(now);
             self.synchronized_rotation_prev = self.synchronized_rotation;
-      
+
             let time_now = Local::now();
             println!(
                 "Cube rotation updated: {:02}:{:02}:{:02}",
@@ -454,12 +454,10 @@ impl Scene<RenderContext> for Projection {
                 for (i, pos) in self.cube_positions.iter().enumerate() {
                     let pos_vector3 = Vector3::new(pos[0], pos[1], pos[2]);
                     let translation = Matrix4::from_translation(pos_vector3);
-                    let rotation: Matrix4<f32>;
-
-                    if self.render_mode != RenderMode::MultipleCubesRotating {
+                    let rotation = if self.render_mode != RenderMode::MultipleCubesRotating {
                         let angle = Rad::from(Deg(20.0 * i as f32));
                         let axis = Vector3::new(1.0, 0.3, 0.5).normalize();
-                        rotation = Matrix4::from_axis_angle(axis, angle);
+                        Matrix4::from_axis_angle(axis, angle)
                     } else {
                         let cube_rotation = &self.cube_rotations[i];
                         let rotation_x = Matrix4::from_angle_x(Deg(cube_rotation.angle.x));
@@ -467,8 +465,8 @@ impl Scene<RenderContext> for Projection {
                         let rotation_z = Matrix4::from_angle_z(Deg(cube_rotation.angle.z));
 
                         // Combine rotations: Note the order of multiplication matters
-                        rotation = rotation_x * rotation_y * rotation_z;
-                    }
+                        rotation_x * rotation_y * rotation_z
+                    };
 
                     let model = translation * rotation;
                     shader.set_uniform_matrix("model", false, &model)?;
