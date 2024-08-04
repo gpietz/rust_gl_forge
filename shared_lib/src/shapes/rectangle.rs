@@ -251,16 +251,16 @@ impl RectangleDraw {
         let _blend_guard = BlendGuard::default();
 
         if rect.fill_color.is_some() {
-            draw_elements(
-                PrimitiveType::Triangles,
-                self.ebo.data_len() as u32,
-                IndicesValueType::Int,
-            );
+            // draw_elements(
+            //     PrimitiveType::Triangles,
+            //     self.ebo.data_len() as u32,
+            //     IndicesValueType::Int,
+            // );
         } else {
-            unsafe {
-                gl::LineWidth(rect.strength);
-            }
-            draw_arrays(PrimitiveType::LineLoop, 0, 4);
+            // unsafe {
+            //     gl::LineWidth(rect.strength);
+            // }
+            // draw_arrays(PrimitiveType::LineLoop, 0, 4);
         }
 
         Ok(())

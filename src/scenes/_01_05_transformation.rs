@@ -95,18 +95,17 @@ impl Scene<RenderContext> for Transformation {
         if self.vao.is_none() {
             self.rotation_speed = DEFAULT_ROTATION_SPEED;
 
-            let vertex_data = vertex_data_2d::create_quad();
+            let vertex_data = vertex_data_2d::create_quad_data(true);
 
-            // Create VAO object and bind it
-            self.vao = Some(VertexArrayObject::new_with_attributes(
-                TexturedVertex::attributes(),
-            ));
-            self.vao.as_ref().unwrap().bind();
+            // Create VAO object
+            let vao = VertexArrayObject::new_with_attributes(TexturedVertex::attributes());
 
             // Add vertex data to the VAO
-            self.vbo = Some(vertex_data.create_vbo());
-            self.ibo = Some(vertex_data.create_ibo());
-            VertexArrayObject::unbind();
+            self.vbo = Some(vertex_data.create_vbo(&vao));
+            self.ibo = Some(vertex_data.create_ibo(&vao));
+
+            //  Store VAO in struct (moves ownership)
+            self.vao = Some(vao);
 
             // Load textures
             self.textures

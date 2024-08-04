@@ -13,6 +13,7 @@ use scenes::_01_02_indexed_quad::IndexedQuad;
 use scenes::_01_03_shader_triangle::ShaderTriangle;
 use scenes::_01_04_texture_triangle::TextureTriangle;
 use scenes::_01_05_transformation::Transformation;
+use scenes::_01_06_projection::Projection;
 use shared_lib::color::Color;
 use shared_lib::gl_prelude::gl_get_version;
 use shared_lib::sdl_window::SdlWindow;
@@ -58,7 +59,7 @@ fn main() -> Result<()> {
         Box::<ShaderTriangle>::new(ShaderTriangle::new(true)),
         Box::<TextureTriangle>::default(),
         Box::<Transformation>::default(),
-        // //Box::<Projection>::default(),
+        Box::<Projection>::default(),
         // Box::<TextRendering>::new(TextRendering::new()?),
         // //Box::<DrawRectangle>::default(),
         // //Box::<LightCube>::default(),

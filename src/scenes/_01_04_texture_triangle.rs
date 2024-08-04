@@ -33,16 +33,15 @@ impl TextureTriangle {
 
     fn update_data(&mut self) -> SceneResult {
         let vertex_data = if self.is_draw_quad() {
-            vertex_data_2d::create_quad()
+            vertex_data_2d::create_quad_data(true)
         } else {
-            vertex_data_2d::create_triangle()
+            vertex_data_2d::create_triangle_data()
         };
 
         let vao_exists = self.vao.is_some();
         let vao = VertexArrayObject::new_with_attributes(TexturedVertex::attributes());
-        vao.bind();
-        let vbo = vertex_data.create_vbo();
-        let ebo = vertex_data.create_ibo();
+        let vbo = vertex_data.create_vbo(&vao);
+        let ebo = vertex_data.create_ibo(&vao);
         let vertex_count = ebo.data_len();
         VertexArrayObject::unbind();
 
