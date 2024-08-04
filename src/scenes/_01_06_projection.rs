@@ -2,7 +2,7 @@ use std::fmt::{Display, Formatter};
 use std::time::{Duration, Instant};
 
 use anyhow::Result;
-use cgmath::{perspective, vec3, Deg, InnerSpace, Matrix4, Point3, Rad, Vector3};
+use cgmath::{perspective, vec3, Deg, InnerSpace, Matrix4, Point3, Rad, Vector3, SquareMatrix};
 use chrono::{Local, Timelike};
 use sdl2::keyboard::Keycode;
 
@@ -53,6 +53,8 @@ pub(crate) struct Projection {
     rotation_paused: bool,
     mouse_capture: bool,
     rectangle: Option<Rectangle>,
+    synchronized_rotation: bool,
+    synchronized_rotation_prev: bool,
 }
 
 impl<'a> Projection {
@@ -70,11 +72,23 @@ impl<'a> Projection {
     fn update_rotations(&mut self, delta_time: f32) {
         let now = Instant::now();
         if self.check_rotation_update_required() {
-            for rotation in &mut self.cube_rotations {
-                rotation.update();
+            if self.synchronized_rotation {
+                let rotation_speed = CubeRotation::random_speed();
+                for rotation in &mut self.cube_rotations {
+                    if !self.synchronized_rotation_prev {
+                        rotation.reset_angle();
+                    } 
+                    rotation.speed = rotation_speed;
+                }
+            } else {
+                for rotation in &mut self.cube_rotations {
+                    rotation.update();
+                }
             }
-            self.last_update = Some(now);
 
+            self.last_update = Some(now);
+            self.synchronized_rotation_prev = self.synchronized_rotation;
+      
             let time_now = Local::now();
             println!(
                 "Cube rotation updated: {:02}:{:02}:{:02}",
@@ -145,6 +159,17 @@ impl<'a> Projection {
             println!(
                 "Render first cube only: {}",
                 if self.first_only {
+                    "activated"
+                } else {
+                    "deactivated"
+                }
+            );
+        }
+        if keyboard_state.is_key_pressed(Keycode::X) {
+            self.synchronized_rotation = !self.synchronized_rotation;
+            println!(
+                "Synchronized rotation: {}",
+                if self.synchronized_rotation {
                     "activated"
                 } else {
                     "deactivated"
@@ -577,6 +602,10 @@ impl CubeRotation {
 
     fn update(&mut self) {
         self.speed = Self::random_speed();
+    }
+
+    fn reset_angle(&mut self) {
+        self.angle = Vector3::new(0.0, 0.0, 0.0);
     }
 }
 
