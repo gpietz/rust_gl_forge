@@ -15,6 +15,7 @@ pub mod color;
 mod component;
 pub mod conversion_utils;
 pub mod core;
+mod geometry;
 pub mod geometry_manager;
 pub mod gl_draw;
 pub mod gl_traits;
@@ -22,7 +23,7 @@ pub mod gl_types;
 pub mod gl_utils;
 pub mod input;
 pub mod math;
-pub mod meshes;
+pub mod mesh;
 pub mod opengl;
 pub mod projection;
 pub mod rectangle;
@@ -39,6 +40,7 @@ pub mod prelude {
     pub use crate::color::*;
     pub use crate::sdl_window::SdlWindow;
 }
+
 pub mod gl_prelude {
     pub use crate::gl_draw::*;
     pub use crate::gl_traits::*;
