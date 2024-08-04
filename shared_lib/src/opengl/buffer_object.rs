@@ -145,38 +145,6 @@ impl<T> BufferObject<T> {
         self.data.len() + size_of::<T>()
     }
 
-    /// Unbinds all OpenGL buffer types.
-    ///
-    /// This function iterates over all buffer types defined in the `BufferType` enum
-    /// and unbinds each one. It sets the current buffer for each type to '0', which
-    /// effectively unbinds any buffer currently bound to that type. This is useful for
-    /// ensuring that no buffers remain bound inadvertently, which could lead to unexpected
-    /// behavior or performance issues.
-    ///
-    /// # Safety
-    /// This function contains an `unsafe` block, as it directly interacts with the OpenGL
-    /// API. The caller must ensure that a valid OpenGL context is current in the thread
-    /// where this function is called. Failing to do so could result in undefined behavior,
-    /// including program crashes.
-    ///
-    /// # Examples
-    /// ```no-run
-    /// // Assuming a valid OpenGL context is available and `BufferType` is defined
-    /// unbind_all_buffers();
-    /// // At this point, all buffer types are unbound.
-    /// ```
-    ///
-    /// Note: This function is intended for scenarios where a complete reset of buffer
-    /// state is required. In typical use cases, it's more efficient to bind and unbind
-    /// buffers as needed rather than unbinding all buffer types.
-    pub fn unbind_all_buffers() {
-        for buffer_type in BufferType::all_types() {
-            unsafe {
-                gl::BindBuffer(buffer_type.to_gl_enum(), 0);
-            }
-        }
-    }
-
     /// Updates the data of the buffer object.
     ///
     /// This function updates the internal data of the buffer object with the provided vertices.
@@ -299,4 +267,58 @@ impl<T> Drop for BufferObject<T> {
             // You might choose to log the error or take other appropriate actions here.
         }
     }
+}
+
+/// A macro to unbind multiple buffer objects and handle any potential errors.
+///
+/// This macro takes a variadic list of buffer objects and attempts to unbind each one by calling
+/// its `unbind()` method. If any `unbind()` operation results in an error, the macro prints
+/// an error message to the standard error output (`stderr`).
+///
+/// # Usage
+///
+/// ```ignore
+/// unbind_buffers!(vbo, ibo, another_buffer);
+/// ```
+///
+/// In the example above, the macro will call `unbind()` on each of the provided buffers in the order
+/// they are listed. If any of these calls return an `Err`, the error is captured and printed
+/// to `stderr`.
+///
+/// # Parameters
+///
+/// - `$buffer`: An expression that resolves to a buffer object which implements the `unbind()` method
+///   returning a `Result`. Multiple buffer objects can be passed, separated by commas.
+///
+/// # Error Handling
+///
+/// The macro uses pattern matching to check if the `unbind()` call results in an error (`Err`).
+/// If an error is encountered, the macro outputs an error message including the error details.
+/// This can help with debugging and ensures that errors are not silently ignored.
+///
+/// # Example
+///
+/// ```ignore
+/// let vbo = BufferObject::<u32> { /* initialization */ };
+/// let ibo = BufferObject::<u32> { /* initialization */ };
+///
+/// unbind_buffers!(&vbo, &ibo);
+/// ```
+///
+/// This will attempt to unbind both `vbo` and `ibo`. If any of the unbind operations fail, an
+/// error message will be printed to `stderr`.
+///
+/// # Notes
+///
+/// - The macro is designed to provide basic error handling by logging errors. If more sophisticated
+///   error handling is needed, consider modifying the macro or handling errors in a different manner.
+#[macro_export]
+macro_rules! unbind_buffers {
+    ($($buffer:expr),*) => {
+        $(
+            if let Err(e) = $buffer.unbind() {
+                eprintln!("Error unbinding buffer: {:?}", e);
+            }
+        )*
+    };
 }
