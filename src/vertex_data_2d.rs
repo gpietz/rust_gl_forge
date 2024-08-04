@@ -16,7 +16,7 @@ pub(crate) fn create_textured_vertices(vertices: &Vec<[f32; 7]>) -> Vec<Textured
     textured_vertices
 }
 
-pub(crate) fn create_triangle() -> VertexData<TexturedVertex> {
+pub(crate) fn create_triangle_data() -> VertexData<TexturedVertex> {
     let vertices = vec![
         [-0.5, -0.5, 1.0, 0.0, 0.0, 0.0, 0.0],
         [0.5, -0.5, 0.0, 1.0, 0.0, 1.0, 0.0],
@@ -29,16 +29,31 @@ pub(crate) fn create_triangle() -> VertexData<TexturedVertex> {
     }
 }
 
-pub(crate) fn create_quad() -> VertexData<TexturedVertex> {
-    let vertices = vec![
-        [0.5, 0.5, 1.0, 0.0, 0.0, 1.0, 1.0],
-        [0.5, -0.5, 0.0, 1.0, 0.0, 1.0, 0.0],
-        [-0.5, -0.5, 0.0, 0.0, 1.0, 0.0, 0.0],
-        [-0.5, 0.5, 1.0, 1.0, 0.0, 0.0, 1.0],
-    ];
+pub(crate) fn create_quad_data(indexed: bool) -> VertexData<TexturedVertex> {
+    let vertices = if indexed {
+        vec![
+            [0.5, 0.5, 1.0, 0.0, 0.0, 1.0, 1.0],
+            [0.5, -0.5, 0.0, 1.0, 0.0, 1.0, 0.0],
+            [-0.5, -0.5, 0.0, 0.0, 1.0, 0.0, 0.0],
+            [-0.5, 0.5, 1.0, 1.0, 0.0, 0.0, 1.0],
+        ]
+    } else {
+        vec![
+            [0.5, 0.5, 1.0, 0.0, 0.0, 1.0, 1.0],
+            [0.5, -0.5, 0.0, 1.0, 0.0, 1.0, 0.0],
+            [-0.5, 0.5, 1.0, 1.0, 0.0, 0.0, 1.0],
+            [0.5, -0.5, 0.0, 1.0, 0.0, 1.0, 0.0],
+            [-0.5, -0.5, 0.0, 0.0, 1.0, 0.0, 0.0],
+            [-0.5, 0.5, 1.0, 1.0, 0.0, 0.0, 1.0],
+        ]
+    };
 
     VertexData {
         vertices: create_textured_vertices(&vertices),
-        indices: vec![0, 1, 3, 1, 2, 3],
+        indices: if indexed {
+            vec![0, 1, 3, 1, 2, 3]  
+        } else {
+            vec![]
+        },
     }
 }

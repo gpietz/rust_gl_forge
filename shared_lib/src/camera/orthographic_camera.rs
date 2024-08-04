@@ -1,7 +1,8 @@
 use anyhow::{Context, Result};
 use cgmath::{ortho, Matrix4, Point3, SquareMatrix, Transform, Vector3};
+use std::any::Any;
 
-use crate::camera::Camera;
+use crate::camera::{Camera, CameraError};
 
 /// The `OrthographicCamera` struct represents a camera with an orthographic projection,
 /// defined by six values that form the viewing frustum.
@@ -98,14 +99,22 @@ impl Camera for OrthographicCamera {
         &self.view_projection_matrix
     }
 
-    fn copy(&mut self, source: &Self) -> &mut Self {
-        self.left = source.left;
-        self.right = source.right;
-        self.top = source.top;
-        self.bottom = source.bottom;
-        self.near = source.near;
-        self.far = source.far;
-        self.zoom = source.zoom;
+    fn copy_from(&mut self, source: &dyn Camera) -> Result<(), CameraError> {
+        if let Some(source) = source.as_any().downcast_ref::<OrthographicCamera>() {
+            self.left = source.left;
+            self.right = source.right;
+            self.top = source.top;
+            self.bottom = source.bottom;
+            self.near = source.near;
+            self.far = source.far;
+            self.zoom = source.zoom;
+            Ok(())
+        } else {
+            Err(CameraError::NotOrthographicCamera)
+        }
+    }
+
+    fn as_any(&self) -> &dyn Any {
         self
     }
 }
